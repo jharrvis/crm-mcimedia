@@ -4,6 +4,7 @@ use App\Domains\Clients\Http\Controllers\ClientContactController;
 use App\Domains\Clients\Http\Controllers\ClientController;
 use App\Domains\Core\Http\Controllers\ActivityLogController;
 use App\Domains\Dashboard\Http\Controllers\DashboardController;
+use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
 use App\Domains\Services\Http\Controllers\ReminderController;
 use App\Domains\Services\Http\Controllers\ServiceController;
@@ -33,6 +34,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('reminders', ReminderController::class)->name('reminders.index');
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+
+    // Invoice (F2-2): resource + aksi transisi status + PDF.
+    Route::patch('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+    Route::patch('invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
+    Route::post('invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->name('invoices.payments.store');
+    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+    Route::resource('invoices', InvoiceController::class);
 
     Route::get('profile/password', [ProfileController::class, 'edit'])->name('profile.password.edit');
     Route::put('profile/password', [ProfileController::class, 'update'])->name('profile.password.update');
