@@ -1,0 +1,74 @@
+# Deploy CRM MCI Media ke sg2 (production)
+
+Status: **live sejak 2026-10-01** di `https://crm.mcimedia.net`.
+
+## Layout final di server (PENTING)
+
+```
+Hestia user      : mcimedia
+Domain           : crm.mcimedia.net (SSL Let's Encrypt, SSL_FORCE=yes)
+Backend          : PHP-8_3 (FPM socket per-domain)
+Project root     : /home/mcimedia/web/crm.mcimedia.net/private/crm
+Docroot (CUSTOM) : /home/mcimedia/web/crm.mcimedia.net/private/crm/public
+Database         : mcimedia_crm (MySQL lokal) — kredensial hanya di .env server
+Admin awal       : /home/mcimedia/crm-initial-admin.txt (mode 600)
+Cron             : v-add-cron-job mcimedia — schedule:run setiap menit
+```
+
+**Kenapa project TIDAK di `public_html`:** Hestia memasang `open_basedir`
+pada pool PHP-FPM yang hanya mengizinkan `public_html/public`, `private`,
+`tmp`, dll. Laravel perlu membaca `vendor/` di luar docroot, jadi project
+wajib tinggal di `private/` (sudah termasuk open_basedir) dan docroot
+dipindah dengan:
+
+```bash
+v-change-web-domain-docroot mcimedia crm.mcimedia.net crm.mcimedia.net ../private/crm/public '' yes
+```
+
+Catatan perizinan lain: direktori `public_html` harus tetap
+`mcimedia:www-data 751` (jangan `chown -R` mengganti grupnya —
+Apache butuh grup www-data, kalau tidak muncul AH00529/403).
+
+## Redeploy (update versi)
+
+1. Lokal: `git archive HEAD | tar -x -C /tmp/crm-stage`, salin
+   `public/build` ke staging, lalu di staging:
+   `composer install --no-dev --optimize-autoloader`.
+2. Upload: `tar -czf - -C /tmp/crm-stage . | sg2-ssh museops 'rm -rf /tmp/crm-deploy && mkdir /tmp/crm-deploy && tar -xzf - -C /tmp/crm-deploy'`
+3. Server (root via museops): `cp -a /tmp/crm-deploy/. /home/mcimedia/web/crm.mcimedia.net/private/crm/`,
+   JANGAN timpa `.env`. Lalu `chown -R mcimedia:mcimedia private/crm`
+   + `find ... chmod 755/644` + `chmod -R ug+rwX storage bootstrap/cache`.
+4. Sebagai mcimedia: `php8.3 artisan migrate --force`,
+   `config:cache && route:cache && view:cache`.
+5. Smoke test: `curl -s -o /dev/null -w '%{http_code}' https://crm.mcimedia.net/login` → 200.
+
+## Deploy pertama (yang sudah dijalankan 2026-10-01)
+
+Urutan persis seperti di atas, ditambah sekali jalan:
+`v-add-database mcimedia crm crm <random> mysql`, tulis `.env`
+(APP_ENV=production, DB_* mcimedia_crm, ADMIN_EMAIL/PASSWORD random —
+password hanya disimpan di `/home/mcimedia/crm-initial-admin.txt`),
+`key:generate`, `migrate --force`, `db:seed --force`, `storage:link`,
+`v-add-web-domain-ssl-force`, cron `schedule:run`.
+
+Script historis: `docs/deploy-sg2.sh` (deploy pertama) dan
+`docs/fix-docroot-sg2.sh` (pindah ke private/crm). Untuk redeploy
+ikuti langkah "Redeploy" di atas, bukan script lama.
+
+## Scheduler
+
+Sudah dipasang via Hestia cron (user mcimedia, setiap menit):
+
+```
+* * * * * cd /home/mcimedia/web/crm.mcimedia.net/private/crm && /usr/bin/php8.3 artisan schedule:run >> /dev/null 2>&1
+```
+
+Menjalankan `crm:services-expiring` harian pukul 08:00 (daftar layanan
+jatuh tempo ≤ 30 hari; kanal WA/email menyusul fase 2).
+
+## Rollback
+
+- Kode: `git checkout <tag-sebelumnya>` lalu ulangi langkah Redeploy
+  (tanpa migrate bila skema tidak berubah).
+- Domain: `v-delete-web-domain mcimedia crm.mcimedia.net` (destruktif —
+  hanya atas perintah eksplisit).
