@@ -136,7 +136,7 @@ class BusinessLogoTest extends TestCase
         $html = view('invoices.pdf', ['invoice' => $invoice->load(['client', 'items', 'payments'])])->render();
 
         $this->assertStringNotContainsString('<img', $html);
-        $this->assertStringNotContainsString('biz-logo', $html);
+        $this->assertStringNotContainsString(self::LOGO_RELATIVE, $html);
         $this->assertStringContainsString(config('crm.business.name'), $html);
     }
 
