@@ -8,8 +8,11 @@ use App\Domains\Core\Models\ActivityLog;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Exceptions\InvalidInvoiceTransition;
 use App\Domains\Invoicing\Http\Requests\InvoiceRequest;
+use App\Domains\Invoicing\Jobs\SendInvoiceEmailJob;
+use App\Domains\Invoicing\Jobs\SendInvoiceWhatsappJob;
 use App\Domains\Invoicing\Models\Invoice;
 use App\Domains\Invoicing\Models\Payment;
+use App\Domains\Invoicing\Services\InvoiceDelivery;
 use App\Domains\Invoicing\Services\InvoiceNumber;
 use App\Domains\Services\Models\Service;
 use App\Http\Controllers\Controller;
@@ -91,7 +94,16 @@ class InvoiceController extends Controller
     {
         $invoice->load(['client', 'service', 'items', 'payments.confirmer']);
 
-        return view('invoices.show', compact('invoice'));
+        // Riwayat pengiriman (F2-5) dari activity log untuk invoice ini.
+        $deliveries = ActivityLog::query()
+            ->where('subject_type', $invoice->getMorphClass())
+            ->where('subject_id', $invoice->getKey())
+            ->whereIn('event', [InvoiceDelivery::EVENT_EMAIL, InvoiceDelivery::EVENT_WHATSAPP])
+            ->latest('id')
+            ->limit(10)
+            ->get();
+
+        return view('invoices.show', compact('invoice', 'deliveries'));
     }
 
     public function edit(Invoice $invoice)
@@ -167,6 +179,46 @@ class InvoiceController extends Controller
         }
 
         return back()->with('success', "Invoice {$invoice->number} ditandai terkirim.");
+    }
+
+    /** Antre pengiriman invoice via email ke klien (F2-5). */
+    public function sendEmail(Invoice $invoice)
+    {
+        if ($invoice->isTerminal()) {
+            return back()->with('error', "Invoice {$invoice->number} berstatus {$invoice->status->label()} sehingga tidak dapat dikirim.");
+        }
+
+        $email = $invoice->client?->email;
+
+        if (blank($email)) {
+            return back()->with('error', 'Klien belum punya alamat email sehingga invoice tidak dapat dikirim via email.');
+        }
+
+        SendInvoiceEmailJob::dispatch($invoice);
+
+        return back()->with('success', "Pengiriman email invoice {$invoice->number} ke {$email} sedang diantre.");
+    }
+
+    /** Antre pengiriman invoice via WhatsApp Fonnte ke klien (F2-5). */
+    public function sendWhatsapp(Invoice $invoice)
+    {
+        if ($invoice->isTerminal()) {
+            return back()->with('error', "Invoice {$invoice->number} berstatus {$invoice->status->label()} sehingga tidak dapat dikirim.");
+        }
+
+        if (! config('crm.fonnte.enabled') || blank(config('crm.fonnte.token'))) {
+            return back()->with('error', 'Pengiriman WhatsApp belum dikonfigurasi (atur FONNTE_ENABLED dan FONNTE_TOKEN).');
+        }
+
+        $target = InvoiceDelivery::normalizeWhatsapp($invoice->client?->whatsapp);
+
+        if (blank($target)) {
+            return back()->with('error', 'Klien belum punya nomor WhatsApp sehingga invoice tidak dapat dikirim via WhatsApp.');
+        }
+
+        SendInvoiceWhatsappJob::dispatch($invoice);
+
+        return back()->with('success', "Pengiriman WhatsApp invoice {$invoice->number} ke {$target} sedang diantre.");
     }
 
     /** Batalkan invoice (draft/sent/overdue -> cancelled). */

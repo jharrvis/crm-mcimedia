@@ -46,6 +46,9 @@ Route::middleware('auth')->group(function () {
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.
     Route::patch('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+    // Pengiriman invoice via email & WhatsApp (F2-5).
+    Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
+    Route::post('invoices/{invoice}/send-whatsapp', [InvoiceController::class, 'sendWhatsapp'])->name('invoices.send-whatsapp');
     Route::patch('invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
     Route::post('invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->name('invoices.payments.store');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');

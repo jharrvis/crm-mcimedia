@@ -34,4 +34,21 @@ return [
         ),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pengiriman WhatsApp via Fonnte (F2-5)
+    |--------------------------------------------------------------------------
+    |
+    | Pengiriman invoice via WhatsApp memakai API Fonnte. Bila `enabled` false
+    | atau `token` kosong, job pengiriman WhatsApp akan dilewati (skip) dan
+    | hanya menulis peringatan ke log — tanpa exception. Jangan pernah menulis
+    | token asli ke repo; isi lewat environment variable FONNTE_TOKEN.
+    |
+    */
+    'fonnte' => [
+        'enabled' => env('FONNTE_ENABLED', false),
+        'token' => env('FONNTE_TOKEN', ''),
+        'endpoint' => env('FONNTE_ENDPOINT', 'https://api.fonnte.com/send'),
+    ],
+
 ];

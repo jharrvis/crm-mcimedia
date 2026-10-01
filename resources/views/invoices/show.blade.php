@@ -46,6 +46,31 @@
             @if (in_array($invoice->status, [InvoiceStatus::Sent, InvoiceStatus::Overdue], true))
                 <button type="button" id="open-payment" class="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700">Catat pembayaran</button>
             @endif
+
+            {{-- Pengiriman invoice (F2-5): email & WhatsApp --}}
+            @php
+                $emailTarget = $invoice->client?->email;
+                $waTarget = $invoice->client?->whatsapp;
+            @endphp
+            @if (filled($emailTarget))
+                <form method="POST" action="{{ route('invoices.send-email', $invoice) }}" class="inline">
+                    @csrf
+                    <button class="rounded-lg border border-indigo-300 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950">Kirim Email</button>
+                </form>
+            @else
+                <button type="button" disabled title="Klien belum punya alamat email"
+                        class="cursor-not-allowed rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-400 dark:border-slate-800">Kirim Email</button>
+            @endif
+            @if (filled($waTarget))
+                <form method="POST" action="{{ route('invoices.send-whatsapp', $invoice) }}" class="inline">
+                    @csrf
+                    <button class="rounded-lg border border-green-300 px-4 py-2 text-sm text-green-600 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950">Kirim WhatsApp</button>
+                </form>
+            @else
+                <button type="button" disabled title="Klien belum punya nomor WhatsApp"
+                        class="cursor-not-allowed rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-400 dark:border-slate-800">Kirim WhatsApp</button>
+            @endif
+
             <form method="POST" action="{{ route('invoices.cancel', $invoice) }}" class="inline" onsubmit="return confirm('Batalkan invoice {{ $invoice->number }}? Tindakan ini tidak dapat dibatalkan.')">
                 @csrf
                 @method('PATCH')
@@ -158,6 +183,20 @@
                 @endif
             </li>
         </ol>
+    </div>
+
+    <!-- Riwayat pengiriman (F2-5) -->
+    <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 class="mb-3 text-sm font-semibold uppercase text-slate-500">Riwayat pengiriman</h2>
+        @forelse ($deliveries as $log)
+            <p class="text-sm text-slate-600 dark:text-slate-300">
+                <span class="font-medium">{{ $log->event === 'whatsapp_sent' ? 'WhatsApp' : 'Email' }}</span>
+                <span class="text-slate-400">· {{ $log->created_at?->format('d/m/Y H:i') }}</span>
+                <span class="block text-slate-500">{{ $log->description }}</span>
+            </p>
+        @empty
+            <p class="text-sm text-slate-400">Belum ada pengiriman.</p>
+        @endforelse
     </div>
 
     <!-- Item -->
