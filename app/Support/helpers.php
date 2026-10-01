@@ -27,6 +27,42 @@ if (! function_exists('tgl_id')) {
     }
 }
 
+if (! function_exists('business_logo_path')) {
+    /**
+     * Path absolut file logo usaha bila dikonfigurasi lewat CRM_BUSINESS_LOGO
+     * (relatif terhadap public/) DAN filenya benar-benar ada; selain itu null.
+     *
+     * Mengembalikan path lokal absolut (public_path) — bukan URL — karena
+     * dompdf membaca berkas langsung dari disk. Pemeriksaan is_file() mencegah
+     * gambar rusak pada PDF bila path salah/belum diunggah.
+     */
+    function business_logo_path(): ?string
+    {
+        $relative = config('crm.business.logo');
+
+        if (! is_string($relative) || trim($relative) === '') {
+            return null;
+        }
+
+        $path = public_path(trim($relative));
+
+        return is_file($path) ? $path : null;
+    }
+}
+
+if (! function_exists('business_logo_url')) {
+    /**
+     * URL publik file logo usaha (untuk halaman web/HTML) bila dikonfigurasi
+     * dan filenya ada; null bila tidak. Lihat business_logo_path().
+     */
+    function business_logo_url(): ?string
+    {
+        return business_logo_path() === null
+            ? null
+            : asset(config('crm.business.logo'));
+    }
+}
+
 if (! function_exists('event_id')) {
     /**
      * Label Indonesia untuk event activity log: created -> "dibuat".

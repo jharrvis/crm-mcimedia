@@ -29,6 +29,20 @@ Catatan perizinan lain: direktori `public_html` harus tetap
 `mcimedia:www-data 751` (jangan `chown -R` mengganti grupnya —
 Apache butuh grup www-data, kalau tidak muncul AH00529/403).
 
+## Logo usaha (F2-8)
+
+Logo tampil di kop PDF invoice dan header halaman bayar publik (`/pay/{token}`).
+
+1. Taruh file logo di server: `public/images/business-logo.png` (PNG transparan
+   disarankan; JPG juga didukung). Tinggi efektif di PDF maksimal ~56px.
+2. Isi `.env` (di server, jangan di-commit): `CRM_BUSINESS_LOGO="images/business-logo.png"`
+   — path relatif terhadap `public/`.
+3. Muat ulang config: `php8.3 artisan config:cache` (dan `view:cache` bila ada).
+4. Tidak ada langkah `storage:link` — file dibaca langsung dari `public/`.
+
+Bila `CRM_BUSINESS_LOGO` kosong, atau filenya tidak ditemukan, kop tampil tanpa
+logo (tidak error, tidak ada gambar rusak). Identitas teks lain tidak berubah.
+
 ## Redeploy (update versi)
 
 1. Lokal: WAJIB `npm run build` tepat sebelum packaging (jangan pakai

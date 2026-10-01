@@ -6,6 +6,7 @@
     @php
         $business = config('crm.business');
         $bank = config('crm.bank');
+        $logoPath = business_logo_path();
         $methodLabels = [
             'bank_transfer' => 'Transfer bank',
             'cash' => 'Tunai',
@@ -24,6 +25,7 @@
         }
         .header { width: 100%; margin-bottom: 24px; }
         .header td { vertical-align: top; }
+        .biz-logo { max-height: 56px; max-width: 220px; margin-bottom: 6px; }
         .biz-name { font-size: 20px; font-weight: bold; color: #4f46e5; }
         .biz-detail { color: #64748b; font-size: 10px; margin-top: 2px; }
         .doc-title { font-size: 24px; font-weight: bold; letter-spacing: 2px; text-align: right; color: #0f172a; }
@@ -86,6 +88,9 @@
 <table class="header">
     <tr>
         <td style="width: 55%;">
+            @if ($logoPath)
+                <img src="{{ $logoPath }}" alt="{{ $business['name'] }}" class="biz-logo">
+            @endif
             <div class="biz-name">{{ $business['name'] }}</div>
             <div class="biz-detail">
                 {{ $business['address'] }}<br>

@@ -18,6 +18,11 @@ return [
         'email' => env('CRM_BUSINESS_EMAIL', 'admin@mcimedia.web.id'),
         'phone' => env('CRM_BUSINESS_PHONE', '+62 812-3456-7890'),
         'whatsapp' => env('CRM_BUSINESS_WHATSAPP', '+62 812-3456-7890'),
+
+        // Logo usaha: path file relatif terhadap public/, mis.
+        // "images/business-logo.png". Kosong (default) = kop tanpa logo —
+        // PDF & halaman publik tetap tampil normal tanpa error.
+        'logo' => env('CRM_BUSINESS_LOGO', null),
     ],
 
     'bank' => [
