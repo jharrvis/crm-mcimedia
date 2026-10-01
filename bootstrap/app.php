@@ -19,10 +19,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:services-expiring')->dailyAt('08:00');
         // Draf invoice perpanjangan untuk layanan yang segera berakhir, setiap hari pukul 07:30.
         $schedule->command('crm:generate-renewal-invoices')->dailyAt('07:30');
+        // Pengingat invoice jatuh tempo (H+1/H+7/H+14), setiap hari pukul 08:30.
+        $schedule->command('crm:send-overdue-reminders')->dailyAt('08:30');
     })
     ->withCommands([
         \App\Domains\Services\Console\Commands\ServicesExpiringCommand::class,
         \App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand::class,
+        \App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand::class,
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //
