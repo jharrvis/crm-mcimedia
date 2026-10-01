@@ -5,6 +5,11 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.1.0/).
 
 ## [Unreleased]
 
+### Ditambahkan
+- Modul Katalog Produk: CRUD produk di `/products` (pencarian nama/SKU, filter status, harga format `rupiah()`, aktif/nonaktif, hapus) + domain `app/Domains/Catalog` (model `Product` dengan scope `active()` dan urutan default `sort_order` lalu nama) + item nav "Produk" di sidebar.
+- Picker produk pada form invoice (create/edit): tiap baris item punya dropdown produk aktif ("Nama — Rp harga") yang otomatis mengisi deskripsi & harga satuan; server tetap menghitung ulang total dari item yang dikirim (tidak ada `product_id` yang disimpan di `invoice_items`).
+- Seeder `ProductSeeder`: 22 produk katalog awal (idempotent via `updateOrCreate` berdasarkan SKU). Dijalankan manual (`php artisan db:seed --class=ProductSeeder`) atau lewat `DatabaseSeeder` saat setup; tidak dijalankan otomatis di production.
+
 ## [1.0.0] - 2026-10-01
 
 Rilis pertama — live di https://crm.mcimedia.net (server sg2, Hestia,

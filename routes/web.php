@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Catalog\Http\Controllers\ProductController;
 use App\Domains\Clients\Http\Controllers\ClientContactController;
 use App\Domains\Clients\Http\Controllers\ClientController;
 use App\Domains\Core\Http\Controllers\ActivityLogController;
@@ -41,6 +42,10 @@ Route::middleware('auth')->group(function () {
     Route::post('invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->name('invoices.payments.store');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::resource('invoices', InvoiceController::class);
+
+    // Katalog produk (F2-3): resource + toggle aktif/nonaktif.
+    Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])->name('products.toggle');
+    Route::resource('products', ProductController::class);
 
     Route::get('profile/password', [ProfileController::class, 'edit'])->name('profile.password.edit');
     Route::put('profile/password', [ProfileController::class, 'update'])->name('profile.password.update');

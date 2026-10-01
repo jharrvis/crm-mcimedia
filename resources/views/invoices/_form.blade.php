@@ -3,6 +3,9 @@
 
     $inputClass = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800';
 
+    // Produk aktif untuk picker baris item (F2-3). Boleh kosong bila belum ada katalog.
+    $products = $products ?? collect();
+
     /** @var Invoice|null $invoice */
     $existingItems = isset($invoice) && $invoice
         ? $invoice->items->map(fn ($item) => [
@@ -84,6 +87,7 @@
         <table class="w-full text-sm" id="items-table">
             <thead>
                 <tr class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800">
+                    <th class="w-56 px-3 py-2">Produk</th>
                     <th class="px-3 py-2">Deskripsi</th>
                     <th class="w-24 px-3 py-2">Qty</th>
                     <th class="w-40 px-3 py-2">Harga satuan (IDR)</th>
@@ -94,6 +98,14 @@
             <tbody id="items-body">
                 @foreach ($itemRows as $row)
                     <tr class="item-row border-t border-slate-100 dark:border-slate-800">
+                        <td class="px-3 py-2">
+                            <select data-role="product" class="{{ $inputClass }}" title="Pilih produk untuk mengisi deskripsi & harga otomatis">
+                                <option value="">— Pilih produk —</option>
+                                @foreach ($products as $p)
+                                    <option value="{{ $p->id }}" data-name="{{ $p->name }}" data-price="{{ $p->sales_price }}">{{ $p->name }} — {{ rupiah($p->sales_price) }}</option>
+                                @endforeach
+                            </select>
+                        </td>
                         <td class="px-3 py-2">
                             <input name="items[{{ $loop->index }}][description]" value="{{ $row['description'] ?? '' }}" placeholder="Deskripsi item…" class="{{ $inputClass }}" data-role="description">
                         </td>
@@ -112,7 +124,7 @@
             </tbody>
             <tfoot>
                 <tr class="border-t border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800">
-                    <td colspan="3" class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500">Total (server menghitung ulang)</td>
+                    <td colspan="4" class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500">Total (server menghitung ulang)</td>
                     <td class="px-3 py-2 text-right font-bold tabular-nums" id="items-total">—</td>
                     <td></td>
                 </tr>
@@ -123,6 +135,14 @@
 
 <template id="item-row-template">
     <tr class="item-row border-t border-slate-100 dark:border-slate-800">
+        <td class="px-3 py-2">
+            <select data-role="product" class="{{ $inputClass }}" title="Pilih produk untuk mengisi deskripsi & harga otomatis">
+                <option value="">— Pilih produk —</option>
+                @foreach ($products as $p)
+                    <option value="{{ $p->id }}" data-name="{{ $p->name }}" data-price="{{ $p->sales_price }}">{{ $p->name }} — {{ rupiah($p->sales_price) }}</option>
+                @endforeach
+            </select>
+        </td>
         <td class="px-3 py-2">
             <input name="__NAME__[description]" placeholder="Deskripsi item…" class="{{ $inputClass }}" data-role="description">
         </td>
@@ -189,6 +209,19 @@
         });
 
         body.addEventListener('input', recalc);
+
+        // Picker produk: saat produk dipilih, isi deskripsi + harga satuan baris itu.
+        // Admin tetap bisa mengubah manual setelahnya. product_id TIDAK dikirim ke server.
+        body.addEventListener('change', (e) => {
+            const select = e.target.closest('[data-role=product]');
+            if (! select || ! select.value) return;
+
+            const row = select.closest('tr.item-row');
+            const opt = select.selectedOptions[0];
+            row.querySelector('[data-role=description]').value = opt.dataset.name;
+            row.querySelector('[data-role=unit_price]').value = opt.dataset.price;
+            recalc();
+        });
 
         // Sembunyikan opsi layanan yang bukan milik klien terpilih.
         function filterServices() {

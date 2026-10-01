@@ -2,6 +2,7 @@
 
 namespace App\Domains\Invoicing\Http\Controllers;
 
+use App\Domains\Catalog\Models\Product;
 use App\Domains\Clients\Models\Client;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Exceptions\InvalidInvoiceTransition;
@@ -47,6 +48,7 @@ class InvoiceController extends Controller
         return view('invoices.create', [
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'services' => Service::orderBy('name')->get(['id', 'client_id', 'name']),
+            'products' => Product::active()->get(['id', 'name', 'sales_price']),
         ]);
     }
 
@@ -102,6 +104,7 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'services' => Service::orderBy('name')->get(['id', 'client_id', 'name']),
+            'products' => Product::active()->get(['id', 'name', 'sales_price']),
         ]);
     }
 
