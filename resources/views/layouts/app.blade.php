@@ -33,8 +33,11 @@
                     ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard'],
                     ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien'],
                     ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan'],
+                    ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice'],
+                    ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk'],
                     ['route' => 'projects.index', 'match' => 'projects.*', 'label' => 'Project'],
                     ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas'],
+                    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan'],
                 ];
             @endphp
             @foreach ($nav as $item)

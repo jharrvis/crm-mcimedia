@@ -4,6 +4,7 @@ namespace App\Domains\Services\Models;
 
 use App\Domains\Clients\Models\Client;
 use App\Domains\Core\Traits\LogsActivity;
+use App\Domains\Invoicing\Models\Invoice;
 use App\Domains\Services\Enums\ServiceCycle;
 use App\Domains\Services\Enums\ServiceStatus;
 use App\Domains\Services\Enums\ServiceType;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 class Service extends Model
@@ -39,6 +41,11 @@ class Service extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     public function scopeActive(Builder $query): Builder
