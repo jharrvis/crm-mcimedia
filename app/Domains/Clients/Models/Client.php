@@ -3,6 +3,7 @@
 namespace App\Domains\Clients\Models;
 
 use App\Domains\Core\Traits\LogsActivity;
+use App\Domains\Invoicing\Models\Invoice;
 use App\Domains\Projects\Models\Project;
 use App\Domains\Services\Models\Service;
 use App\Domains\Tasks\Models\Task;
@@ -43,6 +44,11 @@ class Client extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 
     public function scopeActive(Builder $query): Builder
