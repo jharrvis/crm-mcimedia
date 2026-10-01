@@ -8,6 +8,7 @@ use App\Domains\Dashboard\Http\Controllers\DashboardController;
 use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
+use App\Domains\Reports\Http\Controllers\ReportController;
 use App\Domains\Services\Http\Controllers\ReminderController;
 use App\Domains\Services\Http\Controllers\ServiceController;
 use App\Domains\Tasks\Http\Controllers\TaskController;
@@ -42,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('tasks/{task}/reopen', [TaskController::class, 'reopen'])->name('tasks.reopen');
 
     Route::get('reminders', ReminderController::class)->name('reminders.index');
+    Route::get('reports', ReportController::class)->name('reports.index');
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.
