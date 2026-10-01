@@ -31,7 +31,9 @@ Apache butuh grup www-data, kalau tidak muncul AH00529/403).
 
 ## Redeploy (update versi)
 
-1. Lokal: `git archive HEAD | tar -x -C /tmp/crm-stage`, salin
+1. Lokal: WAJIB `npm run build` tepat sebelum packaging (jangan pakai
+   `public/build` lama — build basi pernah terkirim 2026-10-01 dan UI
+   tampil tanpa styling). Lalu `git archive HEAD | tar -x -C /tmp/crm-stage`, salin
    `public/build` ke staging, lalu di staging:
    `composer install --no-dev --optimize-autoloader`.
 2. Upload: `tar -czf - -C /tmp/crm-stage . | sg2-ssh museops 'rm -rf /tmp/crm-deploy && mkdir /tmp/crm-deploy && tar -xzf - -C /tmp/crm-deploy'`
