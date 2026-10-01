@@ -12,8 +12,17 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'invoice_id', 'amount', 'method', 'status', 'paid_at', 'confirmed_by', 'note',
+        'invoice_id', 'amount', 'method', 'status', 'paid_at', 'confirmed_by', 'note', 'sender_name',
     ];
+
+    /**
+     * Catatan: `payments.status` adalah varchar(16) — nilai `rejected`
+     * (dipakai F2-4) tidak butuh perubahan skema F2-1.
+     */
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
 
     protected function casts(): array
     {

@@ -4,10 +4,12 @@ namespace App\Domains\Invoicing\Http\Controllers;
 
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Clients\Models\Client;
+use App\Domains\Core\Models\ActivityLog;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Exceptions\InvalidInvoiceTransition;
 use App\Domains\Invoicing\Http\Requests\InvoiceRequest;
 use App\Domains\Invoicing\Models\Invoice;
+use App\Domains\Invoicing\Models\Payment;
 use App\Domains\Invoicing\Services\InvoiceNumber;
 use App\Domains\Services\Models\Service;
 use App\Http\Controllers\Controller;
@@ -15,6 +17,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class InvoiceController extends Controller
 {
@@ -218,5 +221,78 @@ class InvoiceController extends Controller
         return Pdf::loadView('invoices.pdf', compact('invoice'))
             ->setPaper('a4', 'portrait')
             ->download("{$invoice->number}.pdf");
+    }
+
+    // ---------- Tautan pembayaran publik (magic link) ----------
+
+    /** Buat (atau ganti) tautan pembayaran publik untuk invoice non-draf. */
+    public function generatePaymentLink(Invoice $invoice)
+    {
+        if ($invoice->status === InvoiceStatus::Draft) {
+            return back()->with('error', 'Tandai invoice terkirim sebelum membuat tautan pembayaran.');
+        }
+
+        $invoice->update(['public_token' => Str::random(64)]);
+
+        return back()->with('success', "Tautan pembayaran invoice {$invoice->number} dibuat.");
+    }
+
+    /** Cabut tautan pembayaran publik (token dikosongkan). */
+    public function revokePaymentLink(Invoice $invoice)
+    {
+        if ($invoice->status === InvoiceStatus::Draft) {
+            return back()->with('error', 'Invoice draf tidak memiliki tautan pembayaran.');
+        }
+
+        $invoice->update(['public_token' => null]);
+
+        return back()->with('success', "Tautan pembayaran invoice {$invoice->number} dicabut.");
+    }
+
+    // ---------- Verifikasi konfirmasi transfer klien ----------
+
+    /** Konfirmasi pembayaran pending -> confirmed + invoice lunas. */
+    public function confirmPendingPayment(Invoice $invoice, Payment $payment)
+    {
+        abort_if($payment->invoice_id !== $invoice->id, 404);
+
+        if (! $payment->isPending()) {
+            return back()->with('error', 'Pembayaran ini sudah diproses.');
+        }
+
+        try {
+            DB::transaction(function () use ($invoice, $payment) {
+                $payment->update([
+                    'status' => 'confirmed',
+                    'confirmed_by' => auth()->id(),
+                ]);
+
+                $invoice->markPaid();
+            });
+        } catch (InvalidInvoiceTransition $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', "Pembayaran invoice {$invoice->number} dikonfirmasi dan invoice ditandai lunas.");
+    }
+
+    /** Tolak pembayaran pending -> status rejected (kolom varchar mendukung, tanpa ubah skema). */
+    public function rejectPendingPayment(Invoice $invoice, Payment $payment)
+    {
+        abort_if($payment->invoice_id !== $invoice->id, 404);
+
+        if (! $payment->isPending()) {
+            return back()->with('error', 'Pembayaran ini sudah diproses.');
+        }
+
+        $payment->update(['status' => 'rejected']);
+
+        ActivityLog::record(
+            $payment,
+            'updated',
+            "Konfirmasi pembayaran invoice {$invoice->number} sebesar ".rupiah($payment->amount).' ditolak.'
+        );
+
+        return back()->with('success', "Pembayaran invoice {$invoice->number} ditolak.");
     }
 }

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class Invoice extends Model
 {
@@ -82,10 +83,23 @@ class Invoice extends Model
     {
         $this->ensureTransitionAllowed('dikirim ulang');
 
-        $this->update([
+        $attributes = [
             'status' => InvoiceStatus::Sent,
             'sent_at' => $this->sent_at ?? now(),
-        ]);
+        ];
+
+        // Tautan pembayaran publik (magic link) dibuat sekali saat invoice dikirim.
+        if (blank($this->public_token)) {
+            $attributes['public_token'] = Str::random(64);
+        }
+
+        $this->update($attributes);
+    }
+
+    /** Invoice non-draf yang punya tautan pembayaran publik aktif. */
+    public function hasPublicLink(): bool
+    {
+        return $this->status !== InvoiceStatus::Draft && filled($this->public_token);
     }
 
     /** -> lunas (status final). Invoice yang sudah lunas/dibatalkan tidak bisa dilunaskan lagi. */

@@ -192,33 +192,86 @@
         </table>
     </div>
 
+    <!-- Tautan pembayaran publik (magic link F2-4) -->
+    @if ($invoice->status !== InvoiceStatus::Draft)
+        <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="mb-3 text-sm font-semibold uppercase text-slate-500">Tautan pembayaran publik</h2>
+            @if ($invoice->public_token)
+                <p class="mb-2 text-sm text-slate-500">Bagikan tautan ini ke klien untuk melihat invoice &amp; mengonfirmasi transfer (tanpa login).</p>
+                <div class="flex flex-wrap items-center gap-2">
+                    <input id="public-link" type="text" readonly value="{{ route('invoices.public.show', ['token' => $invoice->public_token]) }}"
+                           class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-800">
+                    <button type="button" id="copy-public-link"
+                            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Salin tautan bayar</button>
+                    <form method="POST" action="{{ route('invoices.payment-link.revoke', $invoice) }}" class="inline" onsubmit="return confirm('Cabut tautan pembayaran invoice {{ $invoice->number }}? Tautan lama tidak akan bisa diakses lagi.')">
+                        @csrf
+                        @method('DELETE')
+                        <button class="rounded-lg border border-amber-300 px-4 py-2 text-sm text-amber-600 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950">Cabut tautan</button>
+                    </form>
+                </div>
+            @else
+                <p class="mb-3 text-sm text-slate-500">Klien belum punya tautan pembayaran. Buat tautan baru bila diperlukan.</p>
+                <form method="POST" action="{{ route('invoices.payment-link.generate', $invoice) }}" class="inline">
+                    @csrf
+                    <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Buat tautan bayar</button>
+                </form>
+            @endif
+        </div>
+    @endif
+
     <!-- Pembayaran -->
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         <table class="w-full text-sm">
             <thead>
                 <tr class="text-left text-xs uppercase text-slate-500">
                     <th class="px-4 py-3">Tanggal</th>
+                    <th class="px-4 py-3">Pengirim</th>
                     <th class="px-4 py-3">Metode</th>
                     <th class="px-4 py-3">Status</th>
                     <th class="px-4 py-3">Dicatat oleh</th>
                     <th class="px-4 py-3 text-right">Nominal</th>
+                    <th class="px-4 py-3 text-right">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($invoice->payments as $payment)
                     <tr class="border-t border-slate-100 dark:border-slate-800">
                         <td class="px-4 py-3">{{ $payment->paid_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                        <td class="px-4 py-3">{{ $payment->sender_name ?? '—' }}</td>
                         <td class="px-4 py-3">{{ $methodLabels[$payment->method] ?? $payment->method }}@if ($payment->note)<p class="text-xs text-slate-500">{{ $payment->note }}</p>@endif</td>
                         <td class="px-4 py-3">
-                            <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $payment->status === 'confirmed' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200' }}">
-                                {{ $payment->status === 'confirmed' ? 'Terkonfirmasi' : 'Menunggu' }}
-                            </span>
+                            @php
+                                $paymentStatus = match ($payment->status) {
+                                    'confirmed' => ['Terkonfirmasi', 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200'],
+                                    'rejected' => ['Ditolak', 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'],
+                                    default => ['Menunggu', 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200'],
+                                };
+                            @endphp
+                            <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $paymentStatus[1] }}">{{ $paymentStatus[0] }}</span>
                         </td>
-                        <td class="px-4 py-3">{{ $payment->confirmer?->name ?? '—' }}</td>
+                        <td class="px-4 py-3">{{ $payment->confirmer?->name ?? ($payment->status === 'pending' ? 'Menunggu klien' : '—') }}</td>
                         <td class="px-4 py-3 text-right tabular-nums">{{ rupiah($payment->amount) }}</td>
+                        <td class="px-4 py-3 text-right">
+                            @if ($payment->status === 'pending')
+                                <div class="flex justify-end gap-2">
+                                    <form method="POST" action="{{ route('invoices.payments.confirm', [$invoice, $payment]) }}" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button class="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700">Konfirmasi</button>
+                                    </form>
+                                    <form method="POST" action="{{ route('invoices.payments.reject', [$invoice, $payment]) }}" class="inline" onsubmit="return confirm('Tolak konfirmasi pembayaran ini?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button class="rounded-lg border border-red-300 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950">Tolak</button>
+                                    </form>
+                                </div>
+                            @else
+                                <span class="text-xs text-slate-400">—</span>
+                            @endif
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">Belum ada pembayaran.</td></tr>
+                    <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">Belum ada pembayaran.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -232,6 +285,17 @@
     });
     document.getElementById('cancel-payment')?.addEventListener('click', () => {
         document.getElementById('payment-form').classList.add('hidden');
+    });
+    document.getElementById('copy-public-link')?.addEventListener('click', async () => {
+        const input = document.getElementById('public-link');
+        if (!input) return;
+        try {
+            await navigator.clipboard.writeText(input.value);
+        } catch (e) {
+            input.select();
+            document.execCommand('copy');
+        }
+        input.select();
     });
 </script>
 @endsection
