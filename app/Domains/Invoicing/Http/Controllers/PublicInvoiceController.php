@@ -46,7 +46,6 @@ class PublicInvoiceController extends Controller
         return view('invoices.public', [
             'invoice' => $invoice,
             'business' => config('crm.business'),
-            'bank' => config('crm.bank'),
         ]);
     }
 

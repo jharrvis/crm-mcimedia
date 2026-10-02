@@ -5,8 +5,8 @@
     <title>{{ $invoice->number }}</title>
     @php
         $business = config('crm.business');
-        $bank = config('crm.bank');
         $logoPath = business_logo_path();
+        $bankAccounts = crm_bank_accounts();
         $methodLabels = [
             'bank_transfer' => 'Transfer bank',
             'cash' => 'Tunai',
@@ -63,6 +63,8 @@
         }
         .payment-box { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; background: #f8fafc; }
         .payment-box strong { color: #0f172a; }
+        .bank-account + .bank-account { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
+        .bank-account table { width: 100%; }
         .notes { white-space: pre-line; }
         .payments-table { width: 100%; border-collapse: collapse; }
         .payments-table th {
@@ -181,12 +183,20 @@
 <!-- Instruksi pembayaran -->
 <div class="section-title">Instruksi pembayaran</div>
 <div class="payment-box">
-    Transfer bank ke rekening berikut dan sertakan nomor invoice <strong>{{ $invoice->number }}</strong> pada berita transfer:<br><br>
-    <table>
-        <tr><td style="width: 130px; color: #64748b;">Bank</td><td>: <strong>{{ $bank['name'] }}</strong></td></tr>
-        <tr><td style="color: #64748b;">Nomor rekening</td><td>: <strong>{{ $bank['account_number'] }}</strong></td></tr>
-        <tr><td style="color: #64748b;">Atas nama</td><td>: <strong>{{ $bank['account_holder'] }}</strong></td></tr>
-    </table>
+    @if ($bankAccounts !== [])
+        Transfer bank ke <strong>salah satu</strong> rekening berikut dan sertakan nomor invoice <strong>{{ $invoice->number }}</strong> pada berita transfer:<br><br>
+        @foreach ($bankAccounts as $account)
+            <div class="bank-account">
+                <table>
+                    <tr><td style="width: 130px; color: #64748b;">Bank</td><td>: <strong>{{ $account['name'] }}</strong></td></tr>
+                    <tr><td style="color: #64748b;">Nomor rekening</td><td>: <strong>{{ $account['account_number'] }}</strong></td></tr>
+                    <tr><td style="color: #64748b;">Atas nama</td><td>: <strong>{{ $account['account_holder'] }}</strong></td></tr>
+                </table>
+            </div>
+        @endforeach
+    @else
+        Detail rekening tujuan belum tersedia — silakan hubungi <strong>{{ $business['email'] }}</strong> untuk informasi pembayaran.
+    @endif
 </div>
 
 <!-- Riwayat pembayaran (bila ada) -->

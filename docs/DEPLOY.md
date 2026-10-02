@@ -43,6 +43,38 @@ Logo tampil di kop PDF invoice dan header halaman bayar publik (`/pay/{token}`).
 Bila `CRM_BUSINESS_LOGO` kosong, atau filenya tidak ditemukan, kop tampil tanpa
 logo (tidak error, tidak ada gambar rusak). Identitas teks lain tidak berubah.
 
+## Rekening bank (F2-9)
+
+Invoice menampilkan **semua** rekening yang dikonfigurasi — di PDF invoice,
+halaman bayar publik (`/pay/{token}`), dan email invoice/pengingat. Nomor
+rekening **tidak pernah** ditulis di kode; semuanya dari `.env` server.
+
+1. Isi `.env` (di server, jangan di-commit) dengan JSON array satu baris,
+   dibungkus tanda kutip tunggal (contoh memakai nomor dummy — ganti dengan
+   nomor rekening asli):
+
+   ```
+   CRM_BANK_ACCOUNTS='[{"name":"BCA","account_number":"0000000000","account_holder":"Nama Pemilik"},{"name":"Bank Lain","account_number":"1111111111","account_holder":"Nama Pemilik"}]'
+   ```
+
+   Repo ini publik: **jangan pernah** commit nomor rekening nyata ke
+   `.env.example`, docs, atau kode.
+
+2. Jalankan `php8.3 artisan config:cache` (wajib — daftar rekening dibaca saat
+   config di-cache).
+
+3. Verifikasi: buka salah satu invoice di `/pay/{token}` — semua rekening
+   tampil di blok "Instruksi transfer", dan PDF (`/pay/{token}/pdf`) memuat hal
+   yang sama.
+
+Catatan:
+- Format lama satu rekening (`CRM_BANK_NAME`, `CRM_BANK_ACCOUNT_NUMBER`,
+  `CRM_BANK_ACCOUNT_HOLDER`) masih didukung bila `CRM_BANK_ACCOUNTS` kosong.
+- `CRM_BANK_ACCOUNTS=[]`/kosong = bagian instruksi pembayaran tampil tanpa
+  rekening beserta pesan "hubungi admin" (tidak error).
+- Setiap entri boleh hanya punya `name` atau `account_number`; entri yang
+  kosong total otomatis dilewati.
+
 ## Redeploy (update versi)
 
 1. Lokal: WAJIB `npm run build` tepat sebelum packaging (jangan pakai

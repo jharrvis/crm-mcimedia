@@ -38,6 +38,11 @@ class PublicInvoiceTest extends TestCase
 
     public function test_valid_token_displays_invoice(): void
     {
+        config(['crm.bank.accounts' => [
+            ['name' => 'BCA', 'account_number' => '1111222233', 'account_holder' => 'Nama Pemilik'],
+            ['name' => 'Bank Jateng', 'account_number' => '4444555566', 'account_holder' => 'Nama Pemilik'],
+        ]]);
+
         $invoice = $this->sentInvoice(800000);
 
         $response = $this->get(route('invoices.public.show', ['token' => $invoice->public_token]));
@@ -47,7 +52,8 @@ class PublicInvoiceTest extends TestCase
         $response->assertSee($invoice->client->name);
         $response->assertSee('Rp 800.000');
         $response->assertSee('Instruksi transfer');
-        $response->assertSee(config('crm.bank.account_number'));
+        $response->assertSee('1111222233');
+        $response->assertSee('4444555566');
         $response->assertSee('Unduh PDF invoice');
     }
 
