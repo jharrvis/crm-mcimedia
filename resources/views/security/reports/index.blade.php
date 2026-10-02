@@ -48,6 +48,12 @@
                     <td class="px-4 py-3 text-right whitespace-nowrap">
                         @if ($report->hasFile())
                             <a href="{{ route('security.reports.download', $report) }}" class="text-sm text-indigo-600 hover:underline">Unduh</a>
+                            <form method="POST" action="{{ route('security.reports.send-to-client', $report) }}" class="inline"
+                                  onsubmit="return confirm('Kirim laporan periode {{ $report->period }} ke email kontak klien?')">
+                                @csrf
+                                @method('PATCH')
+                                <button class="ml-2 text-sm text-green-700 hover:underline dark:text-green-400">Kirim ke Klien</button>
+                            </form>
                         @endif
                         @if ($report->status === \App\Domains\Security\Enums\ReportStatus::Draft)
                             <form method="POST" action="{{ route('security.reports.send', $report) }}" class="inline">

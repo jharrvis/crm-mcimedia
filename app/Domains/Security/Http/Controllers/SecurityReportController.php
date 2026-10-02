@@ -4,7 +4,9 @@ namespace App\Domains\Security\Http\Controllers;
 
 use App\Domains\Clients\Models\Client;
 use App\Domains\Security\Http\Requests\SecurityReportRequest;
+use App\Domains\Security\Jobs\SendSecurityReportEmailJob;
 use App\Domains\Security\Models\SecurityReport;
+use App\Domains\Security\Services\SecurityReportDelivery;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -72,6 +74,38 @@ class SecurityReportController extends Controller
         $report->markSent();
 
         return back()->with('success', "Laporan periode {$report->period} ditandai terkirim.");
+    }
+
+    /**
+     * Kirim PDF laporan ke email kontak klien + CC info@mcimedia.net (F4-3),
+     * lalu tandai laporan terkirim setelah pengiriman berhasil.
+     */
+    public function sendToClient(SecurityReport $report): RedirectResponse
+    {
+        $report->loadMissing('client.contacts');
+
+        if (! $report->hasFile()) {
+            return back()->with('error', 'Laporan belum punya berkas PDF sehingga tidak dapat dikirim ke klien.');
+        }
+
+        $disk = config('crm.security.report_disk', 'local');
+
+        if (! Storage::disk($disk)->exists($report->file_path)) {
+            return back()->with('error', 'Berkas PDF laporan tidak ditemukan di penyimpanan.');
+        }
+
+        $to = SecurityReportDelivery::recipients($report);
+
+        if ($to === []) {
+            return back()->with('error', 'Klien belum punya alamat email kontak sehingga laporan tidak dapat dikirim.');
+        }
+
+        SendSecurityReportEmailJob::dispatch($report);
+
+        $cc = SecurityReportDelivery::ccEmail();
+        $ccNote = $cc !== null ? " (CC {$cc})" : '';
+
+        return back()->with('success', "Pengiriman laporan periode {$report->period} ke ".implode(', ', $to)."{$ccNote} sedang diantre.");
     }
 
     public function destroy(SecurityReport $report): RedirectResponse
