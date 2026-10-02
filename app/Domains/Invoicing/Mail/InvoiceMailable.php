@@ -55,7 +55,7 @@ class InvoiceMailable extends Mailable
     /** Render PDF invoice (template F2-2) menjadi string biner. */
     public function renderPdf(): string
     {
-        $this->invoice->loadMissing(['client', 'service', 'items', 'payments']);
+        $this->invoice->loadMissing(['client', 'services', 'items', 'payments']);
 
         return Pdf::loadView('invoices.pdf', ['invoice' => $this->invoice])
             ->setPaper('a4', 'portrait')

@@ -53,7 +53,7 @@ class InvoiceController extends Controller
     {
         return view('invoices.create', [
             'clients' => Client::orderBy('name')->get(['id', 'name']),
-            'services' => Service::orderBy('name')->get(['id', 'client_id', 'name']),
+            'services' => Service::orderBy('name')->get(['id', 'client_id', 'name', 'price']),
             'products' => Product::active()->get(['id', 'name', 'sales_price']),
         ]);
     }
@@ -62,14 +62,17 @@ class InvoiceController extends Controller
     {
         $data = $request->validated();
         $items = $data['items'];
-        unset($data['items']);
+        $serviceIds = $request->serviceIds();
+        unset($data['items'], $data['service_ids']);
 
-        $invoice = DB::transaction(function () use ($data, $items) {
+        $invoice = DB::transaction(function () use ($data, $items, $serviceIds) {
             $invoice = Invoice::create([
                 ...$data,
                 'number' => InvoiceNumber::next(Carbon::parse($data['issue_date'])),
                 'status' => InvoiceStatus::Draft,
             ]);
+
+            $invoice->syncServices($serviceIds);
 
             foreach (array_values($items) as $sort => $item) {
                 $invoice->items()->create([
@@ -92,7 +95,7 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $invoice->load(['client', 'service', 'items', 'payments.confirmer']);
+        $invoice->load(['client', 'services', 'items', 'payments.confirmer']);
 
         // Riwayat pengiriman (F2-5) dari activity log untuk invoice ini.
         $deliveries = ActivityLog::query()
@@ -113,12 +116,12 @@ class InvoiceController extends Controller
                 ->with('error', "Invoice {$invoice->number} berstatus {$invoice->status->label()} sehingga tidak dapat diubah.");
         }
 
-        $invoice->load('items');
+        $invoice->load(['services', 'items']);
 
         return view('invoices.edit', [
             'invoice' => $invoice,
             'clients' => Client::orderBy('name')->get(['id', 'name']),
-            'services' => Service::orderBy('name')->get(['id', 'client_id', 'name']),
+            'services' => Service::orderBy('name')->get(['id', 'client_id', 'name', 'price']),
             'products' => Product::active()->get(['id', 'name', 'sales_price']),
         ]);
     }
@@ -132,10 +135,12 @@ class InvoiceController extends Controller
 
         $data = $request->validated();
         $items = $data['items'];
-        unset($data['items']);
+        $serviceIds = $request->serviceIds();
+        unset($data['items'], $data['service_ids']);
 
-        DB::transaction(function () use ($invoice, $data, $items) {
+        DB::transaction(function () use ($invoice, $data, $items, $serviceIds) {
             $invoice->update($data);
+            $invoice->syncServices($serviceIds);
             $invoice->items()->delete();
 
             foreach (array_values($items) as $sort => $item) {
@@ -268,7 +273,7 @@ class InvoiceController extends Controller
     /** Unduh PDF resmi invoice. */
     public function pdf(Invoice $invoice)
     {
-        $invoice->load(['client', 'service', 'items', 'payments']);
+        $invoice->load(['client', 'services', 'items', 'payments']);
 
         return Pdf::loadView('invoices.pdf', compact('invoice'))
             ->setPaper('a4', 'portrait')

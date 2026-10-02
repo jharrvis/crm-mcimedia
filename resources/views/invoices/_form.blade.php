@@ -15,6 +15,14 @@
         ])->all()
         : [];
 
+    // Layanan yang sudah tercakup invoice (F4-8: relasi many-to-many).
+    // old() dipakai hanya bila form pernah disubmit — supaya admin yang
+    // sengaja mencentang kosong semua layanan tidak dikembalikan ke pilihan lama.
+    $oldServiceIds = old('service_ids');
+    $selectedServices = $oldServiceIds !== null
+        ? collect($oldServiceIds)->filter(fn ($id) => filled($id))->map(fn ($id) => (int) $id)->all()
+        : ($invoice?->services?->pluck('id')->map(fn ($id) => (int) $id)->all() ?? []);
+
     // Baris item: pakai old() saat validasi gagal, data invoice saat edit, satu baris kosong saat create.
     $itemRows = old('items');
     if (! is_array($itemRows) || $itemRows === []) {
@@ -33,15 +41,28 @@
         </select>
         @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Layanan terkait (opsional)</label>
-        <select name="service_id" id="invoice-service" class="{{ $inputClass }}">
-            <option value="">— Tanpa layanan —</option>
-            @foreach ($services as $s)
-                <option value="{{ $s->id }}" data-client="{{ $s->client_id }}" @selected(old('service_id', $invoice?->service_id) == $s->id)>{{ $s->name }}</option>
-            @endforeach
-        </select>
-        @error('service_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+    <div class="sm:col-span-2">
+        <label class="mb-1 block text-sm font-medium">Layanan terkait (boleh lebih dari satu)</label>
+        <div id="invoice-services"
+             class="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-slate-300 p-2 dark:border-slate-700">
+            @forelse ($services as $s)
+                <label class="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <input type="checkbox" name="service_ids[]" value="{{ $s->id }}"
+                           data-client="{{ $s->client_id }}"
+                           data-name="{{ $s->name }}"
+                           data-price="{{ $s->price }}"
+                           @checked(in_array((int) $s->id, $selectedServices, true))
+                           class="service-check rounded border-slate-300 text-indigo-600">
+                    <span class="service-label">{{ $s->name }}</span>
+                    <span class="ml-auto text-xs tabular-nums text-slate-500">{{ rupiah($s->price) }}</span>
+                </label>
+            @empty
+                <p class="px-2 py-1 text-sm text-slate-500">Belum ada layanan. Invoice tetap bisa dibuat tanpa layanan.</p>
+            @endforelse
+        </div>
+        <p class="mt-1 text-xs text-slate-500">Centang semua layanan yang dicakup dalam satu invoice (mis. pembayaran bulanan beberapa website sekaligus).</p>
+        @error('service_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        @error('service_ids.*')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
     <div class="sm:col-span-2">
         <label class="mb-1 block text-sm font-medium">Judul</label>
@@ -67,9 +88,15 @@
 
 <!-- Item invoice (dinamis) -->
 <div class="mt-6">
-    <div class="mb-2 flex items-center justify-between">
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-sm font-semibold">Item invoice <span class="text-red-600">*</span></h2>
-        <button type="button" id="add-item" class="rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:hover:bg-indigo-950">+ Tambah baris</button>
+        <div class="flex gap-2">
+            <button type="button" id="fill-from-services"
+                    class="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950">
+                Isi dari layanan dipilih
+            </button>
+            <button type="button" id="add-item" class="rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:hover:bg-indigo-950">+ Tambah baris</button>
+        </div>
     </div>
     @error('items')<p class="mb-2 text-xs text-red-600">{{ $message }}</p>@enderror
     @php
@@ -165,7 +192,8 @@
         const template = document.getElementById('item-row-template');
         const totalEl = document.getElementById('items-total');
         const clientSelect = document.getElementById('invoice-client');
-        const serviceSelect = document.getElementById('invoice-service');
+        const serviceBox = document.getElementById('invoice-services');
+        const serviceChecks = () => Array.from(serviceBox?.querySelectorAll('.service-check') ?? []);
 
         const fmt = (n) => 'Rp ' + n.toLocaleString('id-ID');
 
@@ -191,13 +219,9 @@
         }
 
         document.getElementById('add-item').addEventListener('click', () => {
-            const row = template.content.firstElementChild.cloneNode(true);
-            row.querySelectorAll('input[name]').forEach((input) => {
-                input.name = input.name.replace('__NAME__', `items[${body.querySelectorAll('tr.item-row').length}]`);
-            });
-            body.appendChild(row);
+            addItemRow(null);
             reindex();
-            row.querySelector('[data-role=description]').focus();
+            body.querySelector('tr.item-row:last-child [data-role=description]').focus();
         });
 
         body.addEventListener('click', (e) => {
@@ -223,19 +247,71 @@
             recalc();
         });
 
-        // Sembunyikan opsi layanan yang bukan milik klien terpilih.
+        // Sembunyikan layanan yang bukan milik klien terpilih dan lepas centangnya,
+        // supaya tidak ada service_ids milik klien lain yang ikut terkirim.
         function filterServices() {
             const clientId = clientSelect.value;
-            Array.from(serviceSelect.options).forEach((opt) => {
-                if (! opt.value) return;
-                opt.hidden = Boolean(clientId) && opt.dataset.client !== clientId;
+            serviceChecks().forEach((check) => {
+                const row = check.closest('label');
+                const foreign = Boolean(clientId) && check.dataset.client !== clientId;
+                row.classList.toggle('hidden', foreign);
+                if (foreign) {
+                    check.checked = false;
+                    check.disabled = true;
+                } else {
+                    check.disabled = false;
+                }
             });
-            if (serviceSelect.selectedOptions[0]?.hidden) {
-                serviceSelect.value = '';
-            }
         }
 
         clientSelect.addEventListener('change', filterServices);
+
+        // F4-8: buat satu baris item per layanan yang dicentang, memakai harga
+        // layanan. Tombol ini bersifat " isi ulang dari layanan": SELURUH baris
+        // item diganti karena baris hasil server (edit) tidak bisa dibedakan dari
+        // baris manual. Karena itu, klik ulang selalu idempoten — tidak pernah
+        // menghasilkan baris ganda.
+        function addItemRow(values) {
+            const row = template.content.firstElementChild.cloneNode(true);
+            row.querySelectorAll('input[name]').forEach((input) => {
+                input.name = input.name.replace('__NAME__', `items[${body.querySelectorAll('tr.item-row').length}]`);
+            });
+            if (values) {
+                row.querySelector('[data-role=description]').value = values.description;
+                row.querySelector('[data-role=quantity]').value = values.quantity;
+                row.querySelector('[data-role=unit_price]').value = values.unit_price;
+            }
+            body.appendChild(row);
+        }
+
+        document.getElementById('fill-from-services').addEventListener('click', () => {
+            const chosen = serviceChecks().filter((check) => check.checked);
+
+            if (chosen.length === 0) {
+                alert('Centang minimal satu layanan terlebih dahulu.');
+                return;
+            }
+
+            // Jangan diam-diam menghapus item yang sudah diketik manual.
+            const hasFilledRows = Array.from(body.querySelectorAll('tr.item-row'))
+                .some((row) => row.querySelector('[data-role=description]').value.trim() !== '');
+            if (hasFilledRows && !confirm('Ganti seluruh baris item dengan satu baris per layanan yang dipilih?')) {
+                return;
+            }
+
+            body.querySelectorAll('tr.item-row').forEach((row) => row.remove());
+
+            chosen.forEach((check) => {
+                addItemRow({
+                    description: check.dataset.name,
+                    quantity: 1,
+                    unit_price: check.dataset.price,
+                });
+            });
+
+            reindex();
+        });
+
         filterServices();
         recalc();
     })();

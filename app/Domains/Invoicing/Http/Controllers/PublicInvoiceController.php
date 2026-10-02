@@ -22,7 +22,7 @@ class PublicInvoiceController extends Controller
     /** Cari invoice berdasarkan token publik; token kosong/salah/dicabut -> 404. */
     private function findInvoice(string $token): Invoice
     {
-        $invoice = Invoice::with(['client', 'service', 'items'])
+        $invoice = Invoice::with(['client', 'services', 'items'])
             ->where('public_token', $token)
             ->first();
 
@@ -53,7 +53,7 @@ class PublicInvoiceController extends Controller
     public function pdf(string $token): Response
     {
         $invoice = $this->findInvoice($token);
-        $invoice->load(['client', 'service', 'items', 'payments']);
+        $invoice->load(['client', 'services', 'items', 'payments']);
 
         return Pdf::loadView('invoices.pdf', ['invoice' => $invoice])
             ->setPaper('a4', 'portrait')

@@ -134,8 +134,11 @@
                 <table>
                     <tr><td class="meta-label">Tanggal terbit</td><td>: {{ tgl_id($invoice->issue_date) }}</td></tr>
                     <tr><td class="meta-label">Jatuh tempo</td><td>: {{ tgl_id($invoice->due_date) }}</td></tr>
-                    @if ($invoice->service)
-                        <tr><td class="meta-label">Layanan</td><td>: {{ $invoice->service->name }}</td></tr>
+                    @if ($invoice->services->isNotEmpty())
+                        <tr>
+                            <td class="meta-label">Layanan</td>
+                            <td>: {{ $invoice->services->pluck('name')->join(', ') }}</td>
+                        </tr>
                     @endif
                     @if ($invoice->title)
                         <tr><td class="meta-label">Perihal</td><td>: {{ $invoice->title }}</td></tr>

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -21,7 +22,7 @@ class Invoice extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'client_id', 'service_id', 'number', 'title', 'issue_date', 'due_date',
+        'client_id', 'number', 'title', 'issue_date', 'due_date',
         'status', 'subtotal', 'total', 'notes', 'public_token', 'sent_at', 'paid_at',
     ];
 
@@ -43,9 +44,20 @@ class Invoice extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function service(): BelongsTo
+    /**
+     * Layanan yang dicakup invoice ini. Satu invoice dapat mencakup banyak
+     * layanan sekaligus (mis. klien dengan banyak website yang membayar
+     * bulanan dalam satu invoice gabungan).
+     */
+    public function services(): BelongsToMany
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsToMany(Service::class)->orderBy('services.name');
+    }
+
+    /** Sinkronkan daftar layanan invoice (dipakai create & update). */
+    public function syncServices(array $serviceIds): void
+    {
+        $this->services()->sync(array_values(array_unique(array_map('intval', $serviceIds))));
     }
 
     public function items(): HasMany

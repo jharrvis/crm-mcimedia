@@ -45,11 +45,25 @@ class InvoiceFactory extends Factory
         });
     }
 
+    /** Invoice yang mencakup satu layanan. */
     public function forService(Service $service): static
     {
         return $this->state(fn () => [
             'client_id' => $service->client_id,
-            'service_id' => $service->id,
-        ]);
+        ])->afterCreating(function (Invoice $invoice) use ($service) {
+            $invoice->services()->attach($service->id);
+        });
+    }
+
+    /** Invoice gabungan yang mencakup banyak layanan sekaligus. */
+    public function forServices(iterable $services): static
+    {
+        $services = collect($services)->values();
+
+        return $this->state(fn () => [
+            'client_id' => $services->first()->client_id,
+        ])->afterCreating(function (Invoice $invoice) use ($services) {
+            $invoice->syncServices($services->pluck('id')->all());
+        });
     }
 }

@@ -34,8 +34,9 @@ class GenerateRenewalInvoicesCommand extends Command
         $created = 0;
 
         foreach ($services as $service) {
-            // Lewati bila masih ada invoice terbuka (draf/terkirim/terlambat) untuk layanan ini.
-            $hasOpen = Invoice::where('service_id', $service->id)
+            // Lewati bila layanan ini sudah tercakup invoice terbuka (draf/terkirim/
+            // terlambat) — baik invoice tunggal maupun invoice gabungan.
+            $hasOpen = Invoice::whereHas('services', fn ($q) => $q->where('services.id', $service->id))
                 ->whereIn('status', $openStatuses)
                 ->exists();
 
@@ -46,13 +47,14 @@ class GenerateRenewalInvoicesCommand extends Command
             DB::transaction(function () use ($service) {
                 $invoice = Invoice::create([
                     'client_id' => $service->client_id,
-                    'service_id' => $service->id,
                     'number' => InvoiceNumber::next(),
                     'title' => 'Perpanjangan '.$service->name,
                     'issue_date' => Carbon::today(),
                     'due_date' => $service->end_date,
                     'status' => InvoiceStatus::Draft,
                 ]);
+
+                $invoice->services()->attach($service->id);
 
                 $invoice->items()->create([
                     'description' => $service->name,
