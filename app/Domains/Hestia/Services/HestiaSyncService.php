@@ -6,6 +6,7 @@ use App\Domains\Hestia\Enums\HestiaAccountStatus;
 use App\Domains\Hestia\Enums\HestiaMappingStatus;
 use App\Domains\Hestia\Exceptions\HestiaApiException;
 use App\Domains\Hestia\Models\HestiaAccount;
+use App\Domains\Hestia\Models\HestiaServer;
 use App\Domains\Hestia\Models\HestiaSyncLog;
 use App\Domains\Services\Enums\ServiceCycle;
 use App\Domains\Services\Enums\ServiceStatus;
@@ -14,7 +15,7 @@ use Illuminate\Support\Carbon as CarbonAlias;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Mesin sinkronisasi HestiaCP → CRM (F3-1).
+ * Mesin sinkronisasi HestiaCP → CRM (F3-1, diperluas F4-12).
  *
  * Alur:
  *   1. Tarik daftar user Hestia, lalu web domain tiap user (READ-ONLY).
@@ -26,6 +27,12 @@ use Illuminate\Support\Facades\Log;
  *   5. Catat hasil di `hestia_sync_logs` + aplikasi log. Kredensial tidak pernah
  *      ditulis ke log.
  *
+ * F4-12 (multi-server): `sync()` berjalan untuk SATU server pada satu waktu.
+ * Bila `$server` null, sinkronisasi memakai konfigurasi environment F3-1 dan
+ * HANYA menyentuh akun tanpa `hestia_server_id`. Kegagalan satu server tidak
+ * menghentikan server lain — pemanggil (command/controller) mengiterasi
+ * server-server aktif.
+ *
  * Tidak ada exception yang keluar dari sync() — kegagalan direkam di SyncLog
  * agar pemanggil (command/controller) cukup memeriksa isSuccess().
  */
@@ -35,20 +42,30 @@ class HestiaSyncService
         private readonly HestiaClientMatcher $matcher = new HestiaClientMatcher,
     ) {}
 
-    public function sync(?HestiaClient $client = null): HestiaSyncLog
+    /**
+     * Jalankan sinkronisasi untuk satu server (atau path environment).
+     *
+     * @param  HestiaServer|null  $server  null = server dari environment (F3-1).
+     */
+    public function sync(?HestiaServer $server = null, ?HestiaClient $client = null): HestiaSyncLog
     {
         $startedAt = CarbonAlias::now();
         $log = HestiaSyncLog::create([
+            'hestia_server_id' => $server?->id,
             'status' => HestiaSyncLog::STATUS_RUNNING,
             'started_at' => $startedAt,
         ]);
 
+        $serverCode = $server?->code;
+
         try {
+            // Kill switch global: HESTIA_ENABLED=false mematikan sinkronisasi
+            // untuk server env maupun server yang dikelola lewat UI.
             if (! config('crm.hestia.enabled', false)) {
                 throw HestiaApiException::notConfigured();
             }
 
-            $client ??= new HestiaClient;
+            $client ??= new HestiaClient($server?->toClientConfig());
 
             if (! $client->isConfigured()) {
                 throw HestiaApiException::notConfigured();
@@ -74,15 +91,17 @@ class HestiaSyncService
                     }
 
                     $pulled++;
-                    $seenKeys[] = HestiaAccount::keyFor($username, $domain);
-                    $this->upsertAccount($username, $domain, $data, $plan) ? $created++ : $updated++;
+                    $seenKeys[] = HestiaAccount::keyFor($username, $domain, $serverCode);
+                    $this->upsertAccount($username, $domain, $data, $plan, $server, $serverCode) ? $created++ : $updated++;
                 }
             }
 
             // Hanya nonaktifkan bila benar-benar ada data yang ditarik (hindari
             // menonaktifkan semuanya akibat respons kosong / salah konfigurasi).
-            $deactivated = $pulled > 0 ? $this->deactivateMissing($seenKeys) : 0;
-            $unmapped = HestiaAccount::unmapped()->count();
+            $deactivated = $pulled > 0 ? $this->deactivateMissing($seenKeys, $server) : 0;
+            $unmapped = HestiaAccount::unmapped()
+                ->forServer($server)
+                ->count();
 
             $log->update([
                 'status' => HestiaSyncLog::STATUS_SUCCESS,
@@ -95,6 +114,7 @@ class HestiaSyncService
             ]);
 
             Log::info('Sinkronisasi Hestia selesai', [
+                'server' => $server?->name ?? 'env',
                 'pulled' => $pulled,
                 'created' => $created,
                 'updated' => $updated,
@@ -109,10 +129,17 @@ class HestiaSyncService
                 'message' => $e->getMessage(),
             ]);
 
-            Log::warning('Sinkronisasi Hestia gagal', ['error' => $e->getMessage()]);
+            Log::warning('Sinkronisasi Hestia gagal', [
+                'server' => $server?->name ?? 'env',
+                'error' => $e->getMessage(),
+            ]);
         }
 
-        return $log->refresh();
+        $log->refresh();
+
+        $server?->recordSyncResult($log->isSuccess(), $log->message);
+
+        return $log;
     }
 
     /** Petakan akun (manual oleh admin) ke klien + buat/hubungkan Service. */
@@ -144,15 +171,25 @@ class HestiaSyncService
         $account->save();
     }
 
-    /** @param array<string, mixed> $data */
-    private function upsertAccount(string $username, string $domain, array $data, ?string $plan): bool
-    {
-        $account = HestiaAccount::firstOrNew(['external_key' => HestiaAccount::keyFor($username, $domain)]);
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  string|null  $serverCode  kode server untuk `external_key` (F4-12).
+     */
+    private function upsertAccount(
+        string $username,
+        string $domain,
+        array $data,
+        ?string $plan,
+        ?HestiaServer $server = null,
+        ?string $serverCode = null,
+    ): bool {
+        $account = HestiaAccount::firstOrNew(['external_key' => HestiaAccount::keyFor($username, $domain, $serverCode)]);
         $isNew = ! $account->exists;
 
         $suspended = mb_strtolower((string) ($data['SUSPENDED'] ?? 'no')) === 'yes';
 
         $account->fill([
+            'hestia_server_id' => $server?->id ?? $account->hestia_server_id,
             'hestia_user' => $username,
             'domain' => $domain,
             'plan' => $plan,
@@ -216,11 +253,15 @@ class HestiaSyncService
      * dihapus). Penentuan memakai daftar kunci yang terlihat (bukan perbandingan
      * timestamp) agar tidak bergantung pada resolusi jam.
      *
+     * WAJIB discope ke server: setiap server punya daftar akunnya sendiri, jadi
+     * sync server A tidak boleh menonaktifkan akun server B (F4-12).
+     *
      * @param  list<string>  $seenKeys
      */
-    private function deactivateMissing(array $seenKeys): int
+    private function deactivateMissing(array $seenKeys, ?HestiaServer $server = null): int
     {
         $stale = HestiaAccount::query()
+            ->forServer($server)
             ->where('status', HestiaAccountStatus::Active)
             ->whereNotIn('external_key', $seenKeys)
             ->with('service')

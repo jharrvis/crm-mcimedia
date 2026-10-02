@@ -17,6 +17,12 @@ use Illuminate\Support\Facades\Log;
  * Kredensial 100% dari config/env (`crm.hestia.*`) dan dikirim sebagai body
  * POST (bukan query string) agar tidak bocor ke log akses server. Kelas ini
  * hanya mencatat nama perintah ke log, tidak pernah parameter kredensial.
+ *
+ * F4-12: konstruktor menerima array konfigurasi opsional. Tanpa argumen, kelas
+ * membaca `config('crm.hestia')` (path environment F3-1, dan container Laravel
+ * tetap bisa meng-inject kelas ini tanpa argumen). Dengan argumen, konfigurasi
+ * berasal dari satu baris `hestia_servers` sehingga multi-server bisa memakai
+ * instance klien yang sama.
  */
 class HestiaClient
 {
@@ -38,9 +44,12 @@ class HestiaClient
 
     private string $secretKey;
 
-    public function __construct()
+    /**
+     * @param  array<string, mixed>|null  $config  null = pakai `config('crm.hestia')`.
+     */
+    public function __construct(?array $config = null)
     {
-        $config = config('crm.hestia', []);
+        $config ??= config('crm.hestia', []);
 
         $this->scheme = (string) ($config['scheme'] ?? 'https');
         $this->host = (string) ($config['host'] ?? '');

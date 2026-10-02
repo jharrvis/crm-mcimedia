@@ -60,8 +60,12 @@
                 Aktivitas
             </a>
             <a href="{{ route('hestia.index') }}"
-               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.index', 'hestia.sync', 'hestia.accounts.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
                 Sinkron Hestia
+            </a>
+            <a href="{{ route('hestia.servers.index') }}"
+               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.servers.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                Server Hestia
             </a>
         </nav>
         <div class="mt-auto border-t border-white/10 p-4 text-xs text-slate-500">

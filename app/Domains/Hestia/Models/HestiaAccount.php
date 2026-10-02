@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class HestiaAccount extends Model
 {
     protected $fillable = [
-        'external_key', 'hestia_user', 'domain', 'plan', 'service_type',
+        'external_key', 'hestia_server_id', 'hestia_user', 'domain', 'plan', 'service_type',
         'start_date', 'end_date', 'status', 'mapping_status',
         'client_id', 'service_id', 'raw',
         'first_seen_at', 'last_seen_at',
@@ -33,6 +33,11 @@ class HestiaAccount extends Model
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
         ];
+    }
+
+    public function server(): BelongsTo
+    {
+        return $this->belongsTo(HestiaServer::class, 'hestia_server_id');
     }
 
     public function client(): BelongsTo
@@ -55,10 +60,40 @@ class HestiaAccount extends Model
         return $query->where('status', HestiaAccountStatus::Active);
     }
 
-    /** Kunci stabil untuk satu web domain pada satu akun Hestia. */
-    public static function keyFor(string $hestiaUser, string $domain): string
+    /**
+     * Batasi query ke satu server tertentu.
+     *
+     * Dipakai `deactivateMissing()` (F4-12): tanpa scope ini, sinkronisasi
+     * server A akan menonaktifkan akun milik server B yang memang masih ada
+     * di Hestia-nya masing-masing.
+     *
+     * @param  HestiaServer|int|null  $server  null = akun yang belum punya server (path env F3-1)
+     */
+    public function scopeForServer(Builder $query, HestiaServer|int|null $server = null): Builder
     {
-        return 'dom:'.mb_strtolower($hestiaUser).':'.mb_strtolower($domain);
+        if ($server === null) {
+            return $query->whereNull('hestia_server_id');
+        }
+
+        return $query->where('hestia_server_id', $server instanceof HestiaServer ? $server->id : $server);
+    }
+
+    /**
+     * Kunci stabil untuk satu web domain pada satu akun Hestia (F3-1).
+     *
+     * F4-12: bila `serverCode` diisi, kunci dik-prefix `srv:<code>:` supaya
+     * domain & username yang sama di dua server berbeda tidak saling menimpa.
+     * Parameter opsional ditaruh TERAKHIR agar signature lama tetap kompatibel.
+     */
+    public static function keyFor(string $hestiaUser, string $domain, ?string $serverCode = null): string
+    {
+        $key = 'dom:'.mb_strtolower($hestiaUser).':'.mb_strtolower($domain);
+
+        if ($serverCode === null || trim($serverCode) === '') {
+            return $key;
+        }
+
+        return 'srv:'.mb_strtolower(trim($serverCode)).':'.$key;
     }
 
     public function isMapped(): bool
