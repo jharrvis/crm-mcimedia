@@ -29,7 +29,6 @@
         </div>
         <nav class="space-y-4 px-3 py-4 text-sm" aria-label="Navigasi utama">
             @php
-@php
                 // Struktur sidebar grouping (F4-2) + hak akses per modul (F4-1).
                 // Item disembunyikan bila user tidak punya akses lihat ke modul terkait.
                 $navReminderCount = $reminderCount();
