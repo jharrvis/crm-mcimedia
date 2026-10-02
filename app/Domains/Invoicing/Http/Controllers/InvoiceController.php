@@ -95,7 +95,7 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $invoice->load(['client', 'services', 'items', 'payments.confirmer']);
+        $invoice->load(['client', 'services', 'items', 'payments.confirmer', 'recurringPlan']);
 
         // Riwayat pengiriman (F2-5) dari activity log untuk invoice ini.
         $deliveries = ActivityLog::query()

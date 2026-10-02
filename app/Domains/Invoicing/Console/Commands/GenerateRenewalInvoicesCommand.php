@@ -4,6 +4,7 @@ namespace App\Domains\Invoicing\Console\Commands;
 
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Models\Invoice;
+use App\Domains\Invoicing\Models\RecurringPlan;
 use App\Domains\Invoicing\Services\InvoiceNumber;
 use App\Domains\Services\Enums\ServiceStatus;
 use App\Domains\Services\Models\Service;
@@ -33,7 +34,21 @@ class GenerateRenewalInvoicesCommand extends Command
         $openStatuses = [InvoiceStatus::Draft, InvoiceStatus::Sent, InvoiceStatus::Overdue];
         $created = 0;
 
+        // F4-11: layanan yang sudah diurus lewat paket recurring TIDAK dibuatkan
+        // invoice perpanjangan di sini — tagihannya terbit dari paket (siklus
+        // 1/3/6/12 bulan). Tanpa pengecualian ini satu layanan bisa ditagih dua
+        // kali: sekali oleh paket recurring, sekali oleh perintah ini.
+        $recurringServiceIds = RecurringPlan::query()
+            ->active()
+            ->whereNotNull('service_id')
+            ->pluck('service_id')
+            ->all();
+
         foreach ($services as $service) {
+            if (in_array($service->id, $recurringServiceIds, true)) {
+                continue;
+            }
+
             // Lewati bila layanan ini sudah tercakup invoice terbuka (draf/terkirim/
             // terlambat) — baik invoice tunggal maupun invoice gabungan.
             $hasOpen = Invoice::whereHas('services', fn ($q) => $q->where('services.id', $service->id))

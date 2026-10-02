@@ -8,6 +8,7 @@ use App\Domains\Dashboard\Http\Controllers\DashboardController;
 use App\Domains\Hestia\Http\Controllers\HestiaController;
 use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
+use App\Domains\Invoicing\Http\Controllers\RecurringPlanController;
 use App\Domains\Projects\Http\Controllers\AchievementReportController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
 use App\Domains\Projects\Http\Controllers\ProjectJournalController;
@@ -99,6 +100,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('invoices/{invoice}/payments/{payment}/confirm', [InvoiceController::class, 'confirmPendingPayment'])->name('invoices.payments.confirm');
     Route::patch('invoices/{invoice}/payments/{payment}/reject', [InvoiceController::class, 'rejectPendingPayment'])->name('invoices.payments.reject');
     Route::resource('invoices', InvoiceController::class);
+
+    // Paket invoice recurring (F4-11): CRUD paket + aksi tagih/aktivasi.
+    Route::post('recurring-plans/{recurringPlan}/generate', [RecurringPlanController::class, 'generateNow'])->name('recurring-plans.generate-now');
+    Route::patch('recurring-plans/{recurringPlan}/toggle', [RecurringPlanController::class, 'toggle'])->name('recurring-plans.toggle');
+    Route::resource('recurring-plans', RecurringPlanController::class);
 
     // Katalog produk (F2-3): resource + toggle aktif/nonaktif.
     Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])->name('products.toggle');

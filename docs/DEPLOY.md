@@ -207,6 +207,54 @@ Sudah dipasang via Hestia cron (user mcimedia, setiap menit):
 Menjalankan `crm:services-expiring` harian pukul 08:00 (daftar layanan
 jatuh tempo ≤ 30 hari; kanal WA/email menyusul fase 2).
 
+Jadwal harian yang aktif di `bootstrap/app.php`:
+
+| Waktu | Command | Fungsi |
+|-------|---------|--------|
+| 07:00 | `crm:generate-recurring-invoices` | Terbitkan invoice paket recurring (F4-11) per periode yang jatuh tempo |
+| 07:30 | `crm:generate-renewal-invoices` | Draf invoice perpanjangan layanan yang segera berakhir |
+| 08:00 | `crm:services-expiring` | Daftar layanan jatuh tempo ≤ 30 hari |
+| 08:30 | `crm:send-overdue-reminders` | Pengingat invoice lewat jatuh tempo (H+1/H+7/H+14) |
+
+Urutannya penting: `crm:generate-recurring-invoices` (07:00) dijalankan
+**sebelum** `crm:generate-renewal-invoices` (07:30) karena perintah kedua
+sengaja melewati layanan yang sudah diurus paket recurring aktif — tanpa itu
+satu layanan bisa menerima dua invoice (satu dari paket, satu dari perpanjangan).
+
+Invoice recurring juga bisa diterbitkan manual tanpa menunggu jadwal:
+
+```
+php artisan crm:generate-recurring-invoices
+php artisan crm:generate-recurring-invoices --cycle=monthly    # bulanan saja
+php artisan crm:generate-recurring-invoices --send             # paksa terkirim
+```
+
+Perintah ini idempoten per periode: menjalankannya berkali-kali pada hari yang
+sama tidak menggandakan invoice, karena invoice untuk periode yang sudah terbit
+dilewati dan `next_invoice_date` sudah maju satu siklus. Satu paket yang gagal
+tidak menghentikan paket lain — paket itu dilaporkan per baris dan sisanya tetap
+ditagih.
+
+## Invoice recurring (F4-11)
+
+Migrasi F4-11 dijalankan bersama `php artisan migrate --force` seperti biasa
+(satu migrasi aditif `2026_10_07_100001_create_recurring_plans_table` — membuat
+`recurring_plans` + `recurring_plan_items` dan menambah kolom
+`recurring_plan_id`, `recurring_cycle`, `period_start`, `period_end` pada
+`invoices`; **tidak mengubah data lama**).
+
+Tidak ada variabel environment baru — semua konfigurasi per paket (siklus, item,
+jatuh tempo, auto-send) disimpan di UI `/recurring-plans`.
+
+Perlu diketahui saat rollback:
+
+- Menghapus paket recurring **tidak** menghapus invoice yang sudah terbit.
+  `invoices.recurring_plan_id` di-set NULL, invoice tetap utuh sebagai dokumen
+  keuangan. Ini berbeda dari menghapus **klien**: `invoices.client_id` memakai
+  `cascadeOnDelete` (perilaku lama sejak F2-1, bukan tambahan F4-11), jadi
+  menghapus klien ikut menghapus invoice dan pembayaran terkait — sama seperti
+  modul invoice lama. Jangan hapus klien bila invoice-nya masih dibutuhkan.
+
 ## Laporan pencapaian project (F3-4)
 
 Migrasi F3-4 dijalankan bersama `php artisan migrate --force` seperti biasa

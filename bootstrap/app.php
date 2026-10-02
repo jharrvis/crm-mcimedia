@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Invoicing\Console\Commands\GenerateRecurringInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand;
 use App\Domains\Projects\Console\Commands\GenerateAchievementReportsCommand;
@@ -26,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         // Pengingat jatuh tempo layanan, setiap hari pukul 08:00.
         $schedule->command('crm:services-expiring')->dailyAt('08:00');
+        // Invoice recurring per siklus (F4-11), sebelum pengingat jatuh tempo.
+        $schedule->command('crm:generate-recurring-invoices')->dailyAt('07:00');
         // Draf invoice perpanjangan untuk layanan yang segera berakhir, setiap hari pukul 07:30.
         $schedule->command('crm:generate-renewal-invoices')->dailyAt('07:30');
         // Pengingat invoice jatuh tempo (H+1/H+7/H+14), setiap hari pukul 08:30.
@@ -36,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         ServicesExpiringCommand::class,
         GenerateRenewalInvoicesCommand::class,
+        GenerateRecurringInvoicesCommand::class,
         SendOverdueRemindersCommand::class,
         HestiaSyncCommand::class,
         GenerateAchievementReportsCommand::class,
