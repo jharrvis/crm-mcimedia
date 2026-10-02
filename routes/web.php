@@ -42,7 +42,12 @@ Route::middleware('throttle:30,1')->group(function () {
 // Halaman laporan keamanan publik (magic link F3-3) — tanpa login, rate-limited.
 Route::middleware('throttle:30,1')->group(function () {
     Route::get('security/report/{token}', [SecurityPortalController::class, 'show'])->name('security.portal.show');
-    Route::get('security/report/{token}/reports/{report}/download', [SecurityPortalController::class, 'download'])->name('security.portal.download');
+
+    // F4-4: klien tidak lagi mengunduh PDF langsung; PDF dikirim ke email
+    // terdaftar klien. Throttle lebih ketat karena aksi ini mengirim email.
+    Route::post('security/report/{token}/reports/{report}/email', [SecurityPortalController::class, 'email'])
+        ->middleware('throttle:6,1')
+        ->name('security.portal.email');
 });
 
 /*
