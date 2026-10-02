@@ -117,13 +117,17 @@ class HestiaClient
             throw HestiaApiException::notConfigured();
         }
 
-        $payload = ['cmd' => $command, 'returncode' => 'yes'];
+        $payload = ['cmd' => $command];  // tanpa returncode: sg2 hanya mengembalikan 0
         foreach (array_values($args) as $index => $arg) {
             $payload['arg'.($index + 1)] = (string) $arg;
         }
 
         if ($this->accessKey !== '' && $this->secretKey !== '') {
             // Access/secret key (disarankan, Hestia >= 1.6).
+            // Hestia tetap butuh user untuk mengidentifikasi pemilik access key.
+            if ($this->user !== '') {
+                $payload['user'] = $this->user;
+            }
             $payload['hash'] = $this->accessKey.':'.$this->secretKey;
         } else {
             // Autentikasi user/password (legacy).
@@ -164,8 +168,9 @@ class HestiaClient
     }
 
     /**
-     * Parse respons Hestia. Bila `returncode=yes`, baris pertama adalah kode
-     * kembalian (0 = sukses) diikuti output pada baris berikutnya.
+     * Parse respons Hestia. Tanpa `returncode=yes`, body langsung berisi
+     * output; bila server menyertakan baris kode kembalian
+     * ("<kode>\n<output>"), baris itu dideteksi dan divalidasi.
      *
      * @return array<string, mixed>
      */
