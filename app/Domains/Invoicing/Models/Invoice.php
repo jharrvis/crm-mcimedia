@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Invoice extends Model
@@ -24,6 +25,7 @@ class Invoice extends Model
     protected $fillable = [
         'client_id', 'number', 'title', 'issue_date', 'due_date',
         'status', 'subtotal', 'total', 'notes', 'public_token', 'sent_at', 'paid_at',
+        'parent_invoice_id', 'termin_percent',
     ];
 
     protected function casts(): array
@@ -36,6 +38,8 @@ class Invoice extends Model
             'total' => 'integer',
             'sent_at' => 'datetime',
             'paid_at' => 'datetime',
+            'parent_invoice_id' => 'integer',
+            'termin_percent' => 'decimal:2',
         ];
     }
 
@@ -68,6 +72,83 @@ class Invoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    // ---------- Termin pembayaran (F4-10) ----------
+
+    /**
+     * Invoice induk dari invoice termin ini. NULL untuk invoice biasa.
+     * Invoice termin tetap invoice utuh (nomor, status, pembayaran, PDF,
+     * tautan publik sendiri) — hanya ditautkan ke induknya.
+     */
+    public function parentInvoice(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_invoice_id');
+    }
+
+    /** Invoice termin anak dari invoice induk ini. */
+    public function terminInvoices(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_invoice_id')
+            ->orderBy('due_date')
+            ->orderBy('id');
+    }
+
+    /** Invoice ini adalah termin dari sebuah invoice induk. */
+    public function isTermin(): bool
+    {
+        return $this->parent_invoice_id !== null;
+    }
+
+    /** Invoice ini punya minimal satu termin (jadi berperan sebagai induk). */
+    public function hasTermins(): bool
+    {
+        return $this->terminInvoices()->exists();
+    }
+
+    /**
+     * Invoice induk tidak boleh dipecah dua kali menjadi termin: termin yang
+     * sudah ada menandai nilai kontrak sebagai "sudah terjual" per termin, dan
+     * memecahnya lagi akan menggandakan nilai yang ditagih.
+     */
+    public function canSplitIntoTerms(): bool
+    {
+        return ! $this->hasTermins() && ! $this->isTerminal();
+    }
+
+    /** Total persentase termin yang sudah dibuat (dari nilai kontrak induk). */
+    public function allocatedTerminPercent(): float
+    {
+        if (! $this->hasTermins()) {
+            return 0.0;
+        }
+
+        return (float) round(
+            $this->terminInvoices()->sum(DB::raw('COALESCE(termin_percent, 0)')),
+            2
+        );
+    }
+
+    /** Total nominal termin yang sudah dibuat. */
+    public function allocatedTerminTotal(): int
+    {
+        return (int) $this->terminInvoices()->sum('total');
+    }
+
+    /** Sisa nilai kontrak yang belum ditagih lewat termin. */
+    public function remainingContractValue(): int
+    {
+        return max(0, (int) $this->total - $this->allocatedTerminTotal());
+    }
+
+    /** Semua termin sudah lunas (hanya berlaku bila invoice punya termin). */
+    public function allTermsPaid(): bool
+    {
+        if (! $this->hasTermins()) {
+            return false;
+        }
+
+        return $this->terminInvoices()->where('status', '!=', InvoiceStatus::Paid)->doesntExist();
     }
 
     /**
@@ -131,6 +212,18 @@ class Invoice extends Model
         $this->ensureTransitionAllowed('dibatalkan');
 
         $this->update(['status' => InvoiceStatus::Cancelled]);
+    }
+
+    /**
+     * Invoice induk dengan termin TIDAK ikut dihitung sebagai piutang/pemasukan.
+     *
+     * Nilai kontrak invoice induk sama dengan jumlah terminnya (pecahan 100%),
+     * jadi menghitung keduanya akan menagih nilai yang sama dua kali. Laporan
+     * & pengingat overdue memakai scope ini.
+     */
+    public function scopeWithoutTerminParent(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('terminInvoices');
     }
 
     /** Belum dibayar: terkirim atau sudah ditandai terlambat. */

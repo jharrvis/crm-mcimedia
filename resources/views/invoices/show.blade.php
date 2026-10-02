@@ -35,6 +35,15 @@
                 <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tandai terkirim</button>
             </form>
             <a href="{{ route('invoices.edit', $invoice) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Ubah</a>
+
+            {{-- Termin pembayaran (F4-10): pecah nilai kontrak jadi beberapa invoice termin --}}
+            @if ($invoice->canSplitIntoTerms())
+                <a href="{{ route('invoices.termin.create', $invoice) }}"
+                   class="rounded-lg border border-purple-300 px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 dark:border-purple-800 dark:text-purple-300 dark:hover:bg-purple-950">
+                    Pecah menjadi termin
+                </a>
+            @endif
+
             <form method="POST" action="{{ route('invoices.destroy', $invoice) }}" class="inline" onsubmit="return confirm('Hapus invoice {{ $invoice->number }}? Tindakan ini tidak dapat dibatalkan.')">
                 @csrf
                 @method('DELETE')
@@ -161,6 +170,74 @@
             @endif
         </dl>
     </div>
+
+    <!-- Termin pembayaran (F4-10) -->
+    @if ($invoice->isTermin() && $invoice->parentInvoice)
+        <div class="rounded-xl border border-purple-200 bg-purple-50 p-6 dark:border-purple-900 dark:bg-purple-950/40">
+            <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-purple-800 dark:text-purple-200">Termin dari invoice kontrak</h2>
+            <p class="text-sm">
+                Invoice ini adalah termin <strong>{{ rtrim(rtrim(number_format((float) $invoice->termin_percent, 2, '.', ''), '0'), '.') }}%</strong>
+                dari invoice kontrak
+                <a href="{{ route('invoices.show', $invoice->parentInvoice) }}" class="font-semibold text-purple-700 hover:underline dark:text-purple-300">
+                    {{ $invoice->parentInvoice->number }}
+                </a>
+                (nilai kontrak {{ rupiah($invoice->parentInvoice->total) }}).
+            </p>
+        </div>
+    @endif
+
+    @if ($invoice->hasTermins())
+        <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <div class="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                <h2 class="text-sm font-semibold uppercase text-slate-500">Termin pembayaran ({{ $invoice->terminInvoices->count() }})</h2>
+                <p class="mt-1 text-xs text-slate-500">
+                    Dialokasikan {{ $invoice->allocatedTerminPercent() }}% dari nilai kontrak
+                    ({{ rupiah($invoice->allocatedTerminTotal()) }} dari {{ rupiah($invoice->total) }}).
+                    @if ($invoice->allTermsPaid())
+                        Seluruh termin sudah lunas.
+                    @endif
+                </p>
+            </div>
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs uppercase text-slate-500">
+                        <th class="px-4 py-3">Termin</th>
+                        <th class="px-4 py-3 text-center">Porsi</th>
+                        <th class="px-4 py-3">Jatuh tempo</th>
+                        <th class="px-4 py-3 text-right">Nominal</th>
+                        <th class="px-4 py-3">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($invoice->terminInvoices as $termin)
+                        <tr class="border-t border-slate-100 dark:border-slate-800">
+                            <td class="px-4 py-3">
+                                <a href="{{ route('invoices.show', $termin) }}" class="font-medium text-indigo-600 hover:underline">{{ $termin->number }}</a>
+                            </td>
+                            <td class="px-4 py-3 text-center tabular-nums">{{ rtrim(rtrim(number_format((float) $termin->termin_percent, 2, '.', ''), '0'), '.') }}%</td>
+                            <td class="px-4 py-3">
+                                {{ tgl_id($termin->due_date) }}
+                                @if ($termin->status === InvoiceStatus::Sent && $termin->due_date->isBefore(today()))
+                                    <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900 dark:text-red-200">lewat</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right tabular-nums">{{ rupiah($termin->total) }}</td>
+                            <td class="px-4 py-3">
+                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $statusClasses[$termin->status->value] }}">{{ $termin->status->label() }}</span>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr class="border-t border-slate-200 dark:border-slate-700">
+                        <td colspan="3" class="px-4 py-3 text-right font-semibold">Total termin</td>
+                        <td class="px-4 py-3 text-right font-bold tabular-nums">{{ rupiah($invoice->allocatedTerminTotal()) }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    @endif
 
     <!-- Timeline status -->
     <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">

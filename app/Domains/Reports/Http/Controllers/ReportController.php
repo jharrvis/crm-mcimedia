@@ -73,6 +73,9 @@ class ReportController
      * Invoice belum lunas (scope F2-1), jatuh tempo terlama lebih dulu.
      * Setiap baris dilengkapi penanda keterlambatan + umur (hari).
      *
+     * Invoice induk termin (F4-10) dikecualikan: piutangnya ada di invoice
+     * termin-nya, jadi ikut menghitungnya akan dobel.
+     *
      * @return Collection<int, array{invoice: Invoice, is_overdue: bool, days_late: int}>
      */
     private function unpaidInvoices()
@@ -81,6 +84,7 @@ class ReportController
 
         return Invoice::query()
             ->unpaid()
+            ->withoutTerminParent()
             ->with('client:id,name')
             ->orderBy('due_date')
             ->orderBy('id')
@@ -107,6 +111,9 @@ class ReportController
      * total nilai invoice, total lunas, dan total outstanding.
      * Urut outstanding terbesar. Agregasi di level DB (portable SQLite/MySQL).
      *
+     * Invoice induk termin (F4-10) dikecualikan karena nilainya sudah tercermin
+     * di invoice termin — menghitungnya akan membuat total per klien dobel.
+     *
      * @return \Illuminate\Database\Eloquent\Collection<int, Invoice>
      */
     private function clientSummaries()
@@ -118,6 +125,7 @@ class ReportController
 
         return Invoice::query()
             ->where('status', '!=', $cancelled)
+            ->withoutTerminParent()
             ->groupBy('client_id')
             ->selectRaw(
                 'client_id,'

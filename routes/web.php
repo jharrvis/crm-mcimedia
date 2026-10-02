@@ -92,6 +92,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
     Route::post('invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->name('invoices.payments.store');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+    // Termin pembayaran (F4-10): pecah nilai kontrak jadi beberapa invoice termin.
+    Route::get('invoices/{invoice}/termin/create', [InvoiceController::class, 'createTermin'])->name('invoices.termin.create');
+    Route::post('invoices/{invoice}/termin', [InvoiceController::class, 'storeTermin'])->name('invoices.termin.store');
     // Tautan pembayaran publik (magic link F2-4).
     Route::post('invoices/{invoice}/payment-link', [InvoiceController::class, 'generatePaymentLink'])->name('invoices.payment-link.generate');
     Route::delete('invoices/{invoice}/payment-link', [InvoiceController::class, 'revokePaymentLink'])->name('invoices.payment-link.revoke');

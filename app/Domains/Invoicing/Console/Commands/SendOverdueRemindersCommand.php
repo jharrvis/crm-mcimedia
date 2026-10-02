@@ -19,6 +19,10 @@ use Illuminate\Support\Carbon;
  * Idempotent: baris yang sudah ada untuk (invoice, kind, channel) tidak dikirim
  * ulang, sehingga menjalankan command 2x pada hari yang sama tidak menggandakan
  * pengiriman. Command ini TIDAK mengubah status invoice.
+ *
+ * Invoice induk termin (F4-10) dilewati: tagihan yang benar-benar jatuh tempo
+ * ada di invoice termin-nya. Tanpa pengecualian ini klien menerima pengingat
+ * ganda untuk nilai yang sama.
  */
 class SendOverdueRemindersCommand extends Command
 {
@@ -36,6 +40,7 @@ class SendOverdueRemindersCommand extends Command
 
         $invoices = Invoice::query()
             ->unpaid()
+            ->withoutTerminParent()
             ->with('client')
             ->where(function (Builder $query) use ($targetDates): void {
                 foreach ($targetDates as $date) {

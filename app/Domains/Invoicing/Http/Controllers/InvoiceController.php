@@ -7,13 +7,16 @@ use App\Domains\Clients\Models\Client;
 use App\Domains\Core\Models\ActivityLog;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Exceptions\InvalidInvoiceTransition;
+use App\Domains\Invoicing\Exceptions\InvalidTerminSplit;
 use App\Domains\Invoicing\Http\Requests\InvoiceRequest;
+use App\Domains\Invoicing\Http\Requests\InvoiceTerminRequest;
 use App\Domains\Invoicing\Jobs\SendInvoiceEmailJob;
 use App\Domains\Invoicing\Jobs\SendInvoiceWhatsappJob;
 use App\Domains\Invoicing\Models\Invoice;
 use App\Domains\Invoicing\Models\Payment;
 use App\Domains\Invoicing\Services\InvoiceDelivery;
 use App\Domains\Invoicing\Services\InvoiceNumber;
+use App\Domains\Invoicing\Services\InvoiceTerminSplitter;
 use App\Domains\Services\Models\Service;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -95,7 +98,7 @@ class InvoiceController extends Controller
 
     public function show(Invoice $invoice)
     {
-        $invoice->load(['client', 'services', 'items', 'payments.confirmer']);
+        $invoice->load(['client', 'services', 'items', 'payments.confirmer', 'terminInvoices', 'parentInvoice']);
 
         // Riwayat pengiriman (F2-5) dari activity log untuk invoice ini.
         $deliveries = ActivityLog::query()
@@ -172,6 +175,49 @@ class InvoiceController extends Controller
 
         return redirect()->route('invoices.index')
             ->with('success', "Invoice {$number} dihapus.");
+    }
+
+    /**
+     * Pecah invoice menjadi beberapa termin (F4-10), mis. 30%/30%/40%.
+     *
+     * Setiap termin menjadi invoice terpisah yang terhubung ke invoice induk.
+     */
+    public function createTermin(Invoice $invoice)
+    {
+        if (! $invoice->canSplitIntoTerms()) {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('error', $invoice->hasTermins()
+                    ? "Invoice {$invoice->number} sudah memiliki termin sehingga nilai kontrak tidak dapat dipecah lagi."
+                    : "Invoice {$invoice->number} berstatus {$invoice->status->label()} sehingga tidak dapat dipecah menjadi termin.");
+        }
+
+        if ((int) $invoice->total <= 0) {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('error', "Invoice {$invoice->number} belum punya nilai kontrak. Tambahkan item bernilai lebih dulu.");
+        }
+
+        $invoice->load(['client', 'services', 'items']);
+
+        return view('invoices.termin.create', [
+            'invoice' => $invoice,
+        ]);
+    }
+
+    /** Jalankan pecahan termin dari form. */
+    public function storeTermin(InvoiceTerminRequest $request, Invoice $invoice, InvoiceTerminSplitter $splitter)
+    {
+        try {
+            $terms = $splitter->split($invoice, $request->terms());
+        } catch (InvalidTerminSplit $e) {
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+
+        $count = $terms->count();
+
+        return redirect()->route('invoices.show', $invoice)
+            ->with('success', "Invoice {$invoice->number} dipecah menjadi {$count} termin.");
     }
 
     /** Draft -> terkirim. */
