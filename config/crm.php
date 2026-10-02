@@ -1,5 +1,8 @@
 <?php
 
+use App\Domains\Providers\Drivers\HestiaDomainProviderDriver;
+use App\Domains\Providers\Drivers\ManualDomainProviderDriver;
+
 /*
 |--------------------------------------------------------------------------
 | Identitas usaha CRM MCI Media
@@ -128,6 +131,29 @@ return [
 
         // CC tetap saat laporan dikirim ke klien (F4-3). Kosong = tanpa CC.
         'report_cc_email' => env('CRM_SECURITY_REPORT_CC_EMAIL', 'info@mcimedia.net'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Registry penyedia domain/hosting (F4-5)
+    |--------------------------------------------------------------------------
+    |
+    | Daftar kelas driver yang tersedia di dropdown "tambah provider". Menambah
+    | penyedia baru = buat kelas yang mengimplementasikan
+    | App\Domains\Providers\Contracts\DomainProviderDriver lalu tambahkan
+    | kelasnya di sini. Tidak ada perubahan skema tabel `domain_providers`:
+    | kredensial per driver disimpan pada kolom JSON terenkripsi.
+    |
+    | Kredensial provider (host/username/password dsb.) diisi lewat UI dan
+    | tersimpan terenkripsi di database — JANGAN menulis kredensial asli di
+    | config/repo ini.
+    |
+    */
+    'domain_providers' => [
+        'drivers' => [
+            HestiaDomainProviderDriver::class,
+            ManualDomainProviderDriver::class,
+        ],
     ],
 
 ];

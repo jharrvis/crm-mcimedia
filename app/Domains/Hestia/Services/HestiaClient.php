@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\Log;
  * menolak perintah lain sebelum request dikirim, sehingga sinkronisasi tidak
  * pernah membuat/mengubah/menghapus akun di Hestia.
  *
- * Kredensial 100% dari config/env (`crm.hestia.*`) dan dikirim sebagai body
+ * Kredensial dari config/env (`crm.hestia.*`) secara default; sejak F4-5
+ * konstruktor juga menerima array konfigurasi eksplisit sehingga driver
+ * provider (`HestiaDomainProviderDriver`) dapat memakai kredensial tersimpan
+ * per provider. Dikirim sebagai body
  * POST (bukan query string) agar tidak bocor ke log akses server. Kelas ini
  * hanya mencatat nama perintah ke log, tidak pernah parameter kredensial.
  */
@@ -38,9 +41,9 @@ class HestiaClient
 
     private string $secretKey;
 
-    public function __construct()
+    public function __construct(?array $config = null)
     {
-        $config = config('crm.hestia', []);
+        $config = $config ?? config('crm.hestia', []);
 
         $this->scheme = (string) ($config['scheme'] ?? 'https');
         $this->host = (string) ($config['host'] ?? '');

@@ -53,6 +53,7 @@
                     ['label' => 'Keamanan', 'items' => [
                         ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan', 'module' => 'security'],
                         ['route' => 'hestia.index', 'match' => 'hestia.*', 'label' => 'Sinkron Hestia', 'module' => 'hestia'],
+                        ['route' => 'domain-providers.index', 'match' => 'domain-providers.*', 'label' => 'Provider Domain', 'module' => 'providers'],
                     ]],
                     ['label' => 'Lainnya', 'items' => [
                         ['route' => 'reminders.index', 'match' => 'reminders.*', 'label' => 'Pengingat', 'module' => 'reminders', 'badge' => true],

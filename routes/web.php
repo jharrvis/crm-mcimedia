@@ -13,6 +13,7 @@ use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
 use App\Domains\Projects\Http\Controllers\AchievementReportController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
 use App\Domains\Projects\Http\Controllers\ProjectJournalController;
+use App\Domains\Providers\Http\Controllers\DomainProviderController;
 use App\Domains\Reports\Http\Controllers\ReportController;
 use App\Domains\Security\Http\Controllers\ClientSecurityPortalController;
 use App\Domains\Security\Http\Controllers\SecurityActionController;
@@ -114,6 +115,15 @@ Route::middleware('auth')->group(function () {
         Route::patch('accounts/{account}/map', [HestiaController::class, 'map'])->name('accounts.map');
         Route::patch('accounts/{account}/ignore', [HestiaController::class, 'ignore'])->name('accounts.ignore');
     });
+
+    // Registry penyedia domain/hosting (F4-5): CRUD provider, aktif/nonaktif,
+    // dan daftar domain dari driver terpilih. Route aksi didaftarkan sebelum
+    // resource agar tidak tertangkap oleh domain-providers/{domain_provider}.
+    Route::get('domain-providers/{domain_provider}/domains', [DomainProviderController::class, 'domains'])
+        ->name('domain-providers.domains');
+    Route::patch('domain-providers/{domain_provider}/toggle', [DomainProviderController::class, 'toggle'])
+        ->name('domain-providers.toggle');
+    Route::resource('domain-providers', DomainProviderController::class)->except('show');
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.
     Route::patch('invoices/{invoice}/send', [InvoiceController::class, 'send'])
