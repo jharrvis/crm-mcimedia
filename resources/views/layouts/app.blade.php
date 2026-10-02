@@ -39,6 +39,7 @@
                     ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas'],
                     ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan'],
                     ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan'],
+                    ['route' => 'domain-providers.index', 'match' => 'domain-providers.*', 'label' => 'Provider Domain'],
                 ];
             @endphp
             @foreach ($nav as $item)

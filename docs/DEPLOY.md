@@ -228,6 +228,39 @@ periode tersebut (task selesai atau entri jurnal) dan idempotent. Command
 di `bootstrap/app.php` (mis. `->monthlyOn(1, '07:00')`) lalu pastikan cron
 `schedule:run` di server tetap aktif.
 
+## Provider domain/hosting (F4-5)
+
+Registry penyedia domain/hosting tidak butuh konfigurasi `.env` tambahan:
+kredensial diisi lewat UI **Setelan → Provider Domain** (`/domain-providers`)
+dan disimpan **terenkripsi** di tabel `domain_providers` (cast
+`encrypted:array`). Karena itu `APP_KEY` server **wajib ada dan dicadangkan** —
+tanpa `APP_KEY` yang sama, kredensial provider tidak bisa didekripsi.
+
+Langkah deploy biasa: jalankan `php artisan migrate --force` (satu migrasi
+aditif `2026_10_06_100001_create_domain_providers_table` — tidak mengubah tabel
+lain). Setelah itu admin dapat menambah provider, memilih driver, mengisi
+kredensial, dan menekan **Lihat domain** untuk menarik daftar domain dari
+penyedia.
+
+Driver bawaan:
+
+- `HestiaCP (hosting)` — memakai ulang klien Hestia yang **read-only** (hanya
+  perintah `v-list*`), memakai kredensial yang diisi di UI (host, port,
+  user/password atau access/secret key, serta akun Hestia yang domainnya
+  ditarik). Ini **terpisah** dari sinkronisasi F3-1 yang membaca `HESTIA_*`
+  dari `.env`.
+- `Manual (tanpa API)` — daftar domain + tanggal kedaluwarsa dalam JSON, untuk
+  registrar yang belum punya API.
+
+Menambah penyedia baru cukup dengan membuat satu kelas yang
+mengimplementasikan `App\Domains\Providers\Contracts\DomainProviderDriver`
+(biasanya lewat `AbstractDomainProviderDriver`), lalu menambahkan kelasnya di
+`config/crm.php` → `crm.domain_providers.drivers`. **Tidak ada perubahan skema
+database**: bentuk kredensial ditentukan `credentialFields()` driver dan
+disimpan apa adanya pada kolom JSON terenkripsi; form serta validasi ikut
+menyesuaikan otomatis. Setelah menambah driver, jalankan
+`php artisan config:clear` (atau `config:cache` bila memakai cache config).
+
 ## Rollback
 
 - Kode: `git checkout <tag-sebelumnya>` lalu ulangi langkah Redeploy
