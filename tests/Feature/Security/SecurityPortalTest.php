@@ -3,14 +3,24 @@
 namespace Tests\Feature\Security;
 
 use App\Domains\Security\Enums\ReportStatus;
+use App\Domains\Security\Jobs\SendPortalSecurityReportEmailJob;
+use App\Domains\Security\Mail\SecurityReportMailable;
+use App\Domains\Security\Models\SecurityReport;
 use App\Models\User;
 use Database\Factories\ClientFactory;
 use Database\Factories\SecurityReportFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
+/**
+ * F3-3/F4-4: portal laporan keamanan publik (magic link) — daftar laporan
+ * terkirim + tombol "Kirim via Email" yang mengirim PDF ke email terdaftar
+ * klien (bukan unduh langsung).
+ */
 class SecurityPortalTest extends TestCase
 {
     use RefreshDatabase;
@@ -21,6 +31,25 @@ class SecurityPortalTest extends TestCase
         $this->actingAs($user);
 
         return $user;
+    }
+
+    /** Klien dengan token portal aktif. */
+    private function clientWithPortal(array $attributes = []): \App\Domains\Clients\Models\Client
+    {
+        $client = ClientFactory::new()->create($attributes);
+        $client->forceFill(['security_portal_token' => Str::random(64)])->save();
+
+        return $client;
+    }
+
+    /** Laporan terkirim milik klien, dengan/ tanpa berkas PDF di disk. */
+    private function sentReport($client, array $attributes = []): SecurityReport
+    {
+        return SecurityReportFactory::new()->sent()->create(array_merge([
+            'client_id' => $client->id,
+            'period' => '2026-08',
+            'file_path' => 'security-reports/'.$client->id.'/laporan.pdf',
+        ], $attributes));
     }
 
     public function test_admin_generates_and_revokes_portal_token(): void
@@ -99,84 +128,200 @@ class SecurityPortalTest extends TestCase
         $response->assertDontSee('rahasia@example.com');
     }
 
-    public function test_reports_without_file_show_no_download_link(): void
+    public function test_portal_shows_email_button_and_never_shows_direct_download(): void
     {
-        $client = ClientFactory::new()->create();
-        $client->forceFill(['security_portal_token' => Str::random(64)])->save();
-        SecurityReportFactory::new()->sent()->create(['client_id' => $client->id, 'period' => '2026-08', 'file_path' => null]);
+        Storage::fake('local');
+        $client = $this->clientWithPortal();
+        $report = $this->sentReport($client, ['period' => '2026-08']);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4');
+
+        $response = $this->get(route('security.portal.show', ['token' => $client->security_portal_token]));
+
+        $response->assertOk();
+        $response->assertSee('Kirim via Email');
+        $response->assertSee(route('security.portal.email', [
+            'token' => $client->security_portal_token,
+            'report' => $report,
+        ]), false);
+        // Unduh langsung sudah dihapus dari portal (F4-4).
+        $response->assertDontSee('Unduh PDF');
+        $response->assertDontSee('security/report/'.$client->security_portal_token.'/reports/'.$report->id.'/download');
+    }
+
+    public function test_reports_without_file_show_no_email_button(): void
+    {
+        $client = $this->clientWithPortal();
+        $this->sentReport($client, ['period' => '2026-08', 'file_path' => null]);
 
         $this->get(route('security.portal.show', ['token' => $client->security_portal_token]))
             ->assertOk()
-            ->assertDontSee('Unduh PDF');
+            ->assertDontSee('Kirim via Email');
     }
 
-    public function test_client_can_download_sent_report(): void
+    public function test_public_download_route_no_longer_exists(): void
+    {
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('security.portal.download'));
+
+        $client = $this->clientWithPortal();
+        $report = $this->sentReport($client);
+
+        $this->get("/security/report/{$client->security_portal_token}/reports/{$report->id}/download")
+            ->assertNotFound();
+    }
+
+    public function test_client_can_request_report_by_email(): void
     {
         Storage::fake('local');
-        $client = ClientFactory::new()->create();
-        $client->forceFill(['security_portal_token' => Str::random(64)])->save();
-
-        $report = SecurityReportFactory::new()->sent()->create([
-            'client_id' => $client->id,
-            'period' => '2026-08',
-            'file_path' => 'security-reports/1/laporan.pdf',
-        ]);
+        Queue::fake();
+        $client = $this->clientWithPortal(['email' => 'klien@contoh.test']);
+        $report = $this->sentReport($client, ['period' => '2026-08']);
         Storage::disk('local')->put($report->file_path, '%PDF-1.4');
 
-        $response = $this->get(route('security.portal.download', [
+        $this->post(route('security.portal.email', [
             'token' => $client->security_portal_token,
             'report' => $report,
-        ]));
+        ]))
+            ->assertSessionHas('success')
+            ->assertSessionMissing('error');
 
-        $response->assertOk();
-        $this->assertStringContainsString('Laporan-Keamanan-', $response->headers->get('content-disposition'));
+        Queue::assertPushed(SendPortalSecurityReportEmailJob::class, function ($job) use ($report) {
+            return $job->report->is($report);
+        });
     }
 
-    public function test_client_cannot_download_draft_report(): void
+    public function test_email_request_with_unknown_token_returns_404(): void
     {
-        Storage::fake('local');
-        $client = ClientFactory::new()->create();
-        $client->forceFill(['security_portal_token' => Str::random(64)])->save();
+        Queue::fake();
+        $report = SecurityReportFactory::new()->sent()->create(['file_path' => 'x.pdf']);
 
-        $report = SecurityReportFactory::new()->create([
-            'client_id' => $client->id,
-            'file_path' => 'security-reports/1/draf.pdf',
-            'status' => ReportStatus::Draft,
-        ]);
-        Storage::disk('local')->put($report->file_path, '%PDF-1.4');
-
-        $this->get(route('security.portal.download', [
-            'token' => $client->security_portal_token,
+        $this->post(route('security.portal.email', [
+            'token' => Str::random(64),
             'report' => $report,
         ]))->assertNotFound();
+
+        Queue::assertNothingPushed();
     }
 
-    public function test_client_cannot_download_another_clients_report(): void
+    public function test_client_cannot_request_another_clients_report_by_email(): void
     {
         Storage::fake('local');
-        $mine = ClientFactory::new()->create();
-        $mine->forceFill(['security_portal_token' => Str::random(64)])->save();
+        Queue::fake();
+        $mine = $this->clientWithPortal();
         $other = ClientFactory::new()->create();
 
         $report = SecurityReportFactory::new()->sent()->create([
             'client_id' => $other->id,
-            'file_path' => 'security-reports/2/laporan.pdf',
+            'file_path' => 'security-reports/'.$other->id.'/laporan.pdf',
         ]);
         Storage::disk('local')->put($report->file_path, '%PDF-1.4');
 
-        $this->get(route('security.portal.download', [
+        $this->post(route('security.portal.email', [
             'token' => $mine->security_portal_token,
             'report' => $report,
         ]))->assertNotFound();
+
+        Queue::assertNothingPushed();
     }
 
-    public function test_download_with_wrong_token_returns_404(): void
+    public function test_client_cannot_request_draft_report_by_email(): void
     {
-        $report = SecurityReportFactory::new()->sent()->create(['file_path' => 'x.pdf']);
+        Storage::fake('local');
+        Queue::fake();
+        $client = $this->clientWithPortal();
+        $report = SecurityReportFactory::new()->create([
+            'client_id' => $client->id,
+            'period' => '2026-08',
+            'file_path' => 'security-reports/'.$client->id.'/draf.pdf',
+            'status' => ReportStatus::Draft,
+        ]);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4');
 
-        $this->get(route('security.portal.download', [
-            'token' => Str::random(64),
+        $this->post(route('security.portal.email', [
+            'token' => $client->security_portal_token,
             'report' => $report,
         ]))->assertNotFound();
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_request_is_rejected_when_pdf_file_is_missing(): void
+    {
+        Storage::fake('local');
+        Queue::fake();
+        $client = $this->clientWithPortal();
+        // hasFile() true (ada path) tetapi berkas tidak diletakkan di disk.
+        $report = $this->sentReport($client);
+
+        $this->post(route('security.portal.email', [
+            'token' => $client->security_portal_token,
+            'report' => $report,
+        ]))->assertSessionHas('error');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_request_is_rejected_when_client_has_no_valid_email(): void
+    {
+        Storage::fake('local');
+        Queue::fake();
+        $client = $this->clientWithPortal(['email' => '']);
+        $report = $this->sentReport($client);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4');
+
+        $this->post(route('security.portal.email', [
+            'token' => $client->security_portal_token,
+            'report' => $report,
+        ]))->assertSessionHas('error');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_cooldown_prevents_immediate_resend(): void
+    {
+        Storage::fake('local');
+        Queue::fake();
+        $client = $this->clientWithPortal();
+        $report = $this->sentReport($client);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4');
+
+        $url = route('security.portal.email', [
+            'token' => $client->security_portal_token,
+            'report' => $report,
+        ]);
+
+        $this->post($url)->assertSessionHas('success');
+        $this->post($url)->assertSessionHas('error');
+
+        Queue::assertPushed(SendPortalSecurityReportEmailJob::class, 1);
+    }
+
+    public function test_job_sends_pdf_to_registered_client_email_only(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+        $client = $this->clientWithPortal(['name' => 'PT Klien Rahasia', 'email' => 'klien@contoh.test']);
+        $report = $this->sentReport($client, ['period' => '2026-08']);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4');
+
+        (new SendPortalSecurityReportEmailJob($report))->handle();
+
+        Mail::assertSent(SecurityReportMailable::class, function (SecurityReportMailable $mail) {
+            return $mail->hasTo('klien@contoh.test')
+                && count($mail->attachments()) === 1;
+        });
+        Mail::assertSent(SecurityReportMailable::class, 1);
+    }
+
+    public function test_job_is_skipped_when_client_email_invalid(): void
+    {
+        Storage::fake('local');
+        Mail::fake();
+        $client = $this->clientWithPortal(['email' => 'bukan-email']);
+        $report = $this->sentReport($client);
+        Storage::disk('local')->put($report->file_path, '%PDF-1.4');
+
+        (new SendPortalSecurityReportEmailJob($report))->handle();
+
+        Mail::assertNothingSent();
     }
 }
