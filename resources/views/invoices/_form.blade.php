@@ -75,9 +75,13 @@
         @error('issue_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label class="mb-1 block text-sm font-medium">Jatuh tempo <span class="text-red-600">*</span></label>
-        <input name="due_date" type="date" required value="{{ old('due_date', $invoice?->due_date?->format('Y-m-d') ?? now()->addDays(14)->toDateString()) }}" class="{{ $inputClass }}">
-        @error('due_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        @include('invoices._due-date-picker', [
+            'name' => 'due_date',
+            'value' => old('due_date', $invoice?->due_date?->format('Y-m-d') ?? now()->addDays(14)->toDateString()),
+            'label' => 'Jatuh tempo',
+            'required' => true,
+            'inputClass' => $inputClass,
+        ])
     </div>
     <div class="sm:col-span-2">
         <label class="mb-1 block text-sm font-medium">Catatan</label>
