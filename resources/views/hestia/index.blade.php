@@ -92,7 +92,7 @@
         <p class="mt-1">Kredensial tiap server diatur di
             <a href="{{ route('hestia.servers.index') }}" class="font-semibold underline">Kelola server</a>.</p>
     </div>
-@endunless
+@endif
 {{-- Ringkasan paket, kuota, dan status (F4-13) --}}
 <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
     @foreach ($summary as $card)
