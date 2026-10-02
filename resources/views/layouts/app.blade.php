@@ -27,42 +27,50 @@
                 <p class="text-[11px] text-slate-400">Internal</p>
             </div>
         </div>
-        <nav class="space-y-1 px-3 py-4 text-sm">
+        <nav class="space-y-4 px-3 py-4 text-sm" aria-label="Navigasi utama">
             @php
+                $navReminderCount = $reminderCount();
                 $nav = [
-                    ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard'],
-                    ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien'],
-                    ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan'],
-                    ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice'],
-                    ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk'],
-                    ['route' => 'projects.index', 'match' => 'projects.*', 'label' => 'Project'],
-                    ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas'],
-                    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan'],
-                    ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan'],
+                    ['label' => 'Utama', 'items' => [
+                        ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard'],
+                    ]],
+                    ['label' => 'Klien dan Layanan', 'items' => [
+                        ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien'],
+                        ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan'],
+                    ]],
+                    ['label' => 'Keuangan', 'items' => [
+                        ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice'],
+                        ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk'],
+                        ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan'],
+                    ]],
+                    ['label' => 'Project', 'items' => [
+                        ['route' => 'projects.index', 'match' => 'projects.*', 'label' => 'Project'],
+                        ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas'],
+                    ]],
+                    ['label' => 'Keamanan', 'items' => [
+                        ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan'],
+                        ['route' => 'hestia.index', 'match' => 'hestia.*', 'label' => 'Sinkron Hestia'],
+                    ]],
+                    ['label' => 'Lainnya', 'items' => [
+                        ['route' => 'reminders.index', 'match' => 'reminders.*', 'label' => 'Pengingat', 'badge' => true],
+                        ['route' => 'activity.index', 'match' => 'activity.*', 'label' => 'Aktivitas'],
+                    ]],
                 ];
             @endphp
-            @foreach ($nav as $item)
-                <a href="{{ route($item['route']) }}"
-                   class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs($item['match']) ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                    {{ $item['label'] }}
-                </a>
+            @foreach ($nav as $group)
+                <div class="space-y-1">
+                    <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ $group['label'] }}</p>
+                    @foreach ($group['items'] as $item)
+                        <a href="{{ route($item['route']) }}"
+                           class="flex items-center justify-between rounded-lg px-3 py-2 font-medium {{ request()->routeIs($item['match']) ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                            <span>{{ $item['label'] }}</span>
+                            @if (($item['badge'] ?? false) && $navReminderCount > 0)
+                                <span class="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $navReminderCount }}</span>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
             @endforeach
-            <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Lainnya</p>
-            <a href="{{ route('reminders.index') }}"
-               class="flex items-center justify-between rounded-lg px-3 py-2 font-medium {{ request()->routeIs('reminders.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                <span>Pengingat</span>
-                @if (($reminderCount() ?? 0) > 0)
-                    <span class="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $reminderCount() }}</span>
-                @endif
-            </a>
-            <a href="{{ route('activity.index') }}"
-               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('activity.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                Aktivitas
-            </a>
-            <a href="{{ route('hestia.index') }}"
-               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                Sinkron Hestia
-            </a>
         </nav>
         <div class="mt-auto border-t border-white/10 p-4 text-xs text-slate-500">
             <p class="font-medium text-slate-300">{{ auth()->user()->name }}</p>
