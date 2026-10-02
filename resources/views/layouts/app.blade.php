@@ -58,6 +58,10 @@
                class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('activity.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
                 Aktivitas
             </a>
+            <a href="{{ route('hestia.index') }}"
+               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                Sinkron Hestia
+            </a>
         </nav>
         <div class="mt-auto border-t border-white/10 p-4 text-xs text-slate-500">
             <p class="font-medium text-slate-300">{{ auth()->user()->name }}</p>

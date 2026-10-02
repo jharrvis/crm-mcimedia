@@ -5,6 +5,7 @@ use App\Domains\Clients\Http\Controllers\ClientContactController;
 use App\Domains\Clients\Http\Controllers\ClientController;
 use App\Domains\Core\Http\Controllers\ActivityLogController;
 use App\Domains\Dashboard\Http\Controllers\DashboardController;
+use App\Domains\Hestia\Http\Controllers\HestiaController;
 use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
@@ -45,6 +46,14 @@ Route::middleware('auth')->group(function () {
     Route::get('reminders', ReminderController::class)->name('reminders.index');
     Route::get('reports', ReportController::class)->name('reports.index');
     Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+
+    // Sinkronisasi HestiaCP (F3-1): daftar akun, jalankan sync, pemetaan manual.
+    Route::prefix('hestia')->name('hestia.')->group(function () {
+        Route::get('/', [HestiaController::class, 'index'])->name('index');
+        Route::post('sync', [HestiaController::class, 'sync'])->name('sync');
+        Route::patch('accounts/{account}/map', [HestiaController::class, 'map'])->name('accounts.map');
+        Route::patch('accounts/{account}/ignore', [HestiaController::class, 'ignore'])->name('accounts.ignore');
+    });
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.
     Route::patch('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
