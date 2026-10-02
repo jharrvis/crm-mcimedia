@@ -33,16 +33,31 @@
         <table class="w-full text-sm">
             <thead><tr class="text-left text-xs uppercase text-slate-500">
                 <th class="py-2 pr-4">Judul</th><th class="py-2 pr-4">Klien</th><th class="py-2 pr-4">Status</th>
-                <th class="py-2 pr-4">Deadline</th><th class="py-2 pr-4 text-right">Nilai</th><th class="py-2">Aksi</th>
+                <th class="py-2 pr-4">Progress</th><th class="py-2 pr-4">Deadline</th>
+                <th class="py-2 pr-4 text-right">Nilai</th><th class="py-2">Aksi</th>
             </tr></thead>
             <tbody>
                 @forelse ($projects as $project)
-                    @php $late = $project->deadline && $project->deadline->isPast() && in_array($project->status->value, ['new', 'in_progress'], true); @endphp
+                    @php $progress = $project->progressPercent(); @endphp
                     <tr class="border-t border-slate-100 dark:border-slate-800">
                         <td class="py-2 pr-4"><a href="{{ route('projects.show', $project) }}" class="font-medium text-indigo-600 hover:underline">{{ $project->title }}</a></td>
                         <td class="py-2 pr-4"><a href="{{ route('clients.show', $project->client) }}" class="hover:text-indigo-600">{{ $project->client?->name ?? '—' }}</a></td>
-                        <td class="py-2 pr-4"><span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">{{ $project->status->label() }}</span></td>
-                        <td class="py-2 pr-4 {{ $late ? 'font-semibold text-red-600' : '' }}">{{ tgl_id($project->deadline) }}</td>
+                        <td class="py-2 pr-4">
+                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">{{ $project->status->label() }}</span>
+                            @if ($project->isOverdue())
+                                <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">Overdue</span>
+                            @endif
+                        </td>
+                        <td class="py-2 pr-4">
+                            <div class="flex items-center gap-2">
+                                <div class="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                                    <div class="h-full rounded-full {{ $progress === 100 ? 'bg-green-500' : 'bg-indigo-500' }}" style="width: {{ $progress }}%"></div>
+                                </div>
+                                <span class="text-xs text-slate-500">{{ $progress }}%</span>
+                                <span class="text-xs text-slate-400">({{ $project->doneTasksCount() }}/{{ $project->tasksCount() }})</span>
+                            </div>
+                        </td>
+                        <td class="py-2 pr-4 {{ $project->isOverdue() ? 'font-semibold text-red-600' : '' }}">{{ tgl_id($project->deadline) }}</td>
                         <td class="py-2 pr-4 text-right">{{ rupiah($project->value) }}</td>
                         <td class="whitespace-nowrap py-2">
                             <a href="{{ route('projects.edit', $project) }}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
@@ -54,7 +69,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="py-6 text-center text-slate-500">Belum ada project.</td></tr>
+                    <tr><td colspan="7" class="py-6 text-center text-slate-500">Belum ada project.</td></tr>
                 @endforelse
             </tbody>
         </table>

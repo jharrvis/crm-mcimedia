@@ -114,6 +114,27 @@ Sudah dipasang via Hestia cron (user mcimedia, setiap menit):
 Menjalankan `crm:services-expiring` harian pukul 08:00 (daftar layanan
 jatuh tempo ≤ 30 hari; kanal WA/email menyusul fase 2).
 
+## Laporan pencapaian project (F3-4)
+
+Migrasi F3-4 dijalankan bersama `php artisan migrate --force` seperti biasa
+(tiga migrasi aditif: `project_journals`, `achievement_reports`, dan
+pelebaran kolom `tasks.status` — tidak mengubah data lama).
+
+Generate laporan bisa dilakukan dari UI (`/projects/{project}/reports`)
+atau lewat command:
+
+```
+php artisan crm:generate-achievement-reports --type=month
+php artisan crm:generate-achievement-reports --type=week --date=2026-10-07
+php artisan crm:generate-achievement-reports --type=month --project=12
+```
+
+Command hanya membuat laporan untuk project yang punya aktivitas pada
+periode tersebut (task selesai atau entri jurnal) dan idempotent. Command
+**belum dijadwalkan**; bila ingin otomatis, tambahkan baris `schedule->command(...)`
+di `bootstrap/app.php` (mis. `->monthlyOn(1, '07:00')`) lalu pastikan cron
+`schedule:run` di server tetap aktif.
+
 ## Rollback
 
 - Kode: `git checkout <tag-sebelumnya>` lalu ulangi langkah Redeploy

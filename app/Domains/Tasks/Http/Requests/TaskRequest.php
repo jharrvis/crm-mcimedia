@@ -2,7 +2,9 @@
 
 namespace App\Domains\Tasks\Http\Requests;
 
+use App\Domains\Tasks\Enums\TaskStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class TaskRequest extends FormRequest
 {
@@ -21,7 +23,7 @@ class TaskRequest extends FormRequest
             'assigned_user_id' => ['nullable', 'exists:users,id'],
             'priority' => ['required', 'in:low,medium,high'],
             'due_date' => ['nullable', 'date'],
-            'status' => ['sometimes', 'in:open,done'],
+            'status' => ['sometimes', Rule::enum(TaskStatus::class)],
         ];
     }
 }

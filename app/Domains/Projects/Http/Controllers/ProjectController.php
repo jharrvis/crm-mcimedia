@@ -14,6 +14,7 @@ class ProjectController extends Controller
     {
         $projects = Project::query()
             ->with('client')
+            ->withTaskCounts()
             ->when(request('q'), fn ($q, $term) => $q->where('title', 'like', "%{$term}%"))
             ->when(request('client_id'), fn ($q, $id) => $q->where('client_id', $id))
             ->when(request('status'), fn ($q, $status) => $q->where('status', $status))
@@ -46,7 +47,7 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
-        $project->load(['client', 'tasks']);
+        $project->load(['client', 'tasks', 'journals.author', 'achievementReports'])->loadTaskCounts();
 
         return view('projects.show', compact('project'));
     }
