@@ -43,9 +43,13 @@ class PublicInvoiceController extends Controller
             ]);
         }
 
+        // Invoice induk termin: nilainya sudah tercermin di invoice termin.
+        // Menampilkannya sebagai tagihan penuh membuat klien bisa mencicil
+        // nilai kontrak penuh lewat sini, lalu lagi lewat termin.
         return view('invoices.public', [
             'invoice' => $invoice,
             'business' => config('crm.business'),
+            'isTerminParent' => ! $invoice->isCollectible(),
         ]);
     }
 
@@ -64,6 +68,13 @@ class PublicInvoiceController extends Controller
     public function storePayment(Request $request, string $token): RedirectResponse
     {
         $invoice = $this->findInvoice($token);
+
+        // Invoice induk termin bukan piutang — nilainya sudah ditagih lewat
+        // invoice termin. Menerima konfirmasi transfer di sini memungkinkan
+        // klien membayar nilai kontrak penuh dua kali.
+        if (! $invoice->isCollectible()) {
+            return back()->with('error', 'Invoice ini adalah invoice kontrak yang sudah dipecah menjadi termin. Bayar per termin invoice yang/dpunya tautannya masing-masing.');
+        }
 
         // Invoice final (lunas/dibatalkan) tidak menerima konfirmasi baru.
         if ($invoice->isTerminal()) {

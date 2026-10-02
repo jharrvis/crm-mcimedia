@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Invoice extends Model
@@ -24,6 +25,7 @@ class Invoice extends Model
     protected $fillable = [
         'client_id', 'number', 'title', 'issue_date', 'due_date',
         'status', 'subtotal', 'total', 'notes', 'public_token', 'sent_at', 'paid_at',
+        'parent_invoice_id', 'termin_percent',
     ];
 
     protected function casts(): array
@@ -36,6 +38,8 @@ class Invoice extends Model
             'total' => 'integer',
             'sent_at' => 'datetime',
             'paid_at' => 'datetime',
+            'parent_invoice_id' => 'integer',
+            'termin_percent' => 'decimal:2',
         ];
     }
 
@@ -68,6 +72,132 @@ class Invoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    // ---------- Termin pembayaran (F4-10) ----------
+
+    /**
+     * Invoice induk dari invoice termin ini. NULL untuk invoice biasa.
+     * Invoice termin tetap invoice utuh (nomor, status, pembayaran, PDF,
+     * tautan publik sendiri) — hanya ditautkan ke induknya.
+     */
+    public function parentInvoice(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_invoice_id');
+    }
+
+    /** Invoice termin anak dari invoice induk ini. */
+    public function terminInvoices(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_invoice_id')
+            ->orderBy('due_date')
+            ->orderBy('id');
+    }
+
+    /** Invoice ini adalah termin dari sebuah invoice induk. */
+    public function isTermin(): bool
+    {
+        return $this->parent_invoice_id !== null;
+    }
+
+    /** Invoice ini punya minimal satu termin (jadi berperan sebagai induk). */
+    public function hasTermins(): bool
+    {
+        return $this->terminInvoices()->exists();
+    }
+
+    /**
+     * Invoice induk setelah dipecah hanya menjadi dokumen kontrak: nominalnya
+     * sudah tercermin di invoice termin, jadi invoice itu sendiri tidak lagi
+     * boleh ditagih (tidak bisa dilunasi, tidak bisa bikin/aktivkan tautan
+     * bayar publik). Tanpa guard ini klien bisa membayar nilai kontrak penuh
+     * lewat invoice induk DAN lewat termin-nya — penagihan ganda.
+     */
+    public function isCollectible(): bool
+    {
+        return ! $this->hasTermins();
+    }
+
+    /**
+     * Invoice induk hanya boleh dipecah satu kali, dan invoice termin tidak
+     * boleh dipecah lagi (tanpa batas tingkat nesting — struktur datanya hanya
+     * dirancang untuk satu tingkat).
+     */
+    public function canSplitIntoTerms(): bool
+    {
+        return ! $this->hasTermins()
+            && ! $this->isTermin()
+            && ! $this->isTerminal();
+    }
+
+    /**
+     * Invoice induk yang sudah dipecah tidak boleh dihapus lewat jalur biasa:
+     * cascade ON DELETE akan ikut menghapus termin yang mungkin sudah lunas
+     * beserta pembayarannya. Penghapusan aman hanya bila semua termin masih
+     * draf (belum ada uang masuk yang tercatat).
+     */
+    public function canBeDeletedSafely(): bool
+    {
+        if (! $this->hasTermins()) {
+            return true;
+        }
+
+        return $this->terminInvoices()
+            ->whereIn('status', [InvoiceStatus::Sent, InvoiceStatus::Overdue, InvoiceStatus::Paid])
+            ->doesntExist();
+    }
+
+    /**
+     * Termin yang sudah „dimiliki" invoice induk (bukan draf lagi). Dipakai
+     * untuk memblokir perubahan yang membuat nilai kontrak tidak sinkron.
+     */
+    public function hasNonDraftTerms(): bool
+    {
+        return $this->terminInvoices()
+            ->where('status', '!=', InvoiceStatus::Draft)
+            ->exists();
+    }
+
+    /** Total persentase termin yang sudah dibuat (dari nilai kontrak induk). */
+    public function allocatedTerminPercent(): float
+    {
+        if (! $this->relationLoaded('terminInvoices')) {
+            return (float) round(
+                $this->terminInvoices()->sum(DB::raw('COALESCE(termin_percent, 0)')),
+                2
+            );
+        }
+
+        return (float) round(
+            $this->terminInvoices->sum(fn ($termin) => (float) $termin->termin_percent),
+            2
+        );
+    }
+
+    /** Total nominal termin yang sudah dibuat. */
+    public function allocatedTerminTotal(): int
+    {
+        if (! $this->relationLoaded('terminInvoices')) {
+            return (int) $this->terminInvoices()->sum('total');
+        }
+
+        return (int) $this->terminInvoices->sum('total');
+    }
+
+    /** Sisa nilai kontrak yang belum ditagih lewat termin. */
+    public function remainingContractValue(): int
+    {
+        return max(0, (int) $this->total - $this->allocatedTerminTotal());
+    }
+
+    /** Semua termin sudah lunas (hanya berlaku bila invoice punya termin). */
+    public function allTermsPaid(): bool
+    {
+        if (! $this->hasTermins()) {
+            return false;
+        }
+
+        return $this->terminInvoices()->where('status', '!=', InvoiceStatus::Paid)->doesntExist();
     }
 
     /**
@@ -118,11 +248,26 @@ class Invoice extends Model
     public function markPaid(): void
     {
         $this->ensureTransitionAllowed('dilunaskan');
+        $this->ensureCollectible('dilunasi');
 
         $this->update([
             'status' => InvoiceStatus::Paid,
             'paid_at' => $this->paid_at ?? now(),
         ]);
+    }
+
+    /**
+     * Invoice induk yang sudah dipecah menjadi termin tidak boleh dilunasi:
+     * nilainya sudah ditagih lewat invoice termin. Tanpa guard ini satu
+     * kontrak bisa dibayar dua kali (lewat induk DAN lewat termin).
+     */
+    protected function ensureCollectible(string $action): void
+    {
+        if ($this->hasTermins()) {
+            throw new InvalidInvoiceTransition(
+                "Invoice {$this->number} sudah dipecah menjadi termin sehingga tidak dapat {$action}. Lunasi invoice termin-nya."
+            );
+        }
     }
 
     /** -> dibatalkan (status final). Invoice lunas tidak bisa dibatalkan. */
@@ -131,6 +276,18 @@ class Invoice extends Model
         $this->ensureTransitionAllowed('dibatalkan');
 
         $this->update(['status' => InvoiceStatus::Cancelled]);
+    }
+
+    /**
+     * Invoice induk dengan termin TIDAK ikut dihitung sebagai piutang/pemasukan.
+     *
+     * Nilai kontrak invoice induk sama dengan jumlah terminnya (pecahan 100%),
+     * jadi menghitung keduanya akan menagih nilai yang sama dua kali. Laporan
+     * & pengingat overdue memakai scope ini.
+     */
+    public function scopeWithoutTerminParent(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('terminInvoices');
     }
 
     /** Belum dibayar: terkirim atau sudah ditandai terlambat. */

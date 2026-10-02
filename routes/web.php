@@ -144,6 +144,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:invoices')->name('invoices.payments.store');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])
         ->middleware('permission:invoices')->name('invoices.pdf');
+    // Termin pembayaran (F4-10): pecah nilai kontrak jadi beberapa invoice termin.
+    Route::get('invoices/{invoice}/termin/create', [InvoiceController::class, 'createTermin'])
+        ->middleware('permission:invoices')->name('invoices.termin.create');
+    Route::post('invoices/{invoice}/termin', [InvoiceController::class, 'storeTermin'])
+        ->middleware('permission:invoices')->name('invoices.termin.store');
     // Tautan pembayaran publik (magic link F2-4).
     Route::post('invoices/{invoice}/payment-link', [InvoiceController::class, 'generatePaymentLink'])
         ->middleware('permission:invoices')->name('invoices.payment-link.generate');
