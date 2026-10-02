@@ -125,6 +125,9 @@ return [
         'dedup_window_minutes' => env('SECURITY_DEDUP_WINDOW_MINUTES', 1440),
         'report_disk' => env('SECURITY_REPORT_DISK', 'local'),
         'report_max_kb' => env('SECURITY_REPORT_MAX_KB', 10240),
+
+        // CC tetap saat laporan dikirim ke klien (F4-3). Kosong = tanpa CC.
+        'report_cc_email' => env('CRM_SECURITY_REPORT_CC_EMAIL', 'info@mcimedia.net'),
     ],
 
 ];

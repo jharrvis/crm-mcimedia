@@ -112,6 +112,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [SecurityDashboardController::class, 'index'])->name('index');
 
         Route::patch('reports/{report}/send', [SecurityReportController::class, 'send'])->name('reports.send');
+        Route::patch('reports/{report}/send-to-client', [SecurityReportController::class, 'sendToClient'])->name('reports.send-to-client');
         Route::get('reports/{report}/download', [SecurityReportController::class, 'download'])->name('reports.download');
         Route::get('reports', [SecurityReportController::class, 'index'])->name('reports.index');
         Route::get('reports/create', [SecurityReportController::class, 'create'])->name('reports.create');
