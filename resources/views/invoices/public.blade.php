@@ -16,6 +16,7 @@
     $isPaid = $invoice->status === InvoiceStatus::Paid;
     $isOverdue = $invoice->status === InvoiceStatus::Overdue
         || ($invoice->status === InvoiceStatus::Sent && $invoice->due_date->isBefore(today()));
+    $bankAccounts = crm_bank_accounts();
 @endphp
 
 <div class="space-y-4">
@@ -106,16 +107,29 @@
         <!-- Instruksi transfer -->
         <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
             <h2 class="mb-3 text-sm font-semibold uppercase text-slate-500">Instruksi transfer</h2>
-            <p class="text-sm text-slate-600 dark:text-slate-300">
-                Mohon transfer ke rekening berikut dan sertakan nomor invoice
-                <strong>{{ $invoice->number }}</strong> pada berita transfer.
-            </p>
-            <dl class="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                <div><dt class="text-slate-500">Bank</dt><dd class="font-semibold">{{ $bank['name'] }}</dd></div>
-                <div><dt class="text-slate-500">Nomor rekening</dt><dd class="font-semibold">{{ $bank['account_number'] }}</dd></div>
-                <div><dt class="text-slate-500">Atas nama</dt><dd class="font-semibold">{{ $bank['account_holder'] }}</dd></div>
-                <div><dt class="text-slate-500">Jumlah</dt><dd class="font-semibold">{{ rupiah($invoice->total) }}</dd></div>
-            </dl>
+            @if ($bankAccounts !== [])
+                <p class="text-sm text-slate-600 dark:text-slate-300">
+                    Mohon transfer ke <strong>salah satu</strong> rekening berikut dan sertakan nomor invoice
+                    <strong>{{ $invoice->number }}</strong> pada berita transfer.
+                </p>
+                <div class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                    @foreach ($bankAccounts as $account)
+                        <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                            <p class="font-semibold text-slate-700 dark:text-slate-200">{{ $account['name'] }}</p>
+                            <p class="mt-1 font-mono text-base font-semibold tracking-wide">{{ $account['account_number'] }}</p>
+                            <p class="mt-1 text-xs text-slate-500">a.n. {{ $account['account_holder'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+                <dl class="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                    <div><dt class="text-slate-500">Jumlah</dt><dd class="font-semibold">{{ rupiah($invoice->total) }}</dd></div>
+                </dl>
+            @else
+                <p class="text-sm text-slate-600 dark:text-slate-300">
+                    Detail rekening tujuan belum tersedia. Silakan hubungi
+                    <strong>{{ $business['email'] }}</strong> untuk informasi pembayaran.
+                </p>
+            @endif
         </div>
 
         <!-- Form konfirmasi transfer -->

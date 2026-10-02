@@ -50,14 +50,29 @@
                 <p style="margin:0 0 16px;font-size:12px;color:#64748b;word-break:break-all;">{{ $paymentUrl }}</p>
             @endif
 
+            @php $bankAccounts = crm_bank_accounts(); @endphp
             <div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;background:#f8fafc;">
                 <p style="margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">Instruksi transfer</p>
-                <p style="margin:0;font-size:13px;">
-                    Transfer ke <strong>{{ $bank['name'] }}</strong><br>
-                    No. rekening: <strong>{{ $bank['account_number'] }}</strong><br>
-                    Atas nama: <strong>{{ $bank['account_holder'] }}</strong><br>
-                    Mohon sertakan nomor invoice <strong>{{ $invoice->number }}</strong> pada berita transfer.
-                </p>
+                @if ($bankAccounts !== [])
+                    <p style="margin:0;font-size:13px;">
+                        Transfer ke <strong>salah satu</strong> rekening berikut:
+                    </p>
+                    @foreach ($bankAccounts as $account)
+                        <p style="margin:8px 0 0;font-size:13px;">
+                            <strong>{{ $account['name'] }}</strong><br>
+                            No. rekening: <strong>{{ $account['account_number'] }}</strong><br>
+                            Atas nama: <strong>{{ $account['account_holder'] }}</strong>
+                        </p>
+                    @endforeach
+                    <p style="margin:8px 0 0;font-size:13px;">
+                        Mohon sertakan nomor invoice <strong>{{ $invoice->number }}</strong> pada berita transfer.
+                    </p>
+                @else
+                    <p style="margin:0;font-size:13px;">
+                        Detail rekening tujuan belum tersedia. Silakan hubungi
+                        <strong>{{ $business['email'] }}</strong> untuk informasi pembayaran.
+                    </p>
+                @endif
             </div>
         </div>
 

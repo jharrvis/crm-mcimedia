@@ -9,8 +9,13 @@
 </head>
 <body class="min-h-full bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
     <div class="mx-auto max-w-3xl px-4 py-8">
-        <div class="mb-6 flex items-center gap-2">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">M</div>
+        <div class="mb-6 flex items-center gap-3">
+            @if (business_logo_url())
+                <img src="{{ business_logo_url() }}" alt="{{ config('crm.business.name') }}"
+                     class="h-9 w-auto max-w-[180px] object-contain">
+            @else
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">M</div>
+            @endif
             <p class="text-lg font-bold">{{ config('crm.business.name') }}</p>
         </div>
 

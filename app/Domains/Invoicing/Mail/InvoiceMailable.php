@@ -37,7 +37,6 @@ class InvoiceMailable extends Mailable
             with: [
                 'invoice' => $this->invoice,
                 'business' => config('crm.business'),
-                'bank' => config('crm.bank'),
                 'paymentUrl' => InvoiceDelivery::paymentUrl($this->invoice),
                 'pdfUrl' => InvoiceDelivery::pdfUrl($this->invoice),
             ],

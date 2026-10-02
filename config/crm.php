@@ -18,12 +18,33 @@ return [
         'email' => env('CRM_BUSINESS_EMAIL', 'admin@mcimedia.web.id'),
         'phone' => env('CRM_BUSINESS_PHONE', '+62 812-3456-7890'),
         'whatsapp' => env('CRM_BUSINESS_WHATSAPP', '+62 812-3456-7890'),
+
+        // Logo usaha: path file relatif terhadap public/, mis.
+        // "images/business-logo.png". Kosong (default) = kop tanpa logo —
+        // PDF & halaman publik tetap tampil normal tanpa error.
+        'logo' => env('CRM_BUSINESS_LOGO', null),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Rekening bank (F2-9)
+    |--------------------------------------------------------------------------
+    |
+    | Daftar rekening yang ditampilkan di PDF invoice, halaman bayar publik
+    | (/pay/{token}), dan email invoice. Boleh berisi lebih dari satu rekening.
+    |
+    | Sumber environment (prioritas):
+    |   1. CRM_BANK_ACCOUNTS — JSON array objek, mis.
+    |      CRM_BANK_ACCOUNTS='[{"name":"BCA","account_number":"0000000000","account_holder":"Nama Pemilik"},{"name":"Bank Lain","account_number":"1111111111","account_holder":"Nama Pemilik"}]'
+    |   2. Variabel tunggal lama CRM_BANK_NAME / CRM_BANK_ACCOUNT_NUMBER /
+    |      CRM_BANK_ACCOUNT_HOLDER.
+    |
+    | JANGAN hardcode nomor rekening di kode. Daftar kosong = bagian instruksi
+    | pembayaran tampil rapi tanpa rekening (tanpa error).
+    |
+    */
     'bank' => [
-        'name' => env('CRM_BANK_NAME', 'Bank Central Asia (BCA)'),
-        'account_number' => env('CRM_BANK_ACCOUNT_NUMBER', '1234567890'),
-        'account_holder' => env('CRM_BANK_ACCOUNT_HOLDER', 'MCI Media'),
+        'accounts' => crm_env_bank_accounts(),
     ],
 
     'invoice' => [

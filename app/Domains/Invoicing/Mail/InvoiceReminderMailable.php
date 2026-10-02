@@ -36,7 +36,6 @@ class InvoiceReminderMailable extends Mailable
             with: [
                 'invoice' => $this->invoice,
                 'business' => config('crm.business'),
-                'bank' => config('crm.bank'),
                 'paymentUrl' => InvoiceDelivery::paymentUrl($this->invoice),
                 'kind' => $this->kind,
                 'daysOverdue' => $this->kind->days(),

@@ -396,13 +396,17 @@ class InvoiceUiTest extends TestCase
     public function test_pdf_contains_invoice_details(): void
     {
         $this->login();
+        config(['crm.bank.accounts' => [
+            ['name' => 'BCA', 'account_number' => '1111222233', 'account_holder' => 'Nama Pemilik'],
+        ]]);
+
         $invoice = InvoiceFactory::new()->withItems(1500000)->create();
 
         // Render template HTML langsung untuk memastikan data identitas & item masuk.
         $html = view('invoices.pdf', ['invoice' => $invoice->load(['client', 'items', 'payments'])])->render();
 
         $this->assertStringContainsString(config('crm.business.name'), $html);
-        $this->assertStringContainsString(config('crm.bank.account_number'), $html);
+        $this->assertStringContainsString('1111222233', $html);
         $this->assertStringContainsString($invoice->number, $html);
         $this->assertStringContainsString('Rp 1.500.000', $html);
         $this->assertStringNotContainsString('PPN', $html);
