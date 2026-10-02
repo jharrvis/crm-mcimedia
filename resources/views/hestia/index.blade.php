@@ -6,6 +6,39 @@
 @php
     $inputClass = 'rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800';
     $badge = fn (string $classes, string $text) => '<span class="rounded-full px-2 py-0.5 text-xs font-medium '.$classes.'">'.e($text).'</span>';
+
+    /**
+     * Format ukuran disk (MB) untuk tampilan. Sengaja closure lokal, bukan
+     * helper global, karena hanya dipakai di halaman ini.
+     */
+    $mb = function (?int $megabytes): string {
+        if ($megabytes === null) {
+            return '—';
+        }
+
+        if ($megabytes >= 1024) {
+            return number_format($megabytes / 1024, 1, ',', '.').' GB';
+        }
+
+        return $megabytes.' MB';
+    };
+
+    // Warna bar disk: hijau < 80%, kuning 80–99%, merah >= 100% (penuh).
+    // Tanpa type-hint: kelas view tidak punya `use`, jadi type-hint unnamed
+    // akan resolve ke namespace global dan selalu gagal.
+    $diskBar = function ($account): string {
+        $percent = $account->diskUsagePercent();
+
+        if ($percent === null) {
+            return 'bg-slate-400';
+        }
+
+        return match (true) {
+            $percent >= 100 => 'bg-red-500',
+            $percent >= 80 => 'bg-amber-500',
+            default => 'bg-emerald-500',
+        };
+    };
 @endphp
 
 <div class="mb-4 flex flex-wrap items-center gap-2">
@@ -60,6 +93,15 @@
             <a href="{{ route('hestia.servers.index') }}" class="font-semibold underline">Kelola server</a>.</p>
     </div>
 @endunless
+{{-- Ringkasan paket, kuota, dan status (F4-13) --}}
+<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    @foreach ($summary as $card)
+        <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
+            <p class="mt-1 text-xl font-semibold {{ $card['alert'] ? 'text-red-600 dark:text-red-400' : '' }}">{{ $card['value'] }}</p>
+        </div>
+    @endforeach
+</div>
 
 {{-- Akun belum dipetakan --}}
 <div class="mb-6">
@@ -73,7 +115,9 @@
                     <th class="px-4 py-3">Domain</th>
                     <th class="px-4 py-3">Server</th>
                     <th class="px-4 py-3">Akun Hestia</th>
-                    <th class="px-4 py-3">Plan</th>
+                    <th class="px-4 py-3">Paket</th>
+                    <th class="px-4 py-3">Kuota disk</th>
+                    <th class="px-4 py-3">Status</th>
                     <th class="px-4 py-3">Mulai</th>
                     <th class="px-4 py-3">Petakan ke klien</th>
                 </tr>
@@ -85,6 +129,8 @@
                         <td class="px-4 py-3 text-slate-500">{{ $account->server?->name ?? 'Environment' }}</td>
                         <td class="px-4 py-3">{{ $account->hestia_user }}</td>
                         <td class="px-4 py-3">{{ $account->plan ?? '—' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">{{ $mb($account->disk_used) }} / {{ $account->diskQuotaSuffix($account->hasDiskQuota() ? $mb($account->disk_quota) : null) }}</td>
+                        <td class="px-4 py-3">{!! $badge($account->statusBadgeClass(), $account->statusLabel()) !!}</td>
                         <td class="px-4 py-3">{{ tgl_id($account->start_date) }}</td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
@@ -109,6 +155,7 @@
                     </tr>
                 @empty
                     <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Semua akun sudah dipetakan.</td></tr>
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Semua akun sudah dipetakan.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -116,7 +163,53 @@
 </div>
 
 {{-- Semua akun --}}
-<h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Semua akun hasil sinkronisasi</h2>
+<div class="mb-2 flex flex-wrap items-end justify-between gap-3">
+    <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Semua akun hasil sinkronisasi</h2>
+
+    {{-- Filter paket, kuota, dan status (F4-13) --}}
+    <form method="GET" action="{{ route('hestia.index') }}" class="flex flex-wrap items-end gap-2">
+        <label class="text-xs text-slate-500">
+            <span class="block">Cari</span>
+            <input type="search" name="q" value="{{ request('q') }}" placeholder="domain atau akun"
+                   class="{{ $inputClass }} mt-1">
+        </label>
+
+        <label class="text-xs text-slate-500">
+            <span class="block">Paket</span>
+            <select name="plan" class="{{ $inputClass }} mt-1">
+                <option value="">Semua paket</option>
+                @foreach ($plans as $planName)
+                    <option value="{{ $planName }}" @selected(request('plan') === $planName)>{{ $planName }}</option>
+                @endforeach
+            </select>
+        </label>
+
+        <label class="text-xs text-slate-500">
+            <span class="block">Status</span>
+            <select name="status" class="{{ $inputClass }} mt-1">
+                @foreach ($statusFilters as $value => $label)
+                    <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </label>
+
+        <label class="text-xs text-slate-500">
+            <span class="block">Kuota</span>
+            <select name="quota" class="{{ $inputClass }} mt-1">
+                @foreach ($quotaFilters as $value => $label)
+                    <option value="{{ $value }}" @selected(request('quota') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </label>
+
+        <button class="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700">Terapkan</button>
+
+        @if (request()->hasAny(['q', 'plan', 'status', 'quota']))
+            <a href="{{ route('hestia.index') }}" class="px-1 py-2 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Reset</a>
+        @endif
+    </form>
+</div>
+
 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
     <table class="w-full text-sm">
         <thead>
@@ -137,6 +230,40 @@
                         <td class="px-4 py-3 font-medium">{{ $account->domain }}</td>
                         <td class="px-4 py-3 text-slate-500">{{ $account->server?->name ?? 'Environment' }}</td>
                         <td class="px-4 py-3">{{ $account->hestia_user }}</td>
+                <th class="px-4 py-3">Akun</th>
+                <th class="px-4 py-3">Paket</th>
+                <th class="px-4 py-3">Pemakaian disk</th>
+                <th class="px-4 py-3">Klien</th>
+                <th class="px-4 py-3">Layanan</th>
+                <th class="px-4 py-3">Pemetaan</th>
+                <th class="px-4 py-3">Status</th>
+                <th class="px-4 py-3">Terakhir dilihat</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse ($accounts as $account)
+                <tr class="border-t border-slate-100 dark:border-slate-800">
+                    <td class="px-4 py-3 font-medium">{{ $account->domain }}</td>
+                    <td class="px-4 py-3">{{ $account->hestia_user }}</td>
+                    <td class="px-4 py-3">{{ $account->plan ?? '—' }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        @php $percent = $account->diskUsagePercent(); @endphp
+                        <div class="flex items-center gap-2">
+                            <div class="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                                <div class="h-full rounded-full {{ $diskBar($account) }}" style="width: {{ min(100, $percent ?? 0) }}%"></div>
+                            </div>
+                            <span class="text-xs text-slate-500">{{ $mb($account->disk_used) }} / {{ $account->diskQuotaSuffix($account->hasDiskQuota() ? $mb($account->disk_quota) : null) }}
+                                @if ($percent !== null)
+                                    <span class="text-slate-400">({{ $percent }}%)</span>
+                                @elseif ($account->hasUnlimitedDiskQuota())
+                                    <span class="text-slate-400">(tanpa batas)</span>
+                                @endif
+                            </span>
+                        </div>
+                        @if ($account->isSuspended() && $account->user_suspended)
+                            <span class="mt-1 block text-xs text-amber-700 dark:text-amber-300">Akun Hestia disuspend</span>
+                        @endif
+                    </td>
                     <td class="px-4 py-3">
                         @if ($account->client)
                             <a href="{{ route('clients.show', $account->client) }}" class="text-indigo-600 hover:underline">{{ $account->client->name }}</a>
@@ -161,15 +288,20 @@
                         @endphp
                         {!! $badge($mappingClass, $account->mapping_status->label()) !!}
                     </td>
-                    <td class="px-4 py-3">
-                        {!! $account->status->value === 'active'
-                            ? $badge('bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200', $account->status->label())
-                            : $badge('bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300', $account->status->label()) !!}
-                    </td>
+                    <td class="px-4 py-3">{!! $badge($account->statusBadgeClass(), $account->statusLabel()) !!}</td>
                     <td class="px-4 py-3 text-slate-500">{{ $account->last_seen_at?->format('d/m/Y H:i') ?? '—' }}</td>
                 </tr>
             @empty
                 <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Belum ada akun tersinkron.</td></tr>
+                <tr>
+                    <td colspan="9" class="px-4 py-8 text-center text-slate-500">
+                        @if (request()->hasAny(['q', 'plan', 'status', 'quota']))
+                            Tidak ada akun yang cocok dengan filter.
+                        @else
+                            Belum ada akun tersinkron.
+                        @endif
+                    </td>
+                </tr>
             @endforelse
         </tbody>
     </table>

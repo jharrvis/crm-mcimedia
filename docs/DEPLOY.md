@@ -186,6 +186,47 @@ Dipakai otomatis bila **belum ada** server aktif di `hestia_servers`.
   `hestia_sync_logs` (tanpa kredensial).
 - `HESTIA_ENABLED=false` (default) → kill switch global: tombol/perintah tidak
   menghubungi API **server mana pun** (environment maupun server UI).
+- `HESTIA_ENABLED=false` (default) → tombol/perintah tidak menghubungi API.
+
+### Paket, kuota, dan status di `/hestia` (F4-13)
+
+Tabel `hestia_accounts` ditambah kolom `disk_used`, `disk_quota`, `suspended`,
+dan `user_suspended`. Nilainya dipecah dari payload Hestia yang **sudah** ada
+di kolom `raw` (F3-1) — tidak ada panggilan API baru, dan sifat read-only
+sinkronisasi tidak berubah. Kolom paket sudah ada (`plan` = `PACKAGE`).
+
+Sumber field (dari sumber HestiaCP, bukan asumsi):
+- `disk_used` ← `U_DISK` (MB, `v-list-web-domains`; `du -shm`).
+- `disk_quota` ← `DISK_QUOTA` (MB, level **paket/user** — tidak ada di payload domain).
+- `suspended` ← `SUSPENDED` level web domain.
+- `user_suspended` ← `SUSPENDED` level akun Hestia (pemilik domain).
+
+Deploy:
+
+```
+php artisan migrate --force      # migration 2026_10_07_200001 (aditif)
+php artisan hestia:sync          # WAJIB sekali setelah migrate — lihat catatan
+```
+
+Catatan penting:
+- `U_DISK` dan `SUSPENDED` level domain di-backfill otomatis dari `raw`, jadi
+  riwayat pemakaian disk langsung terlihat setelah migrate.
+- **`user_suspended` tidak bisa di-backfill** (payload user tidak pernah
+  disimpan di `raw`). Baris lama memakai default `false` sampai sync dijalankan.
+  Jadi jalankan `php artisan hestia:sync` sekali setelah migrate sebelum
+  memercayai angka "Suspend" di UI.
+- `DISK_QUOTA = 0` artinya **tanpa batas** (konvensi paket Hestia) dan UI
+  menampilkan `∞`, bukan persentase — sehingga bar 100% tidak pernah salah
+  untuk paket tanpa kuota.
+- Kuota yang **tidak dilaporkan** Hestia (`null`, mis. versi lama) ditampilkan
+  `—`, bukan `∞`: `∞` adalah klaim "tanpa batas" dan hanya boleh muncul bila
+  Hestia benar-benar melaporkan `DISK_QUOTA = 0`. Setelah deploy, jalankan
+  `php artisan hestia:sync` agar `disk_quota` terisi; sampai itu baris lama
+  akan tampil `—`.
+- `down()` bersifat lossy: backfill tidak dapat direkonstruksi tanpa memanggil
+  Hestia lagi.
+- Rollback: `php artisan migrate:rollback --step=1` menghapus 4 kolom;
+  data lama (termasuk `raw`) tidak tersentuh.
 
 ## Monitoring keamanan (F3-3)
 
