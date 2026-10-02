@@ -9,6 +9,12 @@ use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
 use App\Domains\Reports\Http\Controllers\ReportController;
+use App\Domains\Security\Http\Controllers\ClientSecurityPortalController;
+use App\Domains\Security\Http\Controllers\SecurityActionController;
+use App\Domains\Security\Http\Controllers\SecurityDashboardController;
+use App\Domains\Security\Http\Controllers\SecurityIncidentController;
+use App\Domains\Security\Http\Controllers\SecurityPortalController;
+use App\Domains\Security\Http\Controllers\SecurityReportController;
 use App\Domains\Services\Http\Controllers\ReminderController;
 use App\Domains\Services\Http\Controllers\ServiceController;
 use App\Domains\Tasks\Http\Controllers\TaskController;
@@ -26,6 +32,12 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('pay/{token}', [PublicInvoiceController::class, 'show'])->name('invoices.public.show');
     Route::get('pay/{token}/pdf', [PublicInvoiceController::class, 'pdf'])->name('invoices.public.pdf');
     Route::post('pay/{token}/payments', [PublicInvoiceController::class, 'storePayment'])->name('invoices.public.payments.store');
+});
+
+// Halaman laporan keamanan publik (magic link F3-3) — tanpa login, rate-limited.
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('security/report/{token}', [SecurityPortalController::class, 'show'])->name('security.portal.show');
+    Route::get('security/report/{token}/reports/{report}/download', [SecurityPortalController::class, 'download'])->name('security.portal.download');
 });
 
 Route::middleware('auth')->group(function () {
@@ -68,4 +80,23 @@ Route::middleware('auth')->group(function () {
 
     Route::get('profile/password', [ProfileController::class, 'edit'])->name('profile.password.edit');
     Route::put('profile/password', [ProfileController::class, 'update'])->name('profile.password.update');
+
+    // Modul monitoring keamanan (F3-3): dashboard, insiden, jurnal, laporan.
+    Route::prefix('security')->name('security.')->group(function () {
+        Route::get('/', [SecurityDashboardController::class, 'index'])->name('index');
+
+        Route::patch('reports/{report}/send', [SecurityReportController::class, 'send'])->name('reports.send');
+        Route::get('reports/{report}/download', [SecurityReportController::class, 'download'])->name('reports.download');
+        Route::get('reports', [SecurityReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/create', [SecurityReportController::class, 'create'])->name('reports.create');
+        Route::post('reports', [SecurityReportController::class, 'store'])->name('reports.store');
+        Route::delete('reports/{report}', [SecurityReportController::class, 'destroy'])->name('reports.destroy');
+
+        Route::resource('incidents', SecurityIncidentController::class)->except('show');
+        Route::resource('actions', SecurityActionController::class)->except('show');
+    });
+
+    // Tautan laporan keamanan publik per klien (magic link F3-3).
+    Route::post('clients/{client}/security-portal-link', [ClientSecurityPortalController::class, 'generate'])->name('clients.security-portal.generate');
+    Route::delete('clients/{client}/security-portal-link', [ClientSecurityPortalController::class, 'revoke'])->name('clients.security-portal.revoke');
 });

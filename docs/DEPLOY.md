@@ -75,6 +75,58 @@ Catatan:
 - Setiap entri boleh hanya punya `name` atau `account_number`; entri yang
   kosong total otomatis dilewati.
 
+## Monitoring keamanan (F3-3)
+
+Modul keamanan dipakai untuk mencatat insiden, jurnal tindakan, dan arsip
+laporan PDF keamanan per klien, plus menerima temuan otomatis dari script
+monitoring di server klien.
+
+1. Isi `.env` server (jangan di-commit):
+
+   ```
+   SECURITY_API_ENABLED=true
+   SECURITY_API_TOKEN=<token acak panjang, mis. hasil `openssl rand -hex 32`>
+   SECURITY_DEDUP_WINDOW_MINUTES=1440
+   SECURITY_REPORT_DISK=local
+   SECURITY_REPORT_MAX_KB=10240
+   ```
+
+   `SECURITY_API_TOKEN` kosong → seluruh endpoint `/api/security/*` menolak
+   semua request (503). Tidak ada jalur tanpa autentikasi.
+
+2. `php8.3 artisan config:cache`.
+
+3. Script monitoring di server klien memanggil:
+
+   ```
+   POST /api/security/events
+   Authorization: Bearer <SECURITY_API_TOKEN>
+   Content-Type: application/json
+
+   {"events":[{"external_id":"sg2-yiari-20261001-01","client_id":7,
+     "occurred_at":"2026-10-01T02:15:00+07:00","severity":"high",
+     "source":"firewall","title":"Brute force SSH","description":"..."}]}
+   ```
+
+   - `external_id` opsional; bila diisi, kirim ulang batch yang sama tidak
+     menggandakan insiden (idempotent). Tanpa `external_id`, temuan dengan
+     klien+sumber+judul sama dalam `SECURITY_DEDUP_WINDOW_MINUTES` dianggap
+     duplikat.
+   - `severity`: critical|high|medium|low|info. `source`:
+     firewall|wpscan|file-integrity|monitor|manual.
+   - Health check: `GET /api/security/status` (juga butuh token).
+   - **JANGAN** mengirim kredensial/rahasia server ke API ini — hanya metadata
+     temuan yang dibaca; field lain diabaikan.
+
+4. Tautan laporan publik per klien: buka `/security` (login), klik "Buat
+   tautan" pada baris klien, salin URL `…/security/report/{token}` ke klien.
+   Hanya laporan berstatus "Terkirim" yang tampil; "Cabut tautan" langsung
+   menonaktifkan URL (404). Tanda tangani/whitelist domain CRM sebelum dibagikan.
+
+5. Verifikasi: unggah PDF contoh di `/security/reports`, tandai "Terkirim",
+   buka tautan publik klien — PDF harus bisa diunduh. Uji API dengan
+   `curl -H "Authorization: Bearer $SECURITY_API_TOKEN" …/api/security/status`.
+
 ## Redeploy (update versi)
 
 1. Lokal: WAJIB `npm run build` tepat sebelum packaging (jangan pakai
