@@ -249,6 +249,10 @@ Driver bawaan:
   user/password atau access/secret key, serta akun Hestia yang domainnya
   ditarik). Ini **terpisah** dari sinkronisasi F3-1 yang membaca `HESTIA_*`
   dari `.env`.
+- `Hostinger` (F4-6) — autentikasi **Bearer API Token hPanel** (dibuat di
+  hPanel → Akun → API Token, cukup akses baca domain) dan menarik daftar domain
+  beserta tanggal kedaluwarsa (renewal) dari `GET /api/domains/v1/portfolio`.
+  Token disimpan terenkripsi per provider; tidak ada `HOSTINGER_*` di `.env`.
 - `Manual (tanpa API)` — daftar domain + tanggal kedaluwarsa dalam JSON, untuk
   registrar yang belum punya API.
 

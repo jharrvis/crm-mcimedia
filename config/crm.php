@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Providers\Drivers\HestiaDomainProviderDriver;
+use App\Domains\Providers\Drivers\HostingerDomainProviderDriver;
 use App\Domains\Providers\Drivers\ManualDomainProviderDriver;
 
 /*
@@ -152,6 +153,7 @@ return [
     'domain_providers' => [
         'drivers' => [
             HestiaDomainProviderDriver::class,
+            HostingerDomainProviderDriver::class,
             ManualDomainProviderDriver::class,
         ],
     ],
