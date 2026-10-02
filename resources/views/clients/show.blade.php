@@ -85,8 +85,13 @@
                     </tr></thead>
                     <tbody>
                         @forelse ($client->services as $service)
-                            <tr class="border-t border-slate-100 dark:border-slate-800">
-                                <td class="py-2 pr-4"><a href="{{ route('services.show', $service) }}" class="font-medium text-indigo-600 hover:underline">{{ $service->name }}</a></td>
+                            @php $isSub = $service->isChild(); @endphp
+                            <tr class="border-t border-slate-100 dark:border-slate-800 {{ $isSub ? 'bg-slate-50/60 dark:bg-slate-950/30' : '' }}">
+                                <td class="py-2 pr-4 {{ $isSub ? 'pl-8' : '' }}">
+                                    @if ($isSub)<span class="mr-1 text-slate-400" aria-hidden="true">↳</span>@endif
+                                    <a href="{{ route('services.show', $service) }}" class="font-medium text-indigo-600 hover:underline">{{ $service->name }}</a>
+                                    @if ($service->parent)<p class="text-xs text-slate-400">dari {{ $service->parent->name }}</p>@endif
+                                </td>
                                 <td class="py-2 pr-4">{{ $service->type->label() }}</td>
                                 <td class="py-2 pr-4">{{ tgl_id($service->end_date) }}</td>
                                 <td class="py-2 text-right">{{ rupiah($service->price) }}</td>

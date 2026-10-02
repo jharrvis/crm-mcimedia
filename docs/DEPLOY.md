@@ -265,6 +265,48 @@ disimpan apa adanya pada kolom JSON terenkripsi; form serta validasi ikut
 menyesuaikan otomatis. Setelah menambah driver, jalankan
 `php artisan config:clear` (atau `config:cache` bila memakai cache config).
 
+## Grouping subdomain di bawah domain induk (F4-9)
+
+Deploy biasa: `php artisan migrate --force` (satu migrasi aditif
+`2026_10_07_100001_add_parent_id_to_services_table` — hanya menambah kolom
+`services.parent_id`, tidak mengubah tabel/migrasi lain). Tidak ada variabel
+`.env` baru dan tidak ada secret baru.
+
+Cara pakai: di **Layanan → Tambah layanan**, isi jenis `Domain`, lalu pilih
+**"Domain induk (subdomain)"**. Kolomnya hanya muncul untuk jenis Domain dan
+hanya berisi domain milik klien yang dipilih. Kalau nama layanan
+`www.mulkani.co.id` dan domain induk `mulkani.co.id` sudah ada, pilihan yang
+paling masuk akal sudah terpilih otomatis — admin tetap bebas mengubahnya.
+
+Aturan yang ditegakkan server (pesan error ramah, bukan error 500):
+
+- hanya layanan jenis `domain` boleh punya domain induk;
+- induk harus domain **milik klien yang sama** (mencegah domain klien A
+  dijadikan induk subdomain klien B);
+- layanan tidak bisa jadi induk dirinya sendiri, dan siklus `a → b → a`
+  ditolak;
+- mengosongkan kolom = subdomain dilepas menjadi layanan mandiri.
+
+Catatan operasional:
+
+- **Menghapus domain induk tidak menghapus subdomainnya.** `parent_id`-nya
+  jadi `NULL` dan subdomain tetap tersimpan sebagai layanan mandiri (flash
+  message menyebutkan jumlahnya). Ini disengaja agar satu klik "Hapus" tidak
+  menghilangkan puluhan subdomain.
+- Memindahkan domain induk ke klien lain **ikut memindahkan** subdomainnya.
+- Subdomain tetap punya tanggal & harga sendiri. Bila tanggal berakhirnya
+  diisi sama dengan domain induk, `crm:generate-renewal-invoices` saat ini
+  membuat draf invoice terpisah untuk tiap subdomain (domain induk + N
+  subdomain = N+1 draf). Kosongkan `end_date` subdomain bila tidak ingin
+  ditagih terpisah, atau hapus draf yang tidak diperlukan.
+- Urutan tampilan memakai `ORDER BY COALESCE(parent_id, id)` pada tabel
+  `services` lewat scope `Service::groupedByParent()` (SQLite & MySQL sama-sama
+  jalan; tidak butuh self-join maupun recursive CTE).
+
+Rollback skema: `php artisan migrate:rollback --step=1` menghapus kolom
+`parent_id` (data subdomain tidak hilang — subdomain kembali jadi layanan
+mandiri).
+
 ## Rollback
 
 - Kode: `git checkout <tag-sebelumnya>` lalu ulangi langkah Redeploy

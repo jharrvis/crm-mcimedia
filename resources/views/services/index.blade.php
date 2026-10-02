@@ -49,13 +49,34 @@
                     $days = $service->daysUntilEnd();
                     $overdue = $service->isOverdue();
                     $expiring = ! $overdue && $days !== null && $days <= 30;
-                    $rowClass = $overdue ? 'bg-red-50 dark:bg-red-950/40' : ($expiring ? 'bg-amber-50 dark:bg-amber-950/30' : '');
+                    // F4-9: subdomain ditampilkan indentasi di bawah domain induknya.
+                    $isSub = $service->isChild();
+                    // Hanya SATU kelas background per baris. Kalau subdomain juga
+                    // diberi `bg-slate-*` terpisah, class mana yang menang ditentukan
+                    // urutan CSS Tailwind — bukan urutan atribut — sehingga penanda
+                    // "lewat"/"segera berakhir" bisa hilang diam-diam. Karena itu
+                    // status lebih penting dan tetap menang; subdomain memakai latar
+                    // abu-abu hanya ketika tidak ada penanda status.
+                    $rowClass = match (true) {
+                        $overdue => 'bg-red-50 dark:bg-red-950/40',
+                        $expiring => 'bg-amber-50 dark:bg-amber-950/30',
+                        $isSub => 'bg-slate-50/60 dark:bg-slate-950/30',
+                        default => '',
+                    };
                 @endphp
                 <tr class="border-t border-slate-100 dark:border-slate-800 {{ $rowClass }}">
-                    <td class="px-4 py-3"><a href="{{ route('clients.show', $service->client) }}" class="hover:text-indigo-600">{{ $service->client?->name ?? '—' }}</a></td>
                     <td class="px-4 py-3">
+                        <a href="{{ route('clients.show', $service->client) }}" class="hover:text-indigo-600">{{ $service->client?->name ?? '—' }}</a>
+                    </td>
+                    <td class="px-4 py-3 {{ $isSub ? 'pl-10' : '' }}">
+                        @if ($isSub)
+                            <span class="mr-1 text-slate-400" aria-hidden="true">↳</span>
+                        @endif
                         <a href="{{ route('services.show', $service) }}" class="font-medium text-indigo-600 hover:underline">{{ $service->name }}</a>
                         @if ($service->reference)<p class="text-xs text-slate-500">{{ $service->reference }}</p>@endif
+                        @if ($service->parent)
+                            <p class="text-xs text-slate-400">Subdomain dari <a href="{{ route('services.show', $service->parent) }}" class="hover:underline">{{ $service->parent->name }}</a></p>
+                        @endif
                     </td>
                     <td class="px-4 py-3">{{ $service->type->label() }}</td>
                     <td class="px-4 py-3">
