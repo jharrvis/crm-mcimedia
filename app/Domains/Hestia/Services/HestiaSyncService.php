@@ -67,6 +67,10 @@ class HestiaSyncService
 
                 $plan = isset($userData['PACKAGE']) ? (string) $userData['PACKAGE'] : null;
 
+                // F4-13: kuota paket & status suspend hanya ada di level AKUN.
+                $userQuota = HestiaQuota::fromUserPayload(is_array($userData) ? $userData : []);
+                $userSuspended = HestiaQuota::isYes($userData['SUSPENDED'] ?? null) ?? false;
+
                 foreach ($client->webDomains($username) as $domain => $data) {
                     $domain = mb_strtolower(trim((string) $domain));
                     if ($domain === '' || ! is_array($data)) {
@@ -75,7 +79,7 @@ class HestiaSyncService
 
                     $pulled++;
                     $seenKeys[] = HestiaAccount::keyFor($username, $domain);
-                    $this->upsertAccount($username, $domain, $data, $plan) ? $created++ : $updated++;
+                    $this->upsertAccount($username, $domain, $data, $plan, $userQuota, $userSuspended) ? $created++ : $updated++;
                 }
             }
 
@@ -145,12 +149,18 @@ class HestiaSyncService
     }
 
     /** @param array<string, mixed> $data */
-    private function upsertAccount(string $username, string $domain, array $data, ?string $plan): bool
-    {
+    private function upsertAccount(
+        string $username,
+        string $domain,
+        array $data,
+        ?string $plan,
+        ?int $userDiskQuota = null,
+        bool $userSuspended = false,
+    ): bool {
         $account = HestiaAccount::firstOrNew(['external_key' => HestiaAccount::keyFor($username, $domain)]);
         $isNew = ! $account->exists;
 
-        $suspended = mb_strtolower((string) ($data['SUSPENDED'] ?? 'no')) === 'yes';
+        $suspended = HestiaQuota::isYes($data['SUSPENDED'] ?? null) ?? false;
 
         $account->fill([
             'hestia_user' => $username,
@@ -160,6 +170,11 @@ class HestiaSyncService
             'status' => $suspended ? HestiaAccountStatus::Inactive : HestiaAccountStatus::Active,
             'start_date' => $account->start_date ?? $this->parseDate($data['DATE'] ?? null),
             'raw' => $data,
+            // F4-13: kuota & pemakaian disk berasal dari dua level payload.
+            'disk_used' => HestiaQuota::toMegabytes($data['U_DISK'] ?? null),
+            'disk_quota' => $userDiskQuota,
+            'suspended' => $suspended,
+            'user_suspended' => $userSuspended,
         ]);
         $account->first_seen_at ??= CarbonAlias::now();
         $account->last_seen_at = CarbonAlias::now();
