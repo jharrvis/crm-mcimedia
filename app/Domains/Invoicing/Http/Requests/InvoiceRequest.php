@@ -16,8 +16,12 @@ class InvoiceRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'exists:clients,id'],
-            // Layanan harus milik klien yang dipilih (filter dropdown diperkuat di server).
-            'service_id' => ['nullable', Rule::exists('services', 'id')->where('client_id', $this->input('client_id'))],
+            // Semua layanan harus milik klien yang dipilih (filter dropdown diperkuat di server).
+            'service_ids' => ['nullable', 'array', 'max:100'],
+            'service_ids.*' => [
+                'integer',
+                Rule::exists('services', 'id')->where('client_id', $this->input('client_id')),
+            ],
             'title' => ['nullable', 'string', 'max:255'],
             'issue_date' => ['required', 'date'],
             'due_date' => ['required', 'date', 'after_or_equal:issue_date'],
@@ -36,13 +40,17 @@ class InvoiceRequest extends FormRequest
             'items.min' => 'Invoice minimal memiliki satu item.',
             'items.*.description.required' => 'Deskripsi setiap item wajib diisi.',
             'due_date.after_or_equal' => 'Tanggal jatuh tempo tidak boleh sebelum tanggal terbit.',
+            'service_ids.array' => 'Layanan terkait harus berupa daftar.',
+            'service_ids.*.exists' => 'Layanan yang dipilih tidak milik klien ini.',
         ];
     }
 
     /**
-     * Item yang dirender sebagai baris kosong (description blank) dibuang
-     * sebelum validasi agar tombol "tambah baris" yang tidak dipakai
-     * tidak menggagalkan submit.
+     * Bersihkan input sebelum validasi:
+     * - item dengan description kosong dibuang agar tombol "tambah baris" yang
+     *   tidak dipakai tidak menggagalkan submit;
+     * - service_ids dinormalisasi (nilai kosong & duplikat dibuang) karena
+     *   checkbox multi-select mengirim nilai kosong saat tidak ada yang dicentang.
      */
     protected function prepareForValidation(): void
     {
@@ -51,6 +59,23 @@ class InvoiceRequest extends FormRequest
             ->values()
             ->all();
 
-        $this->merge(['items' => $items]);
+        $serviceIds = collect($this->input('service_ids', []))
+            ->filter(fn ($id) => filled($id))
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->merge(['items' => $items, 'service_ids' => $serviceIds]);
+    }
+
+    /**
+     * ID layanan yang tervalidasi. Dipisah dari validated() agar controller
+     * tidak perlu mengambilnya dari payload mentah.
+     *
+     * @return array<int, int>
+     */
+    public function serviceIds(): array
+    {
+        return array_map('intval', $this->validated()['service_ids'] ?? []);
     }
 }

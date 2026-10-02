@@ -173,31 +173,102 @@ class InvoiceTest extends TestCase
         $this->assertDatabaseCount('invoice_items', 0);
     }
 
-    public function test_deleting_service_nulls_invoice_service_id(): void
+    public function test_deleting_service_detaches_it_from_invoices(): void
     {
         $service = ServiceFactory::new()->create();
-        $invoice = InvoiceFactory::new()->create([
-            'client_id' => $service->client_id,
-            'service_id' => $service->id,
-        ]);
+        $invoice = InvoiceFactory::new()->forService($service)->create();
 
         $service->delete();
 
-        $this->assertNull($invoice->fresh()->service_id);
+        // Invoice tetap ada, hanya tautan layanannya yang hilang.
         $this->assertDatabaseHas('invoices', ['id' => $invoice->id]);
+        $this->assertDatabaseMissing('invoice_service', [
+            'invoice_id' => $invoice->id,
+            'service_id' => $service->id,
+        ]);
+        $this->assertCount(0, $invoice->fresh()->services);
     }
 
-    public function test_invoice_belongs_to_client_and_service(): void
+    public function test_invoice_belongs_to_client_and_many_services(): void
     {
         $service = ServiceFactory::new()->create();
-        $invoice = InvoiceFactory::new()->create([
+        $invoice = InvoiceFactory::new()->forService($service)->create([
             'client_id' => $service->client_id,
-            'service_id' => $service->id,
         ]);
 
         $this->assertSame($service->client_id, $invoice->client->id);
-        $this->assertSame($service->id, $invoice->service->id);
+        $this->assertCount(1, $invoice->services);
+        $this->assertSame($service->id, $invoice->services->first()->id);
         $this->assertInstanceOf(InvoiceItem::class, InvoiceFactory::new()->withItems()->create()->items->first());
+    }
+
+    /** F4-8: satu invoice dapat mencakup banyak layanan sekaligus. */
+    public function test_invoice_can_cover_many_services_at_once(): void
+    {
+        $client = ClientFactory::new()->create();
+        $services = collect([
+            ServiceFactory::new()->create(['client_id' => $client->id, 'name' => 'Website Utama']),
+            ServiceFactory::new()->create(['client_id' => $client->id, 'name' => 'Website Toko']),
+            ServiceFactory::new()->create(['client_id' => $client->id, 'name' => 'Website Blog']),
+        ]);
+
+        $invoice = InvoiceFactory::new()->forServices($services)->create([
+            'client_id' => $client->id,
+        ]);
+
+        $attached = $invoice->fresh()->services;
+
+        $this->assertCount(3, $attached);
+        $this->assertEqualsCanonicalizing($services->pluck('id')->all(), $attached->pluck('id')->all());
+    }
+
+    public function test_sync_services_replaces_previous_attachment(): void
+    {
+        $client = ClientFactory::new()->create();
+        $a = ServiceFactory::new()->create(['client_id' => $client->id]);
+        $b = ServiceFactory::new()->create(['client_id' => $client->id]);
+        $c = ServiceFactory::new()->create(['client_id' => $client->id]);
+
+        $invoice = InvoiceFactory::new()->forService($a)->create(['client_id' => $client->id]);
+        $invoice->syncServices([$b->id, $c->id]);
+
+        $this->assertEqualsCanonicalizing(
+            [$b->id, $c->id],
+            $invoice->fresh()->services->pluck('id')->all()
+        );
+
+        // Duplikat & nilai string harus dinormalisasi, tidak menghasilkan baris ganda.
+        $invoice->syncServices([(string) $c->id, $c->id]);
+        $this->assertCount(1, $invoice->fresh()->services);
+
+        // Kosongkan daftar layanan.
+        $invoice->syncServices([]);
+        $this->assertCount(0, $invoice->fresh()->services);
+    }
+
+    public function test_service_invoices_relation_returns_invoices_covering_it(): void
+    {
+        $service = ServiceFactory::new()->create();
+        $combined = InvoiceFactory::new()->forServices(collect([
+            $service,
+            ServiceFactory::new()->create(['client_id' => $service->client_id]),
+        ]))->create();
+        $unrelated = InvoiceFactory::new()->create();
+
+        $ids = $service->invoices()->pluck('invoices.id')->all();
+
+        $this->assertSame([$combined->id], $ids);
+        $this->assertNotContains($unrelated->id, $ids);
+    }
+
+    public function test_deleting_invoice_removes_service_links(): void
+    {
+        $service = ServiceFactory::new()->create();
+        $invoice = InvoiceFactory::new()->forService($service)->create();
+
+        $invoice->delete();
+
+        $this->assertDatabaseMissing('invoice_service', ['invoice_id' => $invoice->id]);
     }
 
     public function test_payment_belongs_to_invoice(): void

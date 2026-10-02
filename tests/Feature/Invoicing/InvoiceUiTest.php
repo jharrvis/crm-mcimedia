@@ -36,7 +36,7 @@ class InvoiceUiTest extends TestCase
     {
         return array_merge([
             'client_id' => $client->id,
-            'service_id' => '',
+            'service_ids' => [],
             'title' => 'Perpanjangan Hosting',
             'issue_date' => now()->toDateString(),
             'due_date' => now()->addDays(14)->toDateString(),
@@ -123,6 +123,86 @@ class InvoiceUiTest extends TestCase
             ->assertDontSee($hidden->number);
     }
 
+    public function test_store_can_attach_many_services_of_same_client(): void
+    {
+        $this->login();
+        $client = ClientFactory::new()->create();
+        $services = collect([
+            ServiceFactory::new()->create(['client_id' => $client->id, 'name' => 'Website Utama']),
+            ServiceFactory::new()->create(['client_id' => $client->id, 'name' => 'Website Toko']),
+        ]);
+
+        $this->post(route('invoices.store'), $this->invoicePayload($client, [
+            'service_ids' => $services->pluck('id')->all(),
+        ]));
+
+        $invoice = Invoice::with('services')->firstOrFail();
+
+        $this->assertEqualsCanonicalizing(
+            $services->pluck('id')->all(),
+            $invoice->services->pluck('id')->all()
+        );
+        $this->assertSame($client->id, $invoice->client_id);
+    }
+
+    public function test_store_rejects_service_of_another_client(): void
+    {
+        $this->login();
+        $client = ClientFactory::new()->create();
+        $ownService = ServiceFactory::new()->create(['client_id' => $client->id]);
+        $foreignService = ServiceFactory::new()->create(); // milik klien lain
+
+        $response = $this->post(route('invoices.store'), $this->invoicePayload($client, [
+            'service_ids' => [$ownService->id, $foreignService->id],
+        ]));
+
+        $response->assertSessionHasErrors('service_ids.1');
+        $this->assertDatabaseCount('invoices', 0);
+    }
+
+    public function test_store_collapses_duplicate_service_ids(): void
+    {
+        $this->login();
+        $service = ServiceFactory::new()->create();
+
+        // Duplikat dinormalisasi (bukan error): pivot punya primary key
+        // (invoice_id, service_id) sehingga layanan tidak bisa terpasang dua kali.
+        $this->post(route('invoices.store'), $this->invoicePayload($service->client, [
+            'service_ids' => [$service->id, $service->id],
+        ]))->assertSessionHas('success');
+
+        $invoice = Invoice::with('services')->firstOrFail();
+        $this->assertCount(1, $invoice->services);
+    }
+
+    public function test_update_replaces_service_list(): void
+    {
+        $this->login();
+        $client = ClientFactory::new()->create();
+        $old = ServiceFactory::new()->create(['client_id' => $client->id]);
+        $new = ServiceFactory::new()->create(['client_id' => $client->id]);
+        $invoice = InvoiceFactory::new()->forService($old)->create(['client_id' => $client->id]);
+
+        $this->put(route('invoices.update', $invoice), $this->invoicePayload($client, [
+            'service_ids' => [$new->id],
+        ]))->assertSessionHas('success');
+
+        $this->assertSame([$new->id], $invoice->fresh()->services->pluck('id')->all());
+    }
+
+    public function test_update_can_clear_all_services(): void
+    {
+        $this->login();
+        $service = ServiceFactory::new()->create();
+        $invoice = InvoiceFactory::new()->forService($service)->create();
+
+        $this->put(route('invoices.update', $invoice), $this->invoicePayload($invoice->client, [
+            'service_ids' => [],
+        ]))->assertSessionHas('success');
+
+        $this->assertCount(0, $invoice->fresh()->services);
+    }
+
     // ---------- create ----------
 
     public function test_create_page_renders(): void
@@ -176,34 +256,6 @@ class InvoiceUiTest extends TestCase
         ]));
 
         $response->assertSessionHasErrors('due_date');
-        $this->assertDatabaseCount('invoices', 0);
-    }
-
-    public function test_store_can_attach_service(): void
-    {
-        $this->login();
-        $service = ServiceFactory::new()->create();
-
-        $this->post(route('invoices.store'), $this->invoicePayload($service->client, [
-            'service_id' => $service->id,
-        ]));
-
-        $invoice = Invoice::first();
-        $this->assertSame($service->id, $invoice->service_id);
-        $this->assertSame($service->client_id, $invoice->client_id);
-    }
-
-    public function test_store_rejects_service_of_another_client(): void
-    {
-        $this->login();
-        $client = ClientFactory::new()->create();
-        $foreignService = ServiceFactory::new()->create(); // milik klien lain
-
-        $response = $this->post(route('invoices.store'), $this->invoicePayload($client, [
-            'service_id' => $foreignService->id,
-        ]));
-
-        $response->assertSessionHasErrors('service_id');
         $this->assertDatabaseCount('invoices', 0);
     }
 

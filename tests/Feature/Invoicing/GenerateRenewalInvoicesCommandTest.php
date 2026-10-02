@@ -29,7 +29,7 @@ class GenerateRenewalInvoicesCommandTest extends TestCase
         $invoice = Invoice::firstOrFail();
         $this->assertSame(InvoiceStatus::Draft, $invoice->status);
         $this->assertSame($service->client_id, $invoice->client_id);
-        $this->assertSame($service->id, $invoice->service_id);
+        $this->assertSame([$service->id], $invoice->services->pluck('id')->all());
         $this->assertSame($service->end_date->toDateString(), $invoice->due_date->toDateString());
         $this->assertSame(600000, $invoice->total);
         $this->assertSame(600000, $invoice->subtotal);

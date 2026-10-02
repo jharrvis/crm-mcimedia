@@ -136,7 +136,16 @@
 
         <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
             <div><dt class="text-slate-500">Klien</dt><dd class="font-medium"><a href="{{ route('clients.show', $invoice->client) }}" class="text-indigo-600 hover:underline">{{ $invoice->client?->name ?? '—' }}</a></dd></div>
-            <div><dt class="text-slate-500">Layanan terkait</dt><dd class="font-medium">@if ($invoice->service)<a href="{{ route('services.show', $invoice->service) }}" class="text-indigo-600 hover:underline">{{ $invoice->service->name }}</a>@else — @endif</dd></div>
+            <div class="sm:col-span-2">
+                <dt class="text-slate-500">Layanan terkait ({{ $invoice->services->count() }})</dt>
+                <dd class="font-medium">
+                    @forelse ($invoice->services as $service)
+                        <a href="{{ route('services.show', $service) }}" class="text-indigo-600 hover:underline">{{ $service->name }}</a>@if (! $loop->last), @endif
+                    @empty
+                        —
+                    @endforelse
+                </dd>
+            </div>
             <div><dt class="text-slate-500">Tanggal terbit</dt><dd class="font-medium">{{ tgl_id($invoice->issue_date) }}</dd></div>
             <div>
                 <dt class="text-slate-500">Jatuh tempo</dt>

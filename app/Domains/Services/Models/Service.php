@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Carbon;
 
 class Service extends Model
@@ -43,9 +43,10 @@ class Service extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function invoices(): HasMany
+    /** Invoice yang mencakup layanan ini (satu invoice dapat mencakup banyak layanan). */
+    public function invoices(): BelongsToMany
     {
-        return $this->hasMany(Invoice::class);
+        return $this->belongsToMany(Invoice::class);
     }
 
     public function scopeActive(Builder $query): Builder
