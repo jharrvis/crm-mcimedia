@@ -49,9 +49,21 @@ class Task extends Model
         return $this->belongsTo(User::class, 'assigned_user_id');
     }
 
+    /**
+     * Tugas "terbuka" = belum selesai (todo / dikerjakan / review).
+     * Status lain (done) dianggap selesai.
+     */
     public function scopeOpen(Builder $query): Builder
     {
-        return $query->where('status', TaskStatus::Open);
+        return $query->whereIn('status', [TaskStatus::Open, TaskStatus::InProgress, TaskStatus::Review]);
+    }
+
+    /** Tugas yang sudah lewat due date dan belum selesai. */
+    public function isOverdue(): bool
+    {
+        return ! $this->status->isDone()
+            && $this->due_date !== null
+            && $this->due_date->isBefore(Carbon::today());
     }
 
     /** Terbuka dan due date <= 3 hari ke depan (termasuk yang sudah lewat). */

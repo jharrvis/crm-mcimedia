@@ -3,12 +3,12 @@
 @section('title', 'Tugas')
 
 @section('content')
-<div class="mb-4 flex items-center justify-between">
+<div class="mb-4 flex flex-wrap items-start justify-between gap-3">
     <form method="GET" action="{{ route('tasks.index') }}" class="flex flex-wrap gap-2">
         <input name="q" value="{{ request('q') }}" placeholder="Cari judul…"
                class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
         <select name="f_status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-            @foreach (['open' => 'Terbuka', 'done' => 'Selesai', 'all' => 'Semua'] as $val => $label)
+            @foreach (['open' => 'Belum selesai', 'in_progress' => 'Dikerjakan', 'review' => 'Review', 'done' => 'Selesai', 'all' => 'Semua'] as $val => $label)
                 <option value="{{ $val }}" @selected(request('f_status', 'open') === $val)>{{ $label }}</option>
             @endforeach
         </select>
@@ -35,8 +35,14 @@
             <a href="{{ route('tasks.index') }}" class="rounded-lg px-3 py-2 text-sm text-slate-500 hover:underline">Reset</a>
         @endif
     </form>
-    <a href="{{ route('tasks.create') }}"
-       class="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah tugas</a>
+    <div class="flex shrink-0 items-center gap-2">
+        <div class="rounded-lg border border-slate-300 p-0.5 text-sm dark:border-slate-700">
+            <a href="{{ route('tasks.board', request()->query()) }}" class="px-3 py-1.5 text-slate-600 hover:text-indigo-600 dark:text-slate-300">Papan</a>
+            <span class="rounded-md bg-indigo-600 px-3 py-1.5 font-semibold text-white">Daftar</span>
+        </div>
+        <a href="{{ route('tasks.create') }}"
+           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah tugas</a>
+    </div>
 </div>
 
 <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
@@ -50,25 +56,24 @@
                 @forelse ($tasks as $task)
                     @php
                         $prioColor = ['high' => 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300', 'medium' => 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300', 'low' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'][$task->priority->value];
-                        $overdue = $task->due_date && $task->due_date->isPast() && $task->status->value === 'open';
                     @endphp
                     <tr class="border-t border-slate-100 dark:border-slate-800">
                         <td class="py-2 pr-4"><a href="{{ route('tasks.edit', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a></td>
                         <td class="py-2 pr-4">{{ $task->client?->name ?? '—' }}</td>
                         <td class="py-2 pr-4">{{ $task->project?->title ?? '—' }}</td>
                         <td class="py-2 pr-4"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $prioColor }}">{{ $task->priority->label() }}</span></td>
-                        <td class="py-2 pr-4 {{ $overdue ? 'font-semibold text-red-600' : '' }}">{{ tgl_id($task->due_date) }}</td>
-                        <td class="py-2 pr-4"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $task->status->value === 'done' ? 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' }}">{{ $task->status->label() }}</span></td>
+                        <td class="py-2 pr-4 {{ $task->isOverdue() ? 'font-semibold text-red-600' : '' }}">{{ tgl_id($task->due_date) }}</td>
+                        <td class="py-2 pr-4"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $task->status->badgeClasses() }}">{{ $task->status->label() }}</span></td>
                         <td class="whitespace-nowrap py-2 text-sm">
-                            @if ($task->status->value === 'open')
-                                <form method="POST" action="{{ route('tasks.complete', $task) }}" class="inline">
-                                    @csrf @method('PATCH')
-                                    <button class="text-green-600 hover:underline">Selesai</button>
-                                </form>
-                            @else
+                            @if ($task->status->isDone())
                                 <form method="POST" action="{{ route('tasks.reopen', $task) }}" class="inline">
                                     @csrf @method('PATCH')
                                     <button class="text-amber-600 hover:underline">Buka kembali</button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('tasks.complete', $task) }}" class="inline">
+                                    @csrf @method('PATCH')
+                                    <button class="text-green-600 hover:underline">Selesai</button>
                                 </form>
                             @endif
                             <span class="text-slate-300"> · </span>

@@ -10,9 +10,14 @@ use App\Domains\Tasks\Http\Requests\TaskRequest;
 use App\Domains\Tasks\Models\Task;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
+    /** Nilai filter "belum selesai" di daftar tugas. */
+    private const OPEN_STATUSES = [TaskStatus::Open, TaskStatus::InProgress, TaskStatus::Review];
+
     public function index()
     {
         $tasks = Task::query()
@@ -20,9 +25,12 @@ class TaskController extends Controller
             ->when(request('q'), fn ($q, $term) => $q->where('title', 'like', "%{$term}%"))
             ->when(request('f_status', 'open'), function ($q, $status) {
                 if ($status === 'open') {
-                    $q->where('status', TaskStatus::Open);
+                    $q->whereIn('status', self::OPEN_STATUSES);
                 } elseif ($status === 'done') {
                     $q->where('status', TaskStatus::Done);
+                } elseif ($status !== 'all') {
+                    // Filter per status kanban (todo/dikerjakan/review).
+                    $q->where('status', $status);
                 }
             })
             ->when(request('priority'), fn ($q, $p) => $q->where('priority', $p))
@@ -37,6 +45,41 @@ class TaskController extends Controller
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'projects' => Project::orderBy('title')->get(['id', 'title']),
             'priorities' => TaskPriority::cases(),
+            'statuses' => TaskStatus::cases(),
+        ]);
+    }
+
+    /**
+     * Papan kanban: kolom todo -> dikerjakan -> review -> selesai.
+     * Filter: pencarian judul, klien, project, prioritas.
+     */
+    public function board()
+    {
+        $tasks = Task::query()
+            ->with(['client', 'project', 'assignee'])
+            ->when(request('q'), fn ($q, $term) => $q->where('title', 'like', "%{$term}%"))
+            ->when(request('client_id'), fn ($q, $id) => $q->where('client_id', $id))
+            ->when(request('project_id'), fn ($q, $id) => $q->where('project_id', $id))
+            ->when(request('priority'), fn ($q, $p) => $q->where('priority', $p))
+            ->orderBy('due_date')
+            ->get();
+
+        $columns = [];
+        foreach (TaskStatus::boardColumns() as $status) {
+            $columnTasks = $tasks->filter(fn (Task $task) => $task->status === $status)->values();
+            $columns[] = [
+                'status' => $status,
+                'tasks' => $columnTasks,
+                'count' => $columnTasks->count(),
+            ];
+        }
+
+        return view('tasks.board', [
+            'columns' => $columns,
+            'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'projects' => Project::orderBy('title')->get(['id', 'title']),
+            'priorities' => TaskPriority::cases(),
+            'total' => $tasks->count(),
         ]);
     }
 
@@ -98,5 +141,37 @@ class TaskController extends Controller
         $task->reopen();
 
         return back()->with('success', 'Tugas dibuka kembali.');
+    }
+
+    /**
+     * Ubah status task dari papan kanban (drag-drop, AJAX).
+     * Mengembalikan JSON bila diminta AJAX; selain itu redirect biasa.
+     */
+    public function updateStatus(Request $request, Task $task)
+    {
+        $validated = $request->validate([
+            'status' => ['required', Rule::enum(TaskStatus::class)],
+        ]);
+
+        $status = TaskStatus::from($validated['status']);
+
+        $task->update([
+            'status' => $status,
+            // Selesai -> isi completed_at (sekali saja); kembali dari done -> kosongkan.
+            'completed_at' => $status->isDone() ? ($task->completed_at ?? now()) : null,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'ok' => true,
+                'task_id' => $task->id,
+                'status' => $status->value,
+                'label' => $status->label(),
+                'completed' => $status->isDone(),
+                'project_progress' => $task->project?->progressPercent(),
+            ]);
+        }
+
+        return back()->with('success', "Status tugas \"{$task->title}\" diubah ke {$status->label()}.");
     }
 }

@@ -8,7 +8,9 @@ use App\Domains\Dashboard\Http\Controllers\DashboardController;
 use App\Domains\Hestia\Http\Controllers\HestiaController;
 use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
+use App\Domains\Projects\Http\Controllers\AchievementReportController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
+use App\Domains\Projects\Http\Controllers\ProjectJournalController;
 use App\Domains\Reports\Http\Controllers\ReportController;
 use App\Domains\Security\Http\Controllers\ClientSecurityPortalController;
 use App\Domains\Security\Http\Controllers\SecurityActionController;
@@ -51,7 +53,22 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('services', ServiceController::class);
     Route::resource('projects', ProjectController::class);
+
+    // Jurnal progress project (F3-4).
+    Route::resource('projects.journals', ProjectJournalController::class)->only(['store', 'update', 'destroy']);
+
+    // Laporan pencapaian project (F3-4): daftar, generate dari data periode,
+    // detail, unduh PDF, hapus.
+    Route::get('projects/{project}/reports/{report}/pdf', [AchievementReportController::class, 'pdf'])
+        ->name('projects.reports.pdf');
+    Route::resource('projects.reports', AchievementReportController::class)
+        ->only(['index', 'store', 'show', 'destroy']);
+
+    // Papan kanban tugas (F3-4) — didaftarkan sebelum resource agar "board"
+    // tidak tertangkap oleh tasks/{task}.
+    Route::get('tasks/board', [TaskController::class, 'board'])->name('tasks.board');
     Route::resource('tasks', TaskController::class);
+    Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.status');
     Route::patch('tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
     Route::patch('tasks/{task}/reopen', [TaskController::class, 'reopen'])->name('tasks.reopen');
 
