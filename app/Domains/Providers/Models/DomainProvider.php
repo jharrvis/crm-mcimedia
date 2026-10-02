@@ -60,11 +60,19 @@ class DomainProvider extends Model
     /** Field kredensial non-rahasia untuk ditampilkan ulang di form edit. */
     public function safeCredentials(): array
     {
-        $class = app(DomainProviderRegistry::class)->resolve($this->driver);
+        $registry = app(DomainProviderRegistry::class);
         $credentials = is_array($this->credentials) ? $this->credentials : [];
+
+        // Driver tersimpan tak lagi terdaftar (mis. dihapus/di-rename dari
+        // config): jangan 500 — kembalikan kosong, konsisten dengan index
+        // (label fallback) dan halaman domains (pesan ramah).
+        if (! $registry->has($this->driver)) {
+            return [];
+        }
+
         $safe = [];
 
-        foreach ($class::credentialFields() as $name => $field) {
+        foreach ($registry->resolve($this->driver)::credentialFields() as $name => $field) {
             if ($field['secret'] ?? false) {
                 continue;
             }

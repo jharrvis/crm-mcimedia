@@ -384,4 +384,36 @@ class DomainProviderTest extends TestCase
             ->assertOk()
             ->assertSee('fake-domain.test');
     }
+
+    // ---------- regresi F45-BUG-01/02 (t_b34b7078) ----------
+    public function test_edit_gracefully_handles_unknown_stored_driver(): void
+    {
+        $this->login();
+        $provider = DomainProviderFactory::new()->create([
+            'name' => 'Ghost Legacy', 'driver' => 'ghost-driver',
+            'credentials' => ['password' => 'rahasia-xxx', 'host' => 'panel.qa.example'],
+        ]);
+
+        $this->get(route('domain-providers.index'))
+            ->assertOk()->assertSee('ghost-driver');
+
+        // edit: 200, bukan 500, field kredensial kosong, rahasia terkubur tidak bocor
+        $edit = $this->get(route('domain-providers.edit', $provider))->assertOk();
+        $this->assertStringNotContainsString('rahasia-xxx', $edit->getContent());
+        $this->assertStringNotContainsString('name="credentials[', $edit->getContent());
+        $this->assertSame([], $provider->safeCredentials());
+    }
+
+    public function test_hestia_domains_page_does_not_issue_n_plus_one_http_calls(): void
+    {
+        $this->login();
+        $this->fakeHestiaDomains([
+            'a.test' => ['IP' => '10.0.0.1', 'SUSPENDED' => 'no'],
+            'b.test' => ['IP' => '10.0.0.2', 'SUSPENDED' => 'no'],
+            'c.test' => ['IP' => '10.0.0.3', 'SUSPENDED' => 'no'],
+        ]);
+        $provider = DomainProviderFactory::new()->hestia()->create();
+        $this->get(route('domain-providers.domains', $provider))->assertOk()->assertSee('a.test');
+        $this->assertLessThanOrEqual(2, Http::recorded()->count(), 'Halaman domains melempar N+1 request');
+    }
 }

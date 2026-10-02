@@ -27,6 +27,9 @@ class HestiaDomainProviderDriver extends AbstractDomainProviderDriver
     /** Kandidat nama field tanggal kedaluwarsa pada respons Hestia. */
     private const EXPIRY_KEYS = ['EXPIRY', 'expiry', 'END_DATE', 'end_date', 'EXPIRATION', 'expires_at'];
 
+    /** @var list<DomainInfo>|null Cache hasil listDomains() per instance (1 request per halaman, bukan N+1). */
+    private ?array $domainsCache = null;
+
     public static function key(): string
     {
         return 'hestia';
@@ -53,6 +56,10 @@ class HestiaDomainProviderDriver extends AbstractDomainProviderDriver
 
     public function listDomains(): array
     {
+        if ($this->domainsCache !== null) {
+            return $this->domainsCache;
+        }
+
         $this->ensureConfigured();
 
         $account = (string) $this->credential('account');
@@ -71,7 +78,9 @@ class HestiaDomainProviderDriver extends AbstractDomainProviderDriver
             );
         }
 
-        return $domains;
+        // Memoisasi per instance driver: getExpiry() dipanggil per domain,
+        // tanpa cache halaman domains melempar 1 request list + 1 per domain.
+        return $this->domainsCache = $domains;
     }
 
     public function getExpiry(string $domain): ?CarbonInterface
