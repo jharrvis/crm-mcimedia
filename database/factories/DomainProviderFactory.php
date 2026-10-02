@@ -46,4 +46,19 @@ class DomainProviderFactory extends Factory
             ],
         ]);
     }
+
+    /**
+     * Provider driver Hostinger dengan kredensial dummy (token palsu).
+     */
+    public function hostinger(): static
+    {
+        return $this->state(fn () => [
+            'driver' => 'hostinger',
+            'credentials' => [
+                'api_token' => 'token-hostinger-test-123',
+                'base_url' => 'https://developers.hostinger.com',
+                'timeout' => 30,
+            ],
+        ]);
+    }
 }
