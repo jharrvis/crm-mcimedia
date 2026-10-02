@@ -60,6 +60,30 @@ class Role extends Model
         return $action === 'view' || $level === AccessLevel::Manage;
     }
 
+    /**
+     * Skor hak akses role untuk membandingkan "lebih tinggi" / "lebih rendah".
+     * manage = 2, lihat = 1; role administrator = tak terbatas (PHP_INT_MAX).
+     * Dipakai guard anti-eskalasi saat user non-admin assigns role.
+     */
+    public function privilegeRank(): int
+    {
+        if ($this->is_admin) {
+            return PHP_INT_MAX;
+        }
+
+        $rank = 0;
+
+        foreach ($this->permissions ?? [] as $level) {
+            $rank += match ($level) {
+                AccessLevel::Manage->value => 2,
+                AccessLevel::View->value => 1,
+                default => 0,
+            };
+        }
+
+        return $rank;
+    }
+
     /** Apakah role punya akses (minimal lihat) ke modul. */
     public function grantsModule(Module|string $module): bool
     {

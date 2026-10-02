@@ -168,4 +168,186 @@ class UserManagementTest extends TestCase
 
         $this->assertNull($admin->fresh()->role_id);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Guard eskalasi hak akses (QA F4-1 BUG-01)
+    |--------------------------------------------------------------------------
+    |
+    | Non-admin dengan permission users:manage tidak boleh mempromosikan
+    | dirinya / user lain ke role administrator, menurunkan akun administrator,
+    | maupun menghapus akun administrator. Hanya administrator yang boleh.
+    |
+    */
+
+    private function actingUserManager(): User
+    {
+        $manager = Role::factory()->manages([Module::Users])->create();
+
+        return tap(User::factory()->create(['role_id' => $manager->id]), fn (User $u) => $this->actingAs($u));
+    }
+
+    public function test_non_admin_manager_cannot_create_admin_user(): void
+    {
+        $this->actingUserManager();
+        $adminRole = Role::factory()->admin()->create();
+
+        $this->post(route('users.store'), [
+            'name' => 'Naik Kelas',
+            'email' => 'naik@contoh.id',
+            'role_id' => $adminRole->id,
+            'password' => 'rahasia-kuat-123',
+            'password_confirmation' => 'rahasia-kuat-123',
+        ])->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('users', ['email' => 'naik@contoh.id']);
+    }
+
+    public function test_non_admin_manager_cannot_promote_user_to_admin(): void
+    {
+        $this->actingUserManager();
+        $adminRole = Role::factory()->admin()->create();
+        $target = User::factory()->create(['role_id' => Role::factory()->create()->id]);
+
+        $this->put(route('users.update', $target), [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role_id' => $adminRole->id,
+        ])->assertSessionHas('error');
+
+        $this->assertFalse($target->fresh()->isAdmin());
+    }
+
+    public function test_non_admin_manager_cannot_promote_self_to_admin(): void
+    {
+        $actor = $this->actingUserManager();
+        $adminRole = Role::factory()->admin()->create();
+
+        $this->put(route('users.update', $actor), [
+            'name' => $actor->name,
+            'email' => $actor->email,
+            'role_id' => $adminRole->id,
+        ])->assertSessionHas('error');
+
+        $this->assertFalse($actor->fresh()->isAdmin());
+    }
+
+    public function test_non_admin_manager_cannot_demote_admin(): void
+    {
+        $this->actingUserManager();
+        $adminRole = Role::factory()->admin()->create();
+        $staf = Role::factory()->create(['name' => 'staf']);
+        User::factory()->create(['role_id' => $adminRole->id]); // admin kedua supaya bukan sebatas lockout admin terakhir
+        $admin = User::factory()->create(['role_id' => $adminRole->id]);
+
+        $this->put(route('users.update', $admin), [
+            'name' => 'Baru',
+            'email' => $admin->email,
+            'role_id' => $staf->id,
+        ])->assertSessionHas('error');
+
+        $this->assertSame($adminRole->id, $admin->fresh()->role_id);
+    }
+
+    public function test_non_admin_manager_cannot_delete_admin(): void
+    {
+        $this->actingUserManager();
+        $adminRole = Role::factory()->admin()->create();
+        User::factory()->create(['role_id' => $adminRole->id]); // admin kedua, jadi bukan "terakhir"
+        $target = User::factory()->create(['role_id' => $adminRole->id]);
+
+        $this->delete(route('users.destroy', $target))->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', ['id' => $target->id]);
+    }
+
+    public function test_non_admin_manager_cannot_assign_higher_privilege_role(): void
+    {
+        $this->actingUserManager(); // kelola users saja
+        $higher = Role::factory()->manages([Module::Users, Module::Invoices, Module::Clients])->create();
+        $target = User::factory()->create(['role_id' => Role::factory()->create()->id]);
+
+        $this->put(route('users.update', $target), [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role_id' => $higher->id,
+        ])->assertSessionHas('error');
+
+        $this->assertNotSame($higher->id, $target->fresh()->role_id);
+    }
+
+    public function test_non_admin_manager_cannot_update_higher_privilege_user(): void
+    {
+        $this->actingUserManager(); // kelola users saja (rank rendah)
+        $higher = Role::factory()->manages([Module::Invoices, Module::Clients])->create();
+        $target = User::factory()->create(['role_id' => $higher->id]);
+
+        // Pelaku mencoba mengubah user yang role-nya lebih tinggi, walau
+        // role_id tujuan tetap (rank sama / tidak lebih tinggi).
+        $this->put(route('users.update', $target), [
+            'name' => 'Baru',
+            'email' => $target->email,
+            'role_id' => $higher->id,
+        ])->assertSessionHas('error');
+
+        $this->assertNotSame('Baru', $target->fresh()->name);
+    }
+
+    public function test_non_admin_manager_can_assign_equal_or_lower_privilege_role(): void
+    {
+        $this->actingUserManager(); // rank 2 (kelola users)
+        $equal = Role::factory()->manages([Module::Users])->create(); // rank 2
+        $target = User::factory()->create(['role_id' => Role::factory()->create()->id]);
+
+        $this->put(route('users.update', $target), [
+            'name' => 'Setara',
+            'email' => $target->email,
+            'role_id' => $equal->id,
+        ])->assertRedirect(route('users.index'));
+
+        $this->assertSame($equal->id, $target->fresh()->role_id);
+    }
+
+    public function test_non_admin_manager_cannot_delete_higher_privilege_user(): void
+    {
+        $this->actingUserManager(); // rank 2
+        $higher = Role::factory()->manages([Module::Invoices, Module::Clients])->create(); // rank 6
+        $target = User::factory()->create(['role_id' => $higher->id]);
+
+        $this->delete(route('users.destroy', $target))->assertSessionHas('error');
+
+        $this->assertDatabaseHas('users', ['id' => $target->id]);
+    }
+
+    public function test_admin_can_still_assign_admin_role(): void
+    {
+        $this->actingAdmin();
+        $adminRole = Role::factory()->admin()->create();
+        $target = User::factory()->create();
+
+        $this->put(route('users.update', $target), [
+            'name' => $target->name,
+            'email' => $target->email,
+            'role_id' => $adminRole->id,
+        ])->assertRedirect(route('users.index'));
+
+        $this->assertTrue($target->fresh()->isAdmin());
+    }
+
+    public function test_non_admin_manager_can_still_update_non_admin_user(): void
+    {
+        $this->actingUserManager();
+        $role = Role::factory()->create();
+        $target = User::factory()->create(['role_id' => Role::factory()->create()->id]);
+
+        $this->put(route('users.update', $target), [
+            'name' => 'Diperbarui',
+            'email' => $target->email,
+            'role_id' => $role->id,
+        ])->assertRedirect(route('users.index'));
+
+        $target->refresh();
+        $this->assertSame('Diperbarui', $target->name);
+        $this->assertSame($role->id, $target->role_id);
+    }
 }
