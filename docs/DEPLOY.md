@@ -75,6 +75,48 @@ Catatan:
 - Setiap entri boleh hanya punya `name` atau `account_number`; entri yang
   kosong total otomatis dilewati.
 
+## Sinkronisasi HestiaCP (F3-1)
+
+Menarik akun hosting/domain dari HestiaCP menjadi Service di CRM — **read-only**
+(tidak pernah membuat/mengubah/menghapus akun Hestia). Kredensial hanya di `.env`
+server; jangan commit nilai asli ke repo.
+
+1. Siapkan autentikasi API Hestia. Cara disarankan: buat access key
+   (`v-add-access-key <user> '*' crm json`) lalu isi `.env`:
+
+   ```
+   HESTIA_ENABLED=true
+   HESTIA_HOST=<hostname-panel-sg2>      # tanpa skema, mis. panel.example.com
+   HESTIA_PORT=8083
+   HESTIA_SCHEME=https
+   HESTIA_VERIFY_SSL=false               # true bila sertifikat panel valid
+   HESTIA_ACCESS_KEY=<access-key>
+   HESTIA_SECRET_KEY=<secret-key>
+   ```
+
+   Alternatif (legacy): kosongkan `HESTIA_ACCESS_KEY`/`HESTIA_SECRET_KEY` dan
+   isi `HESTIA_USER` + `HESTIA_PASSWORD` (akun admin Hestia).
+
+2. Pastikan IP server CRM diizinkan di *API allowed IPs* Hestia (v1.4+), dan
+   API diaktifkan pada panel. Kredensial dikirim sebagai body POST sehingga
+   tidak tampil di URL/log.
+
+3. `php8.3 artisan config:cache` lalu jalankan sekali:
+   `php8.3 artisan hestia:sync`. Perintah ini terjadwal harian pukul 06:30 via
+   cron `schedule:run` (sudah terpasang).
+
+4. Buka `/hestia` di CRM. Akun yang tidak cocok otomatis muncul di daftar
+   **belum dipetakan** — pilih klien lalu "Petakan" (membuat Service
+   berjenis hosting dan menghubungkannya), atau "Abaikan". Ada juga tombol
+   **"Sinkronkan sekarang"**.
+
+Catatan:
+- Sync bersifat idempotent: sync ulang tidak menduplikasi Service. Akun yang
+  hilang dari Hestia (atau di-suspend) ditandai nonaktif — baris tidak dihapus.
+- Hasil tiap sync terlihat di tabel riwayat `/hestia` dan tersimpan di
+  `hestia_sync_logs` (tanpa kredensial).
+- `HESTIA_ENABLED=false` (default) → tombol/perintah tidak menghubungi API.
+
 ## Redeploy (update versi)
 
 1. Lokal: WAJIB `npm run build` tepat sebelum packaging (jangan pakai

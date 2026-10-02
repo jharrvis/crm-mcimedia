@@ -72,4 +72,37 @@ return [
         'endpoint' => env('FONNTE_ENDPOINT', 'https://api.fonnte.com/send'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Sinkronisasi HestiaCP (F3-1)
+    |--------------------------------------------------------------------------
+    |
+    | Menarik akun hosting/domain dari API HestiaCP ke CRM (read-only). Semua
+    | kredensial 100% dari environment — jangan pernah menulis nilai asli di
+    | kode/repo; isi lewat .env server.
+    |
+    | Autentikasi (prioritas): access/secret key (HESTIA_ACCESS_KEY +
+    | HESTIA_SECRET_KEY, disarankan Hestia >= 1.6) bila keduanya diisi; jika
+    | tidak, jatuh ke user/password admin (HESTIA_USER + HESTIA_PASSWORD).
+    |
+    | verify_ssl default false karena API Hestia (port 8083) umumnya memakai
+    | sertifikat self-signed. Aktifkan bila server Hestia memakai sertifikat
+    | yang valid.
+    |
+    | enabled=false → sync & tombol "Sinkronkan sekarang" tidak menghubungi API.
+    |
+    */
+    'hestia' => [
+        'enabled' => env('HESTIA_ENABLED', false),
+        'host' => env('HESTIA_HOST', ''),
+        'port' => env('HESTIA_PORT', 8083),
+        'scheme' => env('HESTIA_SCHEME', 'https'),
+        'verify_ssl' => env('HESTIA_VERIFY_SSL', false),
+        'user' => env('HESTIA_USER', ''),
+        'password' => env('HESTIA_PASSWORD', ''),
+        'access_key' => env('HESTIA_ACCESS_KEY', ''),
+        'secret_key' => env('HESTIA_SECRET_KEY', ''),
+        'timeout' => env('HESTIA_TIMEOUT', 30),
+    ],
+
 ];

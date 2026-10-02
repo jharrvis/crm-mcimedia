@@ -21,11 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:generate-renewal-invoices')->dailyAt('07:30');
         // Pengingat invoice jatuh tempo (H+1/H+7/H+14), setiap hari pukul 08:30.
         $schedule->command('crm:send-overdue-reminders')->dailyAt('08:30');
+        // Sinkronisasi akun hosting/domain dari HestiaCP (F3-1), setiap hari pukul 06:30.
+        $schedule->command('hestia:sync')->dailyAt('06:30');
     })
     ->withCommands([
         \App\Domains\Services\Console\Commands\ServicesExpiringCommand::class,
         \App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand::class,
         \App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand::class,
+        \App\Domains\Hestia\Console\Commands\HestiaSyncCommand::class,
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //
