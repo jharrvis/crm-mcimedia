@@ -38,7 +38,14 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        $client->load(['contacts', 'services', 'projects', 'tasks']);
+        $client->load([
+            'contacts',
+            // F4-9: subdomain di-group di bawah domain induknya.
+            'services' => fn ($query) => $query->groupedByParent(),
+            'services.parent',
+            'projects',
+            'tasks',
+        ]);
 
         return view('clients.show', compact('client'));
     }

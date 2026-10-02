@@ -18,6 +18,17 @@
         <div><dt class="text-slate-500">Klien</dt><dd class="font-medium"><a href="{{ route('clients.show', $service->client) }}" class="text-indigo-600 hover:underline">{{ $service->client?->name ?? '—' }}</a></dd></div>
         <div><dt class="text-slate-500">Jenis</dt><dd class="font-medium">{{ $service->type->label() }}</dd></div>
         <div><dt class="text-slate-500">Nama layanan</dt><dd class="font-medium">{{ $service->name }}</dd></div>
+        <div>
+            <dt class="text-slate-500">Domain induk</dt>
+            <dd class="font-medium">
+                @if ($service->parent)
+                    <a href="{{ route('services.show', $service->parent) }}" class="text-indigo-600 hover:underline">{{ $service->parent->name }}</a>
+                    <span class="text-xs text-slate-500">(subdomain)</span>
+                @else
+                    —
+                @endif
+            </dd>
+        </div>
         <div><dt class="text-slate-500">Domain / server terkait</dt><dd class="font-medium">{{ $service->reference ?? '—' }}</dd></div>
         <div><dt class="text-slate-500">Tanggal mulai</dt><dd class="font-medium">{{ tgl_id($service->start_date) }}</dd></div>
         <div>
@@ -39,4 +50,33 @@
         <div class="sm:col-span-2"><dt class="text-slate-500">Catatan</dt><dd class="font-medium whitespace-pre-line">{{ $service->notes ?? '—' }}</dd></div>
     </dl>
 </div>
+
+@if ($service->children->isNotEmpty())
+    <div class="mt-4 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 class="mb-3 font-bold">Subdomain ({{ $service->children->count() }})</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead><tr class="text-left text-xs uppercase text-slate-500">
+                    <th class="py-2 pr-4">Subdomain</th><th class="py-2 pr-4">Referensi</th><th class="py-2 pr-4">Berakhir</th><th class="py-2 pr-4">Status</th><th class="py-2 text-right">Harga</th>
+                </tr></thead>
+                <tbody>
+                    @foreach ($service->children as $child)
+                        <tr class="border-t border-slate-100 dark:border-slate-800">
+                            <td class="py-2 pr-4">
+                                <span class="mr-1 text-slate-400" aria-hidden="true">↳</span>
+                                <a href="{{ route('services.show', $child) }}" class="font-medium text-indigo-600 hover:underline">{{ $child->name }}</a>
+                            </td>
+                            <td class="py-2 pr-4 text-slate-500">{{ $child->reference ?? '—' }}</td>
+                            <td class="py-2 pr-4">{{ tgl_id($child->end_date) }}</td>
+                            <td class="py-2 pr-4">
+                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $child->status->value === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }}">{{ $child->status->label() }}</span>
+                            </td>
+                            <td class="py-2 text-right">{{ rupiah($child->price) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+@endif
 @endsection
