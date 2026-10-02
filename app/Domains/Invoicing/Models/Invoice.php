@@ -203,6 +203,8 @@ class Invoice extends Model
         }
 
         return $this->terminInvoices()->where('status', '!=', InvoiceStatus::Paid)->doesntExist();
+    }
+
     /** Paket recurring yang menerbitkan invoice ini (F4-11); null bila manual. */
     public function recurringPlan(): BelongsTo
     {
