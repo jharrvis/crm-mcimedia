@@ -36,7 +36,7 @@
                     ['label' => 'Utama', 'items' => [
                         ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'module' => null],
                     ]],
-                    ['label' => 'Klien & Layanan', 'items' => [
+                    ['label' => 'Klien dan Layanan', 'items' => [
                         ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien', 'module' => 'clients'],
                         ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan', 'module' => 'services'],
                     ]],

@@ -154,8 +154,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Semua akun sudah dipetakan.</td></tr>
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Semua akun sudah dipetakan.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Semua akun sudah dipetakan.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -215,21 +214,7 @@
         <thead>
             <tr class="text-left text-xs uppercase text-slate-500">
                 <th class="px-4 py-3">Domain</th>
-                    <th class="px-4 py-3">Server</th>
-                    <th class="px-4 py-3">Akun</th>
-                    <th class="px-4 py-3">Klien</th>
-                    <th class="px-4 py-3">Layanan</th>
-                    <th class="px-4 py-3">Pemetaan</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Terakhir dilihat</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse ($accounts as $account)
-                    <tr class="border-t border-slate-100 dark:border-slate-800">
-                        <td class="px-4 py-3 font-medium">{{ $account->domain }}</td>
-                        <td class="px-4 py-3 text-slate-500">{{ $account->server?->name ?? 'Environment' }}</td>
-                        <td class="px-4 py-3">{{ $account->hestia_user }}</td>
+                <th class="px-4 py-3">Server</th>
                 <th class="px-4 py-3">Akun</th>
                 <th class="px-4 py-3">Paket</th>
                 <th class="px-4 py-3">Pemakaian disk</th>
@@ -244,6 +229,7 @@
             @forelse ($accounts as $account)
                 <tr class="border-t border-slate-100 dark:border-slate-800">
                     <td class="px-4 py-3 font-medium">{{ $account->domain }}</td>
+                    <td class="px-4 py-3 text-slate-500">{{ $account->server?->name ?? 'Environment' }}</td>
                     <td class="px-4 py-3">{{ $account->hestia_user }}</td>
                     <td class="px-4 py-3">{{ $account->plan ?? '—' }}</td>
                     <td class="px-4 py-3 whitespace-nowrap">
@@ -292,9 +278,8 @@
                     <td class="px-4 py-3 text-slate-500">{{ $account->last_seen_at?->format('d/m/Y H:i') ?? '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Belum ada akun tersinkron.</td></tr>
                 <tr>
-                    <td colspan="9" class="px-4 py-8 text-center text-slate-500">
+                    <td colspan="10" class="px-4 py-8 text-center text-slate-500">
                         @if (request()->hasAny(['q', 'plan', 'status', 'quota']))
                             Tidak ada akun yang cocok dengan filter.
                         @else
