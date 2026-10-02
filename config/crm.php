@@ -104,5 +104,27 @@ return [
         'secret_key' => env('HESTIA_SECRET_KEY', ''),
         'timeout' => env('HESTIA_TIMEOUT', 30),
     ],
+    /*
+    |--------------------------------------------------------------------------
+    | Modul monitoring keamanan (F3-3)
+    |--------------------------------------------------------------------------
+    |
+    | API ingest temuan dari script monitoring di server klien. Token asli
+    | HANYA di environment (SECURITY_API_TOKEN) — jangan commit ke repo.
+    |
+    | - api_token kosong = endpoint /api/security/* menolak semua request
+    |   (503) sehingga tidak ada jalur tanpa autentikasi.
+    | - dedup_window_minutes dipakai untuk temuan tanpa external_id: temuan
+    |   dengan klien+sumber+judul sama dalam jendela ini dianggap duplikat.
+    | - report_disk: disk Laravel tempat PDF laporan disimpan (default privat).
+    |
+    */
+    'security' => [
+        'api_enabled' => env('SECURITY_API_ENABLED', true),
+        'api_token' => env('SECURITY_API_TOKEN', ''),
+        'dedup_window_minutes' => env('SECURITY_DEDUP_WINDOW_MINUTES', 1440),
+        'report_disk' => env('SECURITY_REPORT_DISK', 'local'),
+        'report_max_kb' => env('SECURITY_REPORT_MAX_KB', 10240),
+    ],
 
 ];
