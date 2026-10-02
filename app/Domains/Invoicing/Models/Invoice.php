@@ -5,6 +5,7 @@ namespace App\Domains\Invoicing\Models;
 use App\Domains\Clients\Models\Client;
 use App\Domains\Core\Traits\LogsActivity;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
+use App\Domains\Invoicing\Enums\RecurringCycle;
 use App\Domains\Invoicing\Exceptions\InvalidInvoiceTransition;
 use App\Domains\Services\Models\Service;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,17 +24,21 @@ class Invoice extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'client_id', 'number', 'title', 'issue_date', 'due_date',
+        'client_id', 'service_id', 'number', 'title', 'issue_date', 'due_date',
         'status', 'subtotal', 'total', 'notes', 'public_token', 'sent_at', 'paid_at',
         'parent_invoice_id', 'termin_percent',
+        'recurring_plan_id', 'recurring_cycle', 'period_start', 'period_end',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => InvoiceStatus::class,
+            'recurring_cycle' => RecurringCycle::class,
             'issue_date' => 'date',
             'due_date' => 'date',
+            'period_start' => 'date',
+            'period_end' => 'date',
             'subtotal' => 'integer',
             'total' => 'integer',
             'sent_at' => 'datetime',
@@ -198,6 +203,22 @@ class Invoice extends Model
         }
 
         return $this->terminInvoices()->where('status', '!=', InvoiceStatus::Paid)->doesntExist();
+    /** Paket recurring yang menerbitkan invoice ini (F4-11); null bila manual. */
+    public function recurringPlan(): BelongsTo
+    {
+        return $this->belongsTo(RecurringPlan::class, 'recurring_plan_id');
+    }
+
+    /**
+     * Invoice terbit otomatis dari paket recurring (bukan dibuat manual).
+     *
+     * Dibiarkan true walau paketnya sudah dihapus (`recurring_plan_id` jadi
+     * NULL karena ON DELETE SET NULL): invoice tetap berasal dari tagihan
+     * berulang, dan jejak siklus/periode-nya masih tersimpan.
+     */
+    public function isRecurring(): bool
+    {
+        return $this->recurring_plan_id !== null || $this->recurring_cycle !== null;
     }
 
     /**

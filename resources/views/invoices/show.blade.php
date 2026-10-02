@@ -139,6 +139,23 @@
                 <p class="text-xs uppercase text-slate-500">Invoice</p>
                 <p class="text-xl font-bold">{{ $invoice->number }}</p>
                 @if ($invoice->title)<p class="text-sm text-slate-500">{{ $invoice->title }}</p>@endif
+
+                {{-- F4-11: badge invoice recurring + periode yang ditagih --}}
+                @if ($invoice->isRecurring())
+                    <p class="mt-1 text-xs text-slate-500">
+                        <span class="rounded-full bg-indigo-100 px-2 py-0.5 font-semibold text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200">
+                            Recurring · {{ $invoice->recurring_cycle?->label() ?? '—' }}
+                        </span>
+                        @if ($invoice->period_start)
+                            <span class="ml-1">periode {{ tgl_id($invoice->period_start) }} – {{ tgl_id($invoice->period_end) }}</span>
+                        @endif
+                        @if ($invoice->recurringPlan)
+                            · <a href="{{ route('recurring-plans.show', $invoice->recurringPlan) }}" class="text-indigo-600 hover:underline">{{ $invoice->recurringPlan->title }}</a>
+                        @else
+                            · <span class="text-slate-400">(paket sudah dihapus)</span>
+                        @endif
+                    </p>
+                @endif
             </div>
             <span class="rounded-full px-3 py-1 text-sm font-medium {{ $statusClasses[$invoice->status->value] }}">{{ $invoice->status->label() }}</span>
         </div>
