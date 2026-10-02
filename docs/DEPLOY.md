@@ -75,11 +75,69 @@ Catatan:
 - Setiap entri boleh hanya punya `name` atau `account_number`; entri yang
   kosong total otomatis dilewati.
 
-## Sinkronisasi HestiaCP (F3-1)
+## Sinkronisasi HestiaCP — multi-server (F3-1 + F4-12)
 
 Menarik akun hosting/domain dari HestiaCP menjadi Service di CRM — **read-only**
-(tidak pernah membuat/mengubah/menghapus akun Hestia). Kredensial hanya di `.env`
-server; jangan commit nilai asli ke repo.
+(tidak pernah membuat/mengubah/menghapus akun Hestia). Kredensial tidak pernah
+ditulis ke repo maupun ke log.
+
+### Cara A — multi-server lewat UI (F4-12, disarankan)
+
+Setiap panel HestiaCP punya host & kredensial sendiri (mis. **sg2**, **YIARI**,
+**PA Salatiga**) dan dikelola dari UI, tidak lagi dari `.env`.
+
+1. Migrasi + cache konfigurasi:
+
+   ```bash
+   php8.3 artisan migrate --force
+   php8.3 artisan config:cache
+   ```
+
+2. Aktifkan sinkronisasi global di `.env` server (kill switch — WAJIB true):
+
+   ```
+   HESTIA_ENABLED=true
+   ```
+
+   Host/kredensial per-server **tidak** perlu diisi di `.env` lagi.
+
+3. Buat entri server awal (opsional — bisa juga ditambah lewat UI):
+
+   ```bash
+   php8.3 artisan db:seed --class=HestiaServerSeeder
+   ```
+
+   Seeder membuat 3 baris **nonaktif tanpa kredensial** (`sg2`, `YIARI`,
+   `PA Salatiga`) — tidak mengarang host/kredensial. Aman dijalankan berulang
+   (`firstOrCreate`): server yang sudah dikonfigurasi admin tidak tersentuh.
+
+4. Buka `/hestia/servers` (menu **Server Hestia**) → **Ubah** tiap server: isi
+   *Host*, *Port*, lalu kredensial (**Access key** + **Secret key** disarankan,
+   alternatif *User* + *Password*), centang **Aktif (ikut sync terjadwal)**.
+   Gunakan tombol **Uji** untuk memastikan koneksi sebelum menyimpan.
+
+   Kredensial disimpan **terenkripsi** di database dan tidak pernah ditampilkan
+   kembali di form — mengosongkan field rahasia saat edit berarti *pertahankan
+   nilai lama*.
+
+5. Jalankan sinkronisasi:
+
+   ```bash
+   php8.3 artisan hestia:sync                    # semua server aktif
+   php8.3 artisan hestia:sync --server=sg2       # satu server (kode atau nama)
+   php8.3 artisan hestia:sync --list             # daftar server + status
+   ```
+
+   Terjadwal harian pukul 06:30 lewat cron `schedule:run` (sudah terpasang).
+   Kegagalan satu server **tidak** menghentikan server lain; hasil tiap server
+   dilaporkan terpisah.
+
+6. Pantau di `/hestia` (filter per server, kolom Server, riwayat sync per
+   sumber) atau `/hestia/servers/{server}`.
+
+### Cara B — satu server lewat `.env` (F3-1, tetap berfungsi)
+
+Dipakai otomatis bila **belum ada** server aktif di `hestia_servers`.
 
 1. Siapkan autentikasi API Hestia. Cara disarankan: buat access key
    (`v-add-access-key <user> '*' crm json`) lalu isi `.env`:
@@ -102,20 +160,33 @@ server; jangan commit nilai asli ke repo.
    tidak tampil di URL/log.
 
 3. `php8.3 artisan config:cache` lalu jalankan sekali:
-   `php8.3 artisan hestia:sync`. Perintah ini terjadwal harian pukul 06:30 via
-   cron `schedule:run` (sudah terpasang).
+   `php8.3 artisan hestia:sync`.
 
 4. Buka `/hestia` di CRM. Akun yang tidak cocok otomatis muncul di daftar
    **belum dipetakan** — pilih klien lalu "Petakan" (membuat Service
-   berjenis hosting dan menghubungkannya), atau "Abaikan". Ada juga tombol
-   **"Sinkronkan sekarang"**.
+   berjenis hosting dan menghubungkannya), atau "Abaikan".
 
-Catatan:
+### Catatan penting
+
+- **Prioritas sumber**: begitu ada ≥1 server aktif di `/hestia/servers`, proses
+  sync memakai server UI dan **mengabaikan** host/kredensial `.env` — ini
+  mencegah akun ganda dari sumber yang sama. Banner biru di `/hestia` menandai
+  kondisi tersebut.
+- **Data lama tetap aman**: migrasi F4-12 bersifat aditif (kolom nullable, tanpa
+  rewrite). Akun hasil sinkronisasi F3-1 tetap punya `hestia_server_id = NULL`
+  dan kunci `dom:<user>:<domain>` seperti sebelumnya; akun dari server baru
+  memakai kunci `srv:<kode>:dom:<user>:<domain>` sehingga tidak bentrok.
+- **Sync terisolasi per server**: akun pada server A tidak pernah dinonaktifkan
+  oleh sync server B (keduanya sudah tercakup tes regresi).
+- **Menghapus server** di UI tidak menghapus akun/layanan — akun tetap tersimpan
+  dan hanya kehilangan sumbernya (`nullOnDelete`).
 - Sync bersifat idempotent: sync ulang tidak menduplikasi Service. Akun yang
   hilang dari Hestia (atau di-suspend) ditandai nonaktif — baris tidak dihapus.
 - Hasil tiap sync terlihat di tabel riwayat `/hestia` dan tersimpan di
   `hestia_sync_logs` (tanpa kredensial).
-- `HESTIA_ENABLED=false` (default) → tombol/perintah tidak menghubungi API.
+- `HESTIA_ENABLED=false` (default) → kill switch global: tombol/perintah tidak
+  menghubungi API **server mana pun** (environment maupun server UI).
+
 ## Monitoring keamanan (F3-3)
 
 Modul keamanan dipakai untuk mencatat insiden, jurnal tindakan, dan arsip

@@ -8,6 +8,7 @@ use App\Domains\Clients\Http\Controllers\ClientController;
 use App\Domains\Core\Http\Controllers\ActivityLogController;
 use App\Domains\Dashboard\Http\Controllers\DashboardController;
 use App\Domains\Hestia\Http\Controllers\HestiaController;
+use App\Domains\Hestia\Http\Controllers\HestiaServerController;
 use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
 use App\Domains\Invoicing\Http\Controllers\RecurringPlanController;
@@ -110,6 +111,7 @@ Route::middleware('auth')->group(function () {
     Route::get('activity', [ActivityLogController::class, 'index'])->middleware('permission:activity')->name('activity.index');
 
     // Sinkronisasi HestiaCP (F3-1): daftar akun, jalankan sync, pemetaan manual.
+    // F4-12: `servers` = CRUD server HestiaCP + uji koneksi + sync per server.
     Route::prefix('hestia')->name('hestia.')->middleware('permission:hestia')->group(function () {
         Route::get('/', [HestiaController::class, 'index'])->name('index');
         Route::post('sync', [HestiaController::class, 'sync'])->name('sync');
@@ -130,6 +132,18 @@ Route::middleware('auth')->group(function () {
     Route::post('domain-providers/{domain_provider}/import-services', [DomainProviderController::class, 'importServices'])
         ->name('domain-providers.import-services');
     Route::resource('domain-providers', DomainProviderController::class)->except('show');
+    // Manajemen server HestiaCP (F4-12) — sg2, YIARI, PA Salatiga, dll.
+    Route::prefix('hestia/servers')->name('hestia.servers.')->group(function () {
+        Route::get('/', [HestiaServerController::class, 'index'])->name('index');
+        Route::get('create', [HestiaServerController::class, 'create'])->name('create');
+        Route::post('/', [HestiaServerController::class, 'store'])->name('store');
+        Route::get('{hestia_server}', [HestiaServerController::class, 'show'])->name('show');
+        Route::get('{hestia_server}/edit', [HestiaServerController::class, 'edit'])->name('edit');
+        Route::put('{hestia_server}', [HestiaServerController::class, 'update'])->name('update');
+        Route::delete('{hestia_server}', [HestiaServerController::class, 'destroy'])->name('destroy');
+        Route::post('{hestia_server}/test', [HestiaServerController::class, 'test'])->name('test');
+        Route::post('{hestia_server}/sync', [HestiaServerController::class, 'sync'])->name('sync');
+    });
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.
     Route::patch('invoices/{invoice}/send', [InvoiceController::class, 'send'])

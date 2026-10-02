@@ -96,6 +96,15 @@ return [
     |
     | enabled=false → sync & tombol "Sinkronkan sekarang" tidak menghubungi API.
     |
+    | F4-12 (multi-server): nilai `enabled` kini menjadi KILL SWITCH GLOBAL —
+    | `false` mematikan sinkronisasi untuk environment ini maupun seluruh server
+    | yang dikelola lewat UI `/hestia/servers`. Server per-panel (sg2, YIARI, PA
+    | Salatiga) menyimpan host & kredensialnya sendiri di tabel `hestia_servers`
+    | (kredensial terenkripsi) dan tidak lagi memakai blok ini. Bila minimal satu
+    | server UI berstatus aktif, proses sync memakai server UI dan mengabaikan
+    | host/kredensial di bawah; blok ini tetap berfungsi sebagai fallback untuk
+    | instalasi lama yang belum punya server terdaftar.
+    |
     */
     'hestia' => [
         'enabled' => env('HESTIA_ENABLED', false),
