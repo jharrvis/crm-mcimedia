@@ -1,5 +1,7 @@
 <?php
 
+use App\Domains\Access\Http\Controllers\RoleController;
+use App\Domains\Access\Http\Controllers\UserController;
 use App\Domains\Catalog\Http\Controllers\ProductController;
 use App\Domains\Clients\Http\Controllers\ClientContactController;
 use App\Domains\Clients\Http\Controllers\ClientController;
@@ -43,41 +45,65 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('security/report/{token}/reports/{report}/download', [SecurityPortalController::class, 'download'])->name('security.portal.download');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Area terautentikasi — hak akses per modul (F4-1)
+|--------------------------------------------------------------------------
+|
+| Setiap grup modul diberi middleware `permission:<modul>` (alias dari
+| App\Domains\Access\Http\Middleware\EnsureModuleAccess). Action diturunkan
+| otomatis: GET index/show = "lihat"; GET create/edit dan semua request tulis
+| = "kelola". User tanpa role (akun warisan) & role administrator selalu lolos
+| (lihat App\Models\User::isAdmin()).
+|
+*/
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+    // Dashboard selalu bisa diakses semua user yang login (tanpa gate modul).
     Route::get('/', DashboardController::class)->name('dashboard');
 
-    Route::resource('clients', ClientController::class);
-    Route::resource('clients.contacts', ClientContactController::class)->except(['index', 'show']);
+    Route::resource('clients', ClientController::class)->middleware('permission:clients');
+    Route::resource('clients.contacts', ClientContactController::class)
+        ->except(['index', 'show'])
+        ->middleware('permission:clients');
 
-    Route::resource('services', ServiceController::class);
-    Route::resource('projects', ProjectController::class);
+    Route::resource('services', ServiceController::class)->middleware('permission:services');
+    Route::resource('projects', ProjectController::class)->middleware('permission:projects');
 
     // Jurnal progress project (F3-4).
-    Route::resource('projects.journals', ProjectJournalController::class)->only(['store', 'update', 'destroy']);
+    Route::resource('projects.journals', ProjectJournalController::class)
+        ->only(['store', 'update', 'destroy'])
+        ->middleware('permission:projects');
 
     // Laporan pencapaian project (F3-4): daftar, generate dari data periode,
     // detail, unduh PDF, hapus.
     Route::get('projects/{project}/reports/{report}/pdf', [AchievementReportController::class, 'pdf'])
+        ->middleware('permission:projects')
         ->name('projects.reports.pdf');
     Route::resource('projects.reports', AchievementReportController::class)
-        ->only(['index', 'store', 'show', 'destroy']);
+        ->only(['index', 'store', 'show', 'destroy'])
+        ->middleware('permission:projects');
 
     // Papan kanban tugas (F3-4) — didaftarkan sebelum resource agar "board"
     // tidak tertangkap oleh tasks/{task}.
-    Route::get('tasks/board', [TaskController::class, 'board'])->name('tasks.board');
-    Route::resource('tasks', TaskController::class);
-    Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus'])->name('tasks.status');
-    Route::patch('tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
-    Route::patch('tasks/{task}/reopen', [TaskController::class, 'reopen'])->name('tasks.reopen');
+    Route::get('tasks/board', [TaskController::class, 'board'])
+        ->middleware('permission:tasks')
+        ->name('tasks.board');
+    Route::resource('tasks', TaskController::class)->middleware('permission:tasks');
+    Route::patch('tasks/{task}/status', [TaskController::class, 'updateStatus'])
+        ->middleware('permission:tasks')->name('tasks.status');
+    Route::patch('tasks/{task}/complete', [TaskController::class, 'complete'])
+        ->middleware('permission:tasks')->name('tasks.complete');
+    Route::patch('tasks/{task}/reopen', [TaskController::class, 'reopen'])
+        ->middleware('permission:tasks')->name('tasks.reopen');
 
-    Route::get('reminders', ReminderController::class)->name('reminders.index');
-    Route::get('reports', ReportController::class)->name('reports.index');
-    Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    Route::get('reminders', ReminderController::class)->middleware('permission:reminders')->name('reminders.index');
+    Route::get('reports', ReportController::class)->middleware('permission:reports')->name('reports.index');
+    Route::get('activity', [ActivityLogController::class, 'index'])->middleware('permission:activity')->name('activity.index');
 
     // Sinkronisasi HestiaCP (F3-1): daftar akun, jalankan sync, pemetaan manual.
-    Route::prefix('hestia')->name('hestia.')->group(function () {
+    Route::prefix('hestia')->name('hestia.')->middleware('permission:hestia')->group(function () {
         Route::get('/', [HestiaController::class, 'index'])->name('index');
         Route::post('sync', [HestiaController::class, 'sync'])->name('sync');
         Route::patch('accounts/{account}/map', [HestiaController::class, 'map'])->name('accounts.map');
@@ -85,30 +111,41 @@ Route::middleware('auth')->group(function () {
     });
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.
-    Route::patch('invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
+    Route::patch('invoices/{invoice}/send', [InvoiceController::class, 'send'])
+        ->middleware('permission:invoices')->name('invoices.send');
     // Pengiriman invoice via email & WhatsApp (F2-5).
-    Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])->name('invoices.send-email');
-    Route::post('invoices/{invoice}/send-whatsapp', [InvoiceController::class, 'sendWhatsapp'])->name('invoices.send-whatsapp');
-    Route::patch('invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
-    Route::post('invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])->name('invoices.payments.store');
-    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+    Route::post('invoices/{invoice}/send-email', [InvoiceController::class, 'sendEmail'])
+        ->middleware('permission:invoices')->name('invoices.send-email');
+    Route::post('invoices/{invoice}/send-whatsapp', [InvoiceController::class, 'sendWhatsapp'])
+        ->middleware('permission:invoices')->name('invoices.send-whatsapp');
+    Route::patch('invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])
+        ->middleware('permission:invoices')->name('invoices.cancel');
+    Route::post('invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment'])
+        ->middleware('permission:invoices')->name('invoices.payments.store');
+    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])
+        ->middleware('permission:invoices')->name('invoices.pdf');
     // Tautan pembayaran publik (magic link F2-4).
-    Route::post('invoices/{invoice}/payment-link', [InvoiceController::class, 'generatePaymentLink'])->name('invoices.payment-link.generate');
-    Route::delete('invoices/{invoice}/payment-link', [InvoiceController::class, 'revokePaymentLink'])->name('invoices.payment-link.revoke');
+    Route::post('invoices/{invoice}/payment-link', [InvoiceController::class, 'generatePaymentLink'])
+        ->middleware('permission:invoices')->name('invoices.payment-link.generate');
+    Route::delete('invoices/{invoice}/payment-link', [InvoiceController::class, 'revokePaymentLink'])
+        ->middleware('permission:invoices')->name('invoices.payment-link.revoke');
     // Verifikasi konfirmasi transfer klien.
-    Route::patch('invoices/{invoice}/payments/{payment}/confirm', [InvoiceController::class, 'confirmPendingPayment'])->name('invoices.payments.confirm');
-    Route::patch('invoices/{invoice}/payments/{payment}/reject', [InvoiceController::class, 'rejectPendingPayment'])->name('invoices.payments.reject');
-    Route::resource('invoices', InvoiceController::class);
+    Route::patch('invoices/{invoice}/payments/{payment}/confirm', [InvoiceController::class, 'confirmPendingPayment'])
+        ->middleware('permission:invoices')->name('invoices.payments.confirm');
+    Route::patch('invoices/{invoice}/payments/{payment}/reject', [InvoiceController::class, 'rejectPendingPayment'])
+        ->middleware('permission:invoices')->name('invoices.payments.reject');
+    Route::resource('invoices', InvoiceController::class)->middleware('permission:invoices');
 
     // Katalog produk (F2-3): resource + toggle aktif/nonaktif.
-    Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])->name('products.toggle');
-    Route::resource('products', ProductController::class);
+    Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])
+        ->middleware('permission:products')->name('products.toggle');
+    Route::resource('products', ProductController::class)->middleware('permission:products');
 
     Route::get('profile/password', [ProfileController::class, 'edit'])->name('profile.password.edit');
     Route::put('profile/password', [ProfileController::class, 'update'])->name('profile.password.update');
 
     // Modul monitoring keamanan (F3-3): dashboard, insiden, jurnal, laporan.
-    Route::prefix('security')->name('security.')->group(function () {
+    Route::prefix('security')->name('security.')->middleware('permission:security')->group(function () {
         Route::get('/', [SecurityDashboardController::class, 'index'])->name('index');
 
         Route::patch('reports/{report}/send', [SecurityReportController::class, 'send'])->name('reports.send');
@@ -123,6 +160,12 @@ Route::middleware('auth')->group(function () {
     });
 
     // Tautan laporan keamanan publik per klien (magic link F3-3).
-    Route::post('clients/{client}/security-portal-link', [ClientSecurityPortalController::class, 'generate'])->name('clients.security-portal.generate');
-    Route::delete('clients/{client}/security-portal-link', [ClientSecurityPortalController::class, 'revoke'])->name('clients.security-portal.revoke');
+    Route::post('clients/{client}/security-portal-link', [ClientSecurityPortalController::class, 'generate'])
+        ->middleware('permission:clients')->name('clients.security-portal.generate');
+    Route::delete('clients/{client}/security-portal-link', [ClientSecurityPortalController::class, 'revoke'])
+        ->middleware('permission:clients')->name('clients.security-portal.revoke');
+
+    // Pengaturan › Pengguna & Role (F4-1).
+    Route::resource('users', UserController::class)->except('show')->middleware('permission:users');
+    Route::resource('roles', RoleController::class)->except('show')->middleware('permission:roles');
 });

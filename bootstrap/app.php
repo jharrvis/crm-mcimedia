@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Token API monitoring keamanan (F3-3).
         $middleware->alias([
             'security.api' => \App\Http\Middleware\AuthenticateSecurityApi::class,
+            // Hak akses per modul berbasis role (F4-1).
+            'permission' => \App\Domains\Access\Http\Middleware\EnsureModuleAccess::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

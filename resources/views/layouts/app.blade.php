@@ -29,40 +29,64 @@
         </div>
         <nav class="space-y-1 px-3 py-4 text-sm">
             @php
+                // `module` = kunci hak akses (F4-1). Item disembunyikan bila
+                // user tidak punya akses lihat ke modul terkait.
                 $nav = [
-                    ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard'],
-                    ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien'],
-                    ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan'],
-                    ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice'],
-                    ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk'],
-                    ['route' => 'projects.index', 'match' => 'projects.*', 'label' => 'Project'],
-                    ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas'],
-                    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan'],
-                    ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan'],
+                    ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'module' => null],
+                    ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien', 'module' => 'clients'],
+                    ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan', 'module' => 'services'],
+                    ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice', 'module' => 'invoices'],
+                    ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk', 'module' => 'products'],
+                    ['route' => 'projects.index', 'match' => 'projects.*', 'label' => 'Project', 'module' => 'projects'],
+                    ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas', 'module' => 'tasks'],
+                    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan', 'module' => 'reports'],
+                    ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan', 'module' => 'security'],
                 ];
             @endphp
             @foreach ($nav as $item)
+                @continue($item['module'] && ! auth()->user()->canAccessModule($item['module']))
                 <a href="{{ route($item['route']) }}"
                    class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs($item['match']) ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
                     {{ $item['label'] }}
                 </a>
             @endforeach
             <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Lainnya</p>
-            <a href="{{ route('reminders.index') }}"
-               class="flex items-center justify-between rounded-lg px-3 py-2 font-medium {{ request()->routeIs('reminders.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                <span>Pengingat</span>
-                @if (($reminderCount() ?? 0) > 0)
-                    <span class="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $reminderCount() }}</span>
+            @if (auth()->user()->canAccessModule('reminders'))
+                <a href="{{ route('reminders.index') }}"
+                   class="flex items-center justify-between rounded-lg px-3 py-2 font-medium {{ request()->routeIs('reminders.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                    <span>Pengingat</span>
+                    @if (($reminderCount() ?? 0) > 0)
+                        <span class="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $reminderCount() }}</span>
+                    @endif
+                </a>
+            @endif
+            @if (auth()->user()->canAccessModule('activity'))
+                <a href="{{ route('activity.index') }}"
+                   class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('activity.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                    Aktivitas
+                </a>
+            @endif
+            @if (auth()->user()->canAccessModule('hestia'))
+                <a href="{{ route('hestia.index') }}"
+                   class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                    Sinkron Hestia
+                </a>
+            @endif
+            @if (auth()->user()->canAccessModule('users') || auth()->user()->canAccessModule('roles'))
+                <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pengaturan</p>
+                @if (auth()->user()->canAccessModule('users'))
+                    <a href="{{ route('users.index') }}"
+                       class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('users.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                        Pengguna
+                    </a>
                 @endif
-            </a>
-            <a href="{{ route('activity.index') }}"
-               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('activity.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                Aktivitas
-            </a>
-            <a href="{{ route('hestia.index') }}"
-               class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                Sinkron Hestia
-            </a>
+                @if (auth()->user()->canAccessModule('roles'))
+                    <a href="{{ route('roles.index') }}"
+                       class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('roles.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                        Role &amp; Hak Akses
+                    </a>
+                @endif
+            @endif
         </nav>
         <div class="mt-auto border-t border-white/10 p-4 text-xs text-slate-500">
             <p class="font-medium text-slate-300">{{ auth()->user()->name }}</p>
