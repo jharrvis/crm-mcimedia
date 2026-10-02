@@ -2,9 +2,14 @@
 
 namespace App\Domains\Providers\Http\Controllers;
 
+use App\Domains\Clients\Models\Client;
 use App\Domains\Providers\DomainProviderRegistry;
+use App\Domains\Providers\Drivers\NameSiloDomainProviderDriver;
+use App\Domains\Providers\Http\Requests\DomainAutoRenewRequest;
 use App\Domains\Providers\Http\Requests\DomainProviderRequest;
+use App\Domains\Providers\Http\Requests\ImportProviderServicesRequest;
 use App\Domains\Providers\Models\DomainProvider;
+use App\Domains\Providers\Services\ProviderServiceImporter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +22,10 @@ use Illuminate\Support\Facades\Log;
  */
 class DomainProviderController extends Controller
 {
-    public function __construct(private readonly DomainProviderRegistry $registry) {}
+    public function __construct(
+        private readonly DomainProviderRegistry $registry,
+        private readonly ProviderServiceImporter $importer,
+    ) {}
 
     public function index(Request $request)
     {
@@ -137,6 +145,12 @@ class DomainProviderController extends Controller
                 $items[] = [
                     'info' => $info,
                     'expiry' => $info->expiresAt ?? $driver->getExpiry($info->domain),
+                    // Auto-renew hanya ikut terbawa bila driver melakukan
+                    // enrichment (satu request/domain); driver lain selalu null.
+                    // Membaca dari `raw` menghindari request tambahan per baris.
+                    'auto_renew' => is_bool($info->raw['auto_renew'] ?? null)
+                        ? $info->raw['auto_renew']
+                        : null,
                 ];
             }
 
@@ -155,7 +169,76 @@ class DomainProviderController extends Controller
             'provider' => $domainProvider,
             'items' => $items,
             'error' => $error,
+            'supportsAutoRenew' => $domainProvider->driver === NameSiloDomainProviderDriver::key(),
+            'clients' => Client::query()->orderBy('name')->get(),
         ]);
+    }
+
+    /**
+     * Aktif/nonaktifkan auto-renew satu domain (F4-7).
+     *
+     * Hanya berlaku untuk driver yang mendukungnya (NameSilo). Kegagalan API
+     * dilaporkan sebagai flash error — pesan driver aman (tanpa API key).
+     */
+    public function autoRenew(DomainAutoRenewRequest $request, DomainProvider $domainProvider)
+    {
+        // Redirect eksplisit ke daftar domain: `back()` bergantung pada referer
+        // yang tidak selalu ada (mis. dipanggil langsung), dan justru ke /
+        // yang membingungkan admin.
+        $redirect = redirect()->route('domain-providers.domains', $domainProvider);
+
+        if ($domainProvider->driver !== NameSiloDomainProviderDriver::key()) {
+            return $redirect->with('error', 'Driver ini tidak mendukung pengaturan auto-renew.');
+        }
+
+        $domain = (string) $request->string('domain')->toString();
+        $enable = $request->boolean('enable');
+
+        try {
+            $this->registry->make($domainProvider)->setAutoRenew($domain, $enable);
+        } catch (\Throwable $e) {
+            Log::warning('Gagal mengubah auto-renew domain', [
+                'provider_id' => $domainProvider->id,
+                'domain' => $domain,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $redirect->with('error', $e->getMessage());
+        }
+
+        return $redirect->with('success', sprintf(
+            'Auto-renew %s untuk domain %s.',
+            $enable ? 'diaktifkan' : 'dinonaktifkan',
+            $domain,
+        ));
+    }
+
+    /**
+     * Impor domain dari provider menjadi data layanan milik seorang klien (F4-7).
+     *
+     * Idempotent: domain yang sudah menjadi layanan hanya tanggal kedaluwarsanya
+     * yang disegarkan (lihat ProviderServiceImporter).
+     */
+    public function importServices(ImportProviderServicesRequest $request, DomainProvider $domainProvider)
+    {
+        $redirect = redirect()->route('domain-providers.domains', $domainProvider);
+
+        try {
+            $result = $this->importer->import($domainProvider, (int) $request->integer('client_id'));
+        } catch (\Throwable $e) {
+            Log::warning('Gagal mengimpor domain provider ke layanan', [
+                'provider_id' => $domainProvider->id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return $redirect->with('error', 'Gagal mengimpor domain: '.$e->getMessage());
+        }
+
+        return $redirect->with('success', sprintf(
+            'Impor selesai: %d layanan baru, %d diperbarui.',
+            $result['created'],
+            $result['updated'],
+        ));
     }
 
     /**

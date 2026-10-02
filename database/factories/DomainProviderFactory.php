@@ -61,4 +61,23 @@ class DomainProviderFactory extends Factory
             ],
         ]);
     }
+
+    /**
+     * Provider driver NameSilo dengan API key palsu.
+     *
+     * $credentials menimpa nilai bawaan (mis. `enrich_details` => false agar
+     * tes tidak melakukan request `getDomainInfo` tambahan).
+     */
+    public function namesilo(array $credentials = []): static
+    {
+        return $this->state(fn () => [
+            'driver' => 'namesilo',
+            'credentials' => array_merge([
+                'api_key' => 'nsk-test-key-123456',
+                'base_url' => 'https://www.namesilo.com/api',
+                'enrich_details' => true,
+                'timeout' => 20,
+            ], $credentials),
+        ]);
+    }
 }

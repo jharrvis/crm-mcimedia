@@ -92,6 +92,11 @@ Route::middleware('auth')->group(function () {
         ->name('domain-providers.domains');
     Route::patch('domain-providers/{domain_provider}/toggle', [DomainProviderController::class, 'toggle'])
         ->name('domain-providers.toggle');
+    // F4-7: aksi khusus driver NameSilo — ubah auto-renew & impor ke layanan CRM.
+    Route::post('domain-providers/{domain_provider}/auto-renew', [DomainProviderController::class, 'autoRenew'])
+        ->name('domain-providers.auto-renew');
+    Route::post('domain-providers/{domain_provider}/import-services', [DomainProviderController::class, 'importServices'])
+        ->name('domain-providers.import-services');
     Route::resource('domain-providers', DomainProviderController::class)->except('show');
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.
