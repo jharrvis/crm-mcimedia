@@ -27,66 +27,61 @@
                 <p class="text-[11px] text-slate-400">Internal</p>
             </div>
         </div>
-        <nav class="space-y-1 px-3 py-4 text-sm">
+        <nav class="space-y-4 px-3 py-4 text-sm" aria-label="Navigasi utama">
             @php
-                // `module` = kunci hak akses (F4-1). Item disembunyikan bila
-                // user tidak punya akses lihat ke modul terkait.
+@php
+                // Struktur sidebar grouping (F4-2) + hak akses per modul (F4-1).
+                // Item disembunyikan bila user tidak punya akses lihat ke modul terkait.
+                $navReminderCount = $reminderCount();
                 $nav = [
-                    ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'module' => null],
-                    ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien', 'module' => 'clients'],
-                    ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan', 'module' => 'services'],
-                    ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice', 'module' => 'invoices'],
-                    ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk', 'module' => 'products'],
-                    ['route' => 'projects.index', 'match' => 'projects.*', 'label' => 'Project', 'module' => 'projects'],
-                    ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas', 'module' => 'tasks'],
-                    ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan', 'module' => 'reports'],
-                    ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan', 'module' => 'security'],
+                    ['label' => 'Utama', 'items' => [
+                        ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'module' => null],
+                    ]],
+                    ['label' => 'Klien & Layanan', 'items' => [
+                        ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien', 'module' => 'clients'],
+                        ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan', 'module' => 'services'],
+                    ]],
+                    ['label' => 'Keuangan', 'items' => [
+                        ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice', 'module' => 'invoices'],
+                        ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk', 'module' => 'products'],
+                        ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan', 'module' => 'reports'],
+                    ]],
+                    ['label' => 'Project', 'items' => [
+                        ['route' => 'projects.index', 'match' => 'projects.*', 'label' => 'Project', 'module' => 'projects'],
+                        ['route' => 'tasks.index', 'match' => 'tasks.*', 'label' => 'Tugas', 'module' => 'tasks'],
+                    ]],
+                    ['label' => 'Keamanan', 'items' => [
+                        ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan', 'module' => 'security'],
+                        ['route' => 'hestia.index', 'match' => 'hestia.*', 'label' => 'Sinkron Hestia', 'module' => 'hestia'],
+                    ]],
+                    ['label' => 'Lainnya', 'items' => [
+                        ['route' => 'reminders.index', 'match' => 'reminders.*', 'label' => 'Pengingat', 'module' => 'reminders', 'badge' => true],
+                        ['route' => 'activity.index', 'match' => 'activity.*', 'label' => 'Aktivitas', 'module' => 'activity'],
+                    ]],
+                    ['label' => 'Pengaturan', 'items' => [
+                        ['route' => 'users.index', 'match' => 'users.*', 'label' => 'User & Role', 'module' => 'users'],
+                    ]],
                 ];
             @endphp
-            @foreach ($nav as $item)
-                @continue($item['module'] && ! auth()->user()->canAccessModule($item['module']))
-                <a href="{{ route($item['route']) }}"
-                   class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs($item['match']) ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                    {{ $item['label'] }}
-                </a>
+            @foreach ($nav as $group)
+                @php
+                    $visibleItems = array_filter($group['items'], fn($i) => !($i['module'] ?? null) || auth()->user()->canAccessModule($i['module']));
+                @endphp
+                @if (count($visibleItems) > 0)
+                <div class="space-y-1">
+                    <p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ $group['label'] }}</p>
+                    @foreach ($visibleItems as $item)
+                        <a href="{{ route($item['route']) }}"
+                           class="flex items-center justify-between rounded-lg px-3 py-2 font-medium {{ request()->routeIs($item['match']) ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
+                            <span>{{ $item['label'] }}</span>
+                            @if (($item['badge'] ?? false) && $navReminderCount > 0)
+                                <span class="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $navReminderCount }}</span>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+                @endif
             @endforeach
-            <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Lainnya</p>
-            @if (auth()->user()->canAccessModule('reminders'))
-                <a href="{{ route('reminders.index') }}"
-                   class="flex items-center justify-between rounded-lg px-3 py-2 font-medium {{ request()->routeIs('reminders.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                    <span>Pengingat</span>
-                    @if (($reminderCount() ?? 0) > 0)
-                        <span class="rounded-full bg-red-500 px-2 py-0.5 text-[11px] font-bold text-white">{{ $reminderCount() }}</span>
-                    @endif
-                </a>
-            @endif
-            @if (auth()->user()->canAccessModule('activity'))
-                <a href="{{ route('activity.index') }}"
-                   class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('activity.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                    Aktivitas
-                </a>
-            @endif
-            @if (auth()->user()->canAccessModule('hestia'))
-                <a href="{{ route('hestia.index') }}"
-                   class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('hestia.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                    Sinkron Hestia
-                </a>
-            @endif
-            @if (auth()->user()->canAccessModule('users') || auth()->user()->canAccessModule('roles'))
-                <p class="px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Pengaturan</p>
-                @if (auth()->user()->canAccessModule('users'))
-                    <a href="{{ route('users.index') }}"
-                       class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('users.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                        Pengguna
-                    </a>
-                @endif
-                @if (auth()->user()->canAccessModule('roles'))
-                    <a href="{{ route('roles.index') }}"
-                       class="flex items-center rounded-lg px-3 py-2 font-medium {{ request()->routeIs('roles.*') ? 'bg-indigo-600 text-white' : 'hover:bg-white/5 hover:text-white' }}">
-                        Role &amp; Hak Akses
-                    </a>
-                @endif
-            @endif
         </nav>
         <div class="mt-auto border-t border-white/10 p-4 text-xs text-slate-500">
             <p class="font-medium text-slate-300">{{ auth()->user()->name }}</p>
