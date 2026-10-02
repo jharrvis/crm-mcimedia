@@ -1,13 +1,19 @@
 <?php
 
+// PENTING: semua `use` harus ditulis SEBELUM baris yang memakainya.
+// Pernyataan `use` di PHP berlaku mulai barisowymana ia muncul, bukan di
+// seluruh file. Jika `use Illuminate\Contracts\Console\Kernel` diletakkan
+// setelah baris bootstrap di bawah, `Kernel::class` akan resolve ke
+// `\Kernel` (namespace global) sehingga script fatal dengan
+// "Target class [Kernel] does not exist".
+use App\Domains\Invoicing\Exceptions\InvalidTerminSplit;
+use App\Domains\Invoicing\Services\InvoiceTerminSplitter;
+use Illuminate\Contracts\Console\Kernel;
+
 require __DIR__.'/../vendor/autoload.php';
 
 $app = require_once __DIR__.'/../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-
-use App\Domains\Invoicing\Exceptions\InvalidTerminSplit;
-use App\Domains\Invoicing\Services\InvoiceTerminSplitter;
-use Illuminate\Contracts\Console\Kernel;
 
 $splitter = new InvoiceTerminSplitter;
 

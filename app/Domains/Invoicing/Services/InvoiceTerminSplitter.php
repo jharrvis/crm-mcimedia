@@ -146,7 +146,34 @@ class InvoiceTerminSplitter
         }
 
         // Di atas batas ini pembagian integer tidak lagi eksak.
-        if ((int) $parent->total > self::MAX_CONTRACT_TOTAL) {
+        $this->guardTotalWithinExactRange((int) $parent->total);
+    }
+
+    /**
+     * Nilai kontrak harus berada di rentang tempat pembagian basis-point
+     * stayed eksak.
+     *
+     * Perkalian $contractTotal * $basisPoints (maks 10000) memakai integer
+     * 64-bit. Di atas batas ini hasil perkalian meluap ke float, sehingga
+     * (int)/intdiv() tidak eksak: termin bisa mendapat nominal NEGATIF dan
+     * jumlah seluruh termin TIDAK sama dengan nilai kontrak.
+     *
+     * Guard ini ada di allocate() (bukan hanya di guardParent()) karena
+     * allocate() bersifat publik dan jadi pintu masuk tunggal semua pembagian
+     * nominal. Memasang guard hanya di split() menyisakan allocate() —
+     * yang dipakai tes, script verifikasi, dan service lain — tanpa pagu.
+     *
+     * @throws InvalidTerminSplit
+     */
+    private function guardTotalWithinExactRange(int $contractTotal): void
+    {
+        if ($contractTotal <= 0) {
+            throw new InvalidTerminSplit(
+                'Nilai kontrak harus lebih dari nol untuk dapat dipecah menjadi termin.'
+            );
+        }
+
+        if ($contractTotal > self::MAX_CONTRACT_TOTAL) {
             throw new InvalidTerminSplit(
                 'Nilai kontrak melebihi batas yang dapat dipecah menjadi termin ('.rupiah(self::MAX_CONTRACT_TOTAL).').'
             );
@@ -192,6 +219,8 @@ class InvoiceTerminSplitter
      */
     public function allocate(int $contractTotal, array $terms, mixed $issueDate = null): array
     {
+        $this->guardTotalWithinExactRange($contractTotal);
+
         $normalized = $this->normalizeTerms($terms, $issueDate);
 
         // Aritmetika SELURUHNYA integer. Versi float sebelumnya

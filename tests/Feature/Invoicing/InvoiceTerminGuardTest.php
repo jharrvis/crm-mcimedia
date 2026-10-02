@@ -4,6 +4,7 @@ namespace Tests\Feature\Invoicing;
 
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Exceptions\InvalidInvoiceTransition;
+use App\Domains\Invoicing\Exceptions\InvalidTerminSplit;
 use App\Domains\Invoicing\Models\Invoice;
 use App\Domains\Invoicing\Services\InvoiceTerminSplitter;
 use App\Models\User;
@@ -54,6 +55,14 @@ class InvoiceTerminGuardTest extends TestCase
 
     private function split(Invoice $contract, array $percents = [30, 30, 40]): void
     {
+        $this->post(route('invoices.termin.store', $contract), [
+            'terms' => $this->termRows($percents),
+        ])->assertSessionHas('success');
+    }
+
+    /** Baris form termin dengan jatuh tempo berurutan 30/60/90 hari. */
+    private function termRows(array $percents): array
+    {
         $rows = [];
         $i = 0;
         foreach ($percents as $percent) {
@@ -64,8 +73,7 @@ class InvoiceTerminGuardTest extends TestCase
             $i++;
         }
 
-        $this->post(route('invoices.termin.store', $contract), ['terms' => $rows])
-            ->assertSessionHas('success');
+        return $rows;
     }
 
     private function confirmedPayments(): int
@@ -324,5 +332,152 @@ class InvoiceTerminGuardTest extends TestCase
         $this->split($contract);
 
         $this->assertSame($total, $contract->fresh()->allocatedTerminTotal());
+    }
+
+    /**
+     * Regression: pagu nilai kontrak harus ditegakkan oleh allocate() itu
+     * sendiri, bukan hanya oleh split()/guardParent().
+     *
+     * allocate() bersifat publik dan jadi pintu masuk semua pembagian nominal.
+     * Ketika pagu hanya dipasang di guardParent(), pemanggilan langsung
+     * allocate() dengan total di atas batas membuat perkalian basis-point meluap
+     * ke float: termin dapat nominal NEGATIF dan jumlah seluruh termin tidak
+     * sama dengan nilai kontrak (Rp9.007.199.254.740.992 -> 2 termin positif
+     * + 1 termin -Rp86.469.112.845.512).
+     */
+    public function test_allocate_rejects_totals_above_the_exact_range(): void
+    {
+        $splitter = new InvoiceTerminSplitter;
+
+        foreach ([
+            InvoiceTerminSplitter::MAX_CONTRACT_TOTAL + 1,
+            1000000000000,
+            9007199254740992, // 2^53, batas presisi float
+            PHP_INT_MAX,
+        ] as $total) {
+            try {
+                $splitter->allocate($total, [
+                    ['percent' => 30, 'due_date' => now()->addDays(30)->toDateString()],
+                    ['percent' => 30, 'due_date' => now()->addDays(60)->toDateString()],
+                    ['percent' => 40, 'due_date' => now()->addDays(90)->toDateString()],
+                ], now()->toDateString());
+
+                $this->fail("allocate() harus menolak nilai kontrak {$total}.");
+            } catch (InvalidTerminSplit $e) {
+                $this->assertStringContainsString('melebihi batas', $e->getMessage());
+            }
+        }
+    }
+
+    /** Regression: allocate() tidak boleh menerima nilai kontrak nol/negatif. */
+    public function test_allocate_rejects_non_positive_totals(): void
+    {
+        $splitter = new InvoiceTerminSplitter;
+
+        foreach ([0, -1, -1000000] as $total) {
+            try {
+                $splitter->allocate($total, [
+                    ['percent' => 50, 'due_date' => now()->addDays(30)->toDateString()],
+                    ['percent' => 50, 'due_date' => now()->addDays(60)->toDateString()],
+                ], now()->toDateString());
+
+                $this->fail("allocate() harus menolak nilai kontrak {$total}.");
+            } catch (InvalidTerminSplit $e) {
+                $this->assertStringContainsString('lebih dari nol', $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Invariant allocate() yang dijanjikan di docblock: jumlah nominal termin
+     * PERSIS sama dengan nilai kontrak di seluruh rentang yang diterima —
+     * bukan cuma lewat HTTP (yang sudah dijaga guardParent()).
+     *
+     * Termin bernilai NOL belum tentu bug di allocate(): nilai kontrak yang
+     * sangat kecil memang bisa membuat satu termin rounds down ke 0, dan itu
+     * ditolak di split() oleh guardNonZeroTerms() dengan pesan jelas (lihat
+     * test_allocate_may_return_zero_terms_but_split_rejects_them). Yang wajib
+     * dijaga di sini: jumlah tetap tepat dan TIDAK ADA nominal negatif —
+     * negatif hanya bisa muncul dari overflow basis-point.
+     */
+    public function test_allocate_sum_always_equals_contract_total(): void
+    {
+        $splitter = new InvoiceTerminSplitter;
+        $issueDate = now()->toDateString();
+
+        $splits = [[30, 30, 40], [50, 50], [33.33, 33.33, 33.34], [1, 99], [12.5, 12.5, 75]];
+        $totals = [1, 7, 99999, 100001, 1234567, 999999999, InvoiceTerminSplitter::MAX_CONTRACT_TOTAL];
+
+        foreach ($totals as $total) {
+            foreach ($splits as $percents) {
+                $rows = [];
+                $i = 0;
+                foreach ($percents as $percent) {
+                    $rows[] = [
+                        'percent' => $percent,
+                        'due_date' => now()->addDays(30 * ($i + 1))->toDateString(),
+                    ];
+                    $i++;
+                }
+
+                try {
+                    $out = $splitter->allocate($total, $rows, $issueDate);
+                } catch (InvalidTerminSplit) {
+                    // Kontrak terlalu kecil atau di luar rentang eksak: ditolak
+                    // secara eksplisit — bukan gagal diam-diam.
+                    continue;
+                }
+
+                $sum = array_sum(array_column($out, 'amount'));
+
+                $this->assertSame(
+                    $total,
+                    $sum,
+                    "Jumlah termin untuk kontrak {$total} split ".implode('/', $percents)." harus tepat {$total}, bukan {$sum}."
+                );
+
+                foreach ($out as $share) {
+                    $this->assertGreaterThanOrEqual(
+                        0,
+                        $share['amount'],
+                        'allocate() tidak boleh menghasilkan nominal negatif.'
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Termin bernilai nol harus DITOLAK saat split() (bukan hanya dicegah
+     * calculate-nya), supaya tidak ada invoice termin Rp0 yang bisa dikirim ke
+     * klien dan membingungkan pencatatan.
+     */
+    public function test_allocate_may_return_zero_terms_but_split_rejects_them(): void
+    {
+        $this->login();
+        $splitter = new InvoiceTerminSplitter;
+
+        // Rp1 dibagi 30/30/40 -> satu termin bernilai 0.
+        $contract = $this->contract(1);
+
+        $this->from(route('invoices.show', $contract))
+            ->post(route('invoices.termin.store', $contract), [
+                'terms' => $this->termRows([30, 30, 40]),
+            ])
+            ->assertSessionHas('error');
+
+        // Tidak ada termin yang tersimpan, dan tidak ada termin Rp0.
+        $this->assertSame(0, $contract->terminInvoices()->count());
+        $this->assertSame(0, Invoice::where('total', '<=', 0)->count());
+
+        // allocate() memang boleh mengembalikan nol — split() yang menolaknya.
+        $shares = $splitter->allocate(1, [
+            ['percent' => 30, 'due_date' => now()->addDays(30)->toDateString()],
+            ['percent' => 30, 'due_date' => now()->addDays(60)->toDateString()],
+            ['percent' => 40, 'due_date' => now()->addDays(90)->toDateString()],
+        ], now()->toDateString());
+
+        $this->assertContains(0, array_column($shares, 'amount'));
+        $this->assertSame(1, array_sum(array_column($shares, 'amount')));
     }
 }
