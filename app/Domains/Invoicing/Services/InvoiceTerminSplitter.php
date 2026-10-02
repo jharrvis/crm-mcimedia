@@ -29,6 +29,16 @@ class InvoiceTerminSplitter
     /** Jumlah termin maksimum dalam satu pecahan. */
     public const MAX_TERMS = 24;
 
+    /**
+     * Batas atas nilai kontrak (IDR) yang boleh dipecah menjadi termin.
+     *
+     * Division memakai aritmetika integer: nominal * basis-point harus muat di
+     * integer 64-bit (maks ~9,2 x 10^18). Batas ini jauh di bawah plafon itu,
+     * jadi hasil pembagian selalu eksak. Nilai kontrak di atas batas ini
+     * ditolak dengan pesan jelas, bukan diam-diam menghasilkan nominal salah.
+     */
+    public const MAX_CONTRACT_TOTAL = 900000000000; // Rp900 miliar
+
     /** Toleransi pembulatan persentase (basis point). */
     private const PERCENT_EPSILON = 0.0001;
 
@@ -108,6 +118,15 @@ class InvoiceTerminSplitter
     /** Invoice induk harus punya nilai kontrak dan belum pernah dipecah. */
     private function guardParent(Invoice $parent): void
     {
+        // Termin tidak boleh dipecah lagi: struktur datanya dirancang satu
+        // tingkat (induk -> termin). Tanpa guard ini invoice bisa dipecah
+        // bertingkat tanpa batas dan laporan ikut kacau.
+        if ($parent->isTermin()) {
+            throw new InvalidTerminSplit(
+                "Invoice {$parent->number} sudah merupakan termin sehingga tidak dapat dipecah lagi."
+            );
+        }
+
         if ($parent->hasTermins()) {
             throw new InvalidTerminSplit(
                 "Invoice {$parent->number} sudah memiliki termin sehingga nilai kontrak tidak dapat dipecah lagi."
@@ -123,6 +142,13 @@ class InvoiceTerminSplitter
         if ((int) $parent->total <= 0) {
             throw new InvalidTerminSplit(
                 "Invoice {$parent->number} belum punya nilai kontrak. Tambahkan item bernilai lebih dulu sebelum dipecah menjadi termin."
+            );
+        }
+
+        // Di atas batas ini pembagian integer tidak lagi eksak.
+        if ((int) $parent->total > self::MAX_CONTRACT_TOTAL) {
+            throw new InvalidTerminSplit(
+                'Nilai kontrak melebihi batas yang dapat dipecah menjadi termin ('.rupiah(self::MAX_CONTRACT_TOTAL).').'
             );
         }
     }
@@ -168,23 +194,38 @@ class InvoiceTerminSplitter
     {
         $normalized = $this->normalizeTerms($terms, $issueDate);
 
-        $exact = [];
+        // Aritmetika SELURUHNYA integer. Versi float sebelumnya
+        // ($contractTotal * $percent / 100) kehilangan presisi di atas 2^53,
+        // sehingga floor() bisa meleset dan sisa rupiah jadi negatif — yang
+        // membuat jumlah termin TIDAK sama dengan nilai kontrak.
+        //
+        // Persentase dikonversi ke basis point (1% = 100 bp) supaya pembagian
+        // bisa pakai intdiv() yang eksak untuk rentang nilai kontrak yang
+        // dipakai CRM ini (IDR).
         $amounts = [];
         $allocated = 0;
 
         foreach ($normalized as $index => $share) {
-            $exact[$index] = $contractTotal * $share['percent'] / 100;
-            $amounts[$index] = (int) floor($exact[$index]);
+            $basisPoints = (int) round($share['percent'] * 100);
+            // intdiv() hanya menerima int; nilai kontrak dari DB sudah int,
+            // tapi perkalian bisa meluap jadi float pada total ekstrem.
+            $amounts[$index] = intdiv((int) ($contractTotal * $basisPoints), 10000);
             $allocated += $amounts[$index];
         }
 
-        // Pecahan desimal = bagian rupiah yang hilang karena floor. Termin
-        // dengan pecahan terbesar paling deserving menerima sisa rupiah.
+        $remainder = $contractTotal - $allocated;
+
+        // Pecahan desimal tiap termin = bagian rupiah yang hilang karena
+        // floor. Termin dengan pecahan terbesar menerima sisa rupiah.
+        // Pada rentang normal (< 2^53) float aman di sini karena nilainya hanya
+        // membandingkan urutan, bukan jumlah uang.
         $order = [];
         foreach ($normalized as $index => $share) {
+            $basisPoints = (int) round($share['percent'] * 100);
+            $numerator = (int) ($contractTotal * $basisPoints);
             $order[] = [
                 'index' => $index,
-                'fraction' => $exact[$index] - floor($exact[$index]),
+                'fraction' => $numerator % 10000,
             ];
         }
 
@@ -193,8 +234,6 @@ class InvoiceTerminSplitter
             $order,
             fn (array $a, array $b): int => ($b['fraction'] <=> $a['fraction']) ?: ($a['index'] <=> $b['index'])
         );
-
-        $remainder = $contractTotal - $allocated;
 
         foreach ($order as $position => $entry) {
             if ($position >= $remainder) {

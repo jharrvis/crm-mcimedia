@@ -119,6 +119,14 @@ class InvoiceController extends Controller
                 ->with('error', "Invoice {$invoice->number} berstatus {$invoice->status->label()} sehingga tidak dapat diubah.");
         }
 
+        // Nilai kontrak induk sudah dialokasikan ke invoice termin. Mengubah
+        // item/textra invoice induk membuat nilai kontrak dan total termin
+        // tidak sinkron (mis. kontrak 1 juta, termin tetap 1 juta).
+        if ($invoice->hasNonDraftTerms()) {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('error', "Invoice {$invoice->number} sudah dipecah menjadi termin yang sudah dikirim sehingga nilai kontrak tidak dapat diubah.");
+        }
+
         $invoice->load(['services', 'items']);
 
         return view('invoices.edit', [
@@ -134,6 +142,14 @@ class InvoiceController extends Controller
         if ($invoice->isTerminal()) {
             return redirect()->route('invoices.show', $invoice)
                 ->with('error', "Invoice {$invoice->number} berstatus {$invoice->status->label()} sehingga tidak dapat diubah.");
+        }
+
+        // Sama seperti edit(): ubah nilai kontrak hanya boleh selama seluruh
+        // termin masih draf. Setelah ada termin yang keluar, nilai kontrak
+        // adalah hasil pembagian yang sudah tercatat di invoice termin.
+        if ($invoice->hasNonDraftTerms()) {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('error', "Invoice {$invoice->number} sudah dipecah menjadi termin yang sudah dikirim sehingga nilai kontrak tidak dapat diubah.");
         }
 
         $data = $request->validated();
@@ -168,6 +184,15 @@ class InvoiceController extends Controller
         if ($invoice->status !== InvoiceStatus::Draft) {
             return redirect()->route('invoices.show', $invoice)
                 ->with('error', 'Hanya invoice berstatus draf yang dapat dihapus.');
+        }
+
+        // Menghapus invoice induk akan cascade menghapus termin-nya. Kalau ada
+        // termin yang sudah dikirim/lunas, cascade itu ikut menghapus invoice
+        // berserta riwayat pembayarannya — data keuangan yang tidak bisa
+        // dipulihkan. Blokir, dan suruh admin membatalkan termin-nya dulu.
+        if (! $invoice->canBeDeletedSafely()) {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('error', "Invoice {$invoice->number} sudah dipecah menjadi termin yang sudah dikirim/lunas sehingga tidak dapat dihapus. Batalkan invoice termin-nya terlebih dahulu.");
         }
 
         $number = $invoice->number;
@@ -287,6 +312,13 @@ class InvoiceController extends Controller
     /** Catat pembayaran: buat payment confirmed + markPaid(). */
     public function recordPayment(Request $request, Invoice $invoice)
     {
+        // Invoice induk yang sudah dipecah bukan piutang — nilainya sudah
+        // ada di invoice termin. Menagihnya di sini = penagihan ganda.
+        if (! $invoice->isCollectible()) {
+            return back()->with('error',
+                "Invoice {$invoice->number} sudah dipecah menjadi termin sehingga pembayaran dicatat pada invoice termin-nya.");
+        }
+
         $validated = $request->validate([
             'amount' => ['required', 'integer', 'min:1'],
             'method' => ['required', 'string', 'in:bank_transfer,cash,qris,ewallet,other'],
@@ -333,6 +365,14 @@ class InvoiceController extends Controller
     {
         if ($invoice->status === InvoiceStatus::Draft) {
             return back()->with('error', 'Tandai invoice terkirim sebelum membuat tautan pembayaran.');
+        }
+
+        // Invoice induk termin tidak boleh punya tautan bayar: halaman publiknya
+        // menampilkan nilai kontrak PENUH, sehingga klien bisa mencicil lewat
+        // tautan itu sekaligus lewat termin — nilainya terambil dua kali.
+        if (! $invoice->isCollectible()) {
+            return back()->with('error',
+                "Invoice {$invoice->number} sudah dipecah menjadi termin. Bagikan tautan bayar invoice termin-nya.");
         }
 
         $invoice->update(['public_token' => Str::random(64)]);
