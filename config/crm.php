@@ -3,6 +3,7 @@
 use App\Domains\Providers\Drivers\HestiaDomainProviderDriver;
 use App\Domains\Providers\Drivers\HostingerDomainProviderDriver;
 use App\Domains\Providers\Drivers\ManualDomainProviderDriver;
+use App\Domains\Providers\Drivers\NameSiloDomainProviderDriver;
 
 /*
 |--------------------------------------------------------------------------
@@ -154,6 +155,7 @@ return [
         'drivers' => [
             HestiaDomainProviderDriver::class,
             HostingerDomainProviderDriver::class,
+            NameSiloDomainProviderDriver::class,
             ManualDomainProviderDriver::class,
         ],
     ],
