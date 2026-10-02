@@ -254,4 +254,69 @@ class InvoiceMultiServiceTest extends TestCase
 
         $this->assertDatabaseCount('invoices', 1);
     }
+
+    /**
+     * Skenario keamanan (QA): service_ids milik klien lain yang dikirim langsung
+     * via POST harus ditolak dengan pesan jelas, dan tidak boleh ada baris yang
+     * bocor ke tabel pivot meski layanan milik klien sendiri ikut dikirim.
+     */
+    public function test_posting_another_clients_service_is_rejected_without_pivot_leak(): void
+    {
+        $this->login();
+        $client = ClientFactory::new()->create();
+        $ownService = ServiceFactory::new()->create(['client_id' => $client->id]);
+        $foreignService = ServiceFactory::new()->create(); // milik klien lain
+
+        $response = $this->from(route('invoices.create'))->post(route('invoices.store'), $this->invoicePayload($client, [
+            'service_ids' => [$ownService->id, $foreignService->id],
+        ]));
+
+        $response->assertSessionHasErrors('service_ids.1');
+        $this->assertSame(
+            'Layanan yang dipilih tidak milik klien ini.',
+            session('errors')->first('service_ids.1')
+        );
+
+        // Tidak boleh ada invoice tersimpan, dan pivot tetap kosong total —
+        // bahkan untuk layanan milik klien sendiri di indeks 0.
+        $this->assertDatabaseCount('invoices', 0);
+        $this->assertDatabaseCount('invoice_service', 0);
+    }
+
+    /** Skenario 8 (QA): hapus invoice -> semua baris pivot ikut hilang. */
+    public function test_deleting_invoice_removes_its_pivot_rows(): void
+    {
+        $this->login();
+        $invoice = $this->combinedInvoice();
+
+        $this->assertDatabaseCount('invoice_service', 3);
+
+        $this->delete(route('invoices.destroy', $invoice))->assertRedirect();
+
+        $this->assertDatabaseCount('invoices', 0);
+        $this->assertDatabaseCount('invoice_service', 0);
+    }
+
+    /** Skenario 8 (QA): hapus layanan -> invoice tetap utuh, tautan hilang. */
+    public function test_deleting_service_keeps_invoice_and_detaches_link(): void
+    {
+        $this->login();
+        $invoice = $this->combinedInvoice();
+        $removed = $invoice->services->firstWhere('name', 'Website Toko Online');
+
+        $this->delete(route('services.destroy', $removed))->assertRedirect();
+
+        $this->assertDatabaseCount('invoices', 1);
+        $this->assertDatabaseCount('invoice_service', 2);
+        $this->assertDatabaseMissing('services', ['id' => $removed->id]);
+        $this->assertDatabaseMissing('invoice_service', [
+            'invoice_id' => $invoice->id,
+            'service_id' => $removed->id,
+        ]);
+        // Dua layanan lain tetap tertaut ke invoice yang sama.
+        $this->assertSame(
+            2,
+            $invoice->fresh()->services()->count()
+        );
+    }
 }
