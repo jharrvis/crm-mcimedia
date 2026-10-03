@@ -51,9 +51,12 @@ function initPicker(root) {
         display.setAttribute('aria-expanded', 'true');
     }
 
-    function closePanel() {
+    function closePanel(restoreFocus = false) {
         panel.hidden = true;
         display.setAttribute('aria-expanded', 'false');
+        // Fokus harus balik ke input display, bukan hilang di elemen yang
+        // baru saja disembunyikan.
+        if (restoreFocus) display.focus();
     }
 
     function renderCalendar() {
@@ -81,7 +84,7 @@ function initPicker(root) {
         if (!root.contains(e.target)) closePanel();
     });
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closePanel();
+        if (e.key === 'Escape' && !panel.hidden) closePanel(true);
     });
 
     display.addEventListener('click', () => (panel.hidden ? openPanel() : closePanel()));
@@ -98,14 +101,14 @@ function initPicker(root) {
             const key = presetBtn.dataset.duePreset;
             if (key === 'custom') return; // kalender sudah tampil di kanan
             setValue(presetDate(todayStr, key) ?? selected, key);
-            closePanel();
+            closePanel(true);
             return;
         }
 
         const dayBtn = e.target.closest('[data-due-day]');
         if (dayBtn) {
             setValue(dayBtn.dataset.dueDay, 'custom');
-            closePanel();
+            closePanel(true);
             return;
         }
 
