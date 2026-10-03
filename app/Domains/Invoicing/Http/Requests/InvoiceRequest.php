@@ -30,6 +30,10 @@ class InvoiceRequest extends FormRequest
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
             'items.*.unit_price' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            // Split button simpan (UX-2): draf (default), send (lanjut ke alur
+            // kirim), confirm (tandai terkirim). Nilai di luar daftar ditolak 422
+            // (trust boundary — hanya tombol native yang mengirim nilai ini).
+            'save_action' => ['nullable', 'string', 'in:draft,send,confirm'],
         ];
     }
 
@@ -43,6 +47,17 @@ class InvoiceRequest extends FormRequest
             'service_ids.array' => 'Layanan terkait harus berupa daftar.',
             'service_ids.*.exists' => 'Layanan yang dipilih tidak milik klien ini.',
         ];
+    }
+
+    /**
+     * Aksi simpan dari split button (draft|send|confirm). Nilai kosong
+     * (submit lama / tombol utama tanpa menu) dijamin 'draft'.
+     */
+    public function saveAction(): string
+    {
+        $value = $this->validated()['save_action'] ?? null;
+
+        return in_array($value, ['send', 'confirm'], true) ? $value : 'draft';
     }
 
     /**

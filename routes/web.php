@@ -4,6 +4,7 @@ use App\Domains\Access\Http\Controllers\RoleController;
 use App\Domains\Access\Http\Controllers\UserController;
 use App\Domains\Catalog\Http\Controllers\ProductCategoryController;
 use App\Domains\Catalog\Http\Controllers\ProductController;
+use App\Domains\Catalog\Http\Controllers\ProductPickerController;
 use App\Domains\Clients\Http\Controllers\ClientContactController;
 use App\Domains\Clients\Http\Controllers\ClientController;
 use App\Domains\Core\Http\Controllers\ActivityLogController;
@@ -181,6 +182,15 @@ Route::middleware('auth')->group(function () {
     Route::post('recurring-plans/{recurringPlan}/generate', [RecurringPlanController::class, 'generateNow'])->name('recurring-plans.generate-now');
     Route::patch('recurring-plans/{recurringPlan}/toggle', [RecurringPlanController::class, 'toggle'])->name('recurring-plans.toggle');
     Route::resource('recurring-plans', RecurringPlanController::class);
+
+    // Picker produk live di form invoice (UX-2): pencarian by nama/SKU
+    // (server-side, termasuk varian) + tambah cepat "ke stok" via AJAX.
+    // Pencarian memakai izin invoices (formnya di modul invoice); quick-create
+    // butuh izin manage modul products (ditentukan di UI lewat data-can-create).
+    Route::get('products/picker/search', [ProductPickerController::class, 'search'])
+        ->middleware('permission:invoices')->name('products.picker.search');
+    Route::post('products/picker/quick-create', [ProductPickerController::class, 'quickCreate'])
+        ->middleware('permission:products')->name('products.picker.quick-create');
 
     // Katalog produk (F2-3): resource + toggle aktif/nonaktif.
     Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])

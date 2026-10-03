@@ -3,7 +3,6 @@
 namespace Tests\Feature\Catalog;
 
 use App\Domains\Catalog\Models\Product;
-use App\Domains\Catalog\Models\ProductCategory;
 use App\Domains\Catalog\Models\ProductVariant;
 use App\Models\User;
 use Database\Factories\ProductCategoryFactory;
@@ -442,12 +441,13 @@ class ProductCategoryVariantTest extends TestCase
         $withVariants = ProductFactory::new()->create(['name' => 'Produk Paker Varian', 'sales_price' => 900000, 'is_active' => true]);
         ProductVariant::factory()->count(2)->create(['product_id' => $withVariants->id]);
 
-        $this->get(route('invoices.create'))
-            ->assertOk()
-            ->assertSee('Produk Picker Lama')
-            ->assertSee('data-price="120000"', false)
-            ->assertSee('Produk Paker Varian')
-            ->assertSee('data-price="900000"', false);
+        // UX-2: katalog dikirim sebagai JSON bootstrap (#picker-bootstrap),
+        // bukan <option> — nama + harga + varian ikut di-encode.
+        $response = $this->get(route('invoices.create'))->assertOk();
+        $response->assertSee('"name":"Produk Picker Lama"', false)
+            ->assertSee('"sales_price":120000', false)
+            ->assertSee('"name":"Produk Paker Varian"', false)
+            ->assertSee('"sales_price":900000', false);
     }
 
     // ---------- seeder ----------

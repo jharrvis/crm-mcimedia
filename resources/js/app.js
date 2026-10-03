@@ -1,6 +1,8 @@
 import './bootstrap';
 import { initDueDatePickers } from './due-date-picker';
+import { initProductPickers } from './product-picker';
 
-// Init dipanggil dua kali (langsung + dari DOMContentLoaded di modul picker);
-// initDueDatePickers() idempoten lewat atribut data-ready.
+// Keduanya idempoten: due-date lewat atribut data-ready per input,
+// picker produk lewat data-picker-bound per input baris item.
 initDueDatePickers();
+initProductPickers();
