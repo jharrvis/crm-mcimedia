@@ -9,12 +9,11 @@
 
 <form method="GET" action="{{ route('services.index') }}" class="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-5 dark:border-slate-800 dark:bg-slate-900">
     <input name="q" value="{{ request('q') }}" placeholder="Cari nama / referensi…" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-    <select name="client_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="">Semua klien</option>
-        @foreach ($clients as $c)
-            <option value="{{ $c->id }}" @selected(request('client_id') == $c->id)>{{ $c->name }}</option>
-        @endforeach
-    </select>
+    <x-client-select
+        :clients="$clients"
+        :selected="request('client_id')"
+        empty-label="Semua klien"
+        class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
     <select name="type" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
         <option value="">Semua jenis</option>
         @foreach ($types as $t)

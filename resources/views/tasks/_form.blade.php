@@ -17,15 +17,11 @@
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
-            <label class="mb-1 block text-sm font-medium">Klien (opsional)</label>
-            <select name="client_id"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-                <option value="">— Tanpa klien —</option>
-                @foreach ($clients as $client)
-                    <option value="{{ $client->id }}" @selected(old('client_id', $task?->client_id) == $client->id)>{{ $client->name }}</option>
-                @endforeach
-            </select>
-            @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            <x-client-select
+                :clients="$clients"
+                :selected="old('client_id', $task?->client_id)"
+                label="Klien (opsional)"
+                empty-label="— Tanpa klien —" />
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium">Project (opsional)</label>

@@ -18,12 +18,11 @@
                 <option value="{{ $priority->value }}" @selected(request('priority') === $priority->value)>{{ $priority->label() }}</option>
             @endforeach
         </select>
-        <select name="client_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-            <option value="">Semua klien</option>
-            @foreach ($clients as $client)
-                <option value="{{ $client->id }}" @selected(request('client_id') == $client->id)>{{ $client->name }}</option>
-            @endforeach
-        </select>
+        <x-client-select
+            :clients="$clients"
+            :selected="request('client_id')"
+            empty-label="Semua klien"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
         <select name="project_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
             <option value="">Semua project</option>
             @foreach ($projects as $project)

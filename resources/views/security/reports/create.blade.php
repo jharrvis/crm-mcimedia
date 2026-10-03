@@ -9,14 +9,11 @@
       class="max-w-2xl space-y-4 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
     @csrf
     <div>
-        <label class="mb-1 block text-sm font-medium">Klien <span class="text-red-600">*</span></label>
-        <select name="client_id" required class="{{ $input }}">
-            <option value="">— Pilih klien —</option>
-            @foreach ($clients as $c)
-                <option value="{{ $c->id }}" @selected((int) old('client_id', $defaultClientId) === $c->id)>{{ $c->name }}</option>
-            @endforeach
-        </select>
-        @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        <x-client-select
+            :clients="$clients"
+            :selected="old('client_id', $defaultClientId)"
+            label="Klien"
+            required />
     </div>
     <div>
         <label class="mb-1 block text-sm font-medium">Periode (YYYY-MM) <span class="text-red-600">*</span></label>

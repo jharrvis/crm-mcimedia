@@ -137,12 +137,11 @@
                                 <form method="POST" action="{{ route('hestia.accounts.map', $account) }}" class="flex items-center gap-2">
                                     @csrf
                                     @method('PATCH')
-                                    <select name="client_id" required class="{{ $inputClass }}">
-                                        <option value="">— Pilih klien —</option>
-                                        @foreach ($clients as $c)
-                                            <option value="{{ $c->id }}">{{ $c->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <x-client-select
+                                        :clients="$clients"
+                                        :class="$inputClass"
+                                        empty-label="— Pilih klien —"
+                                        required />
                                     <button class="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700">Petakan</button>
                                 </form>
                                 <form method="POST" action="{{ route('hestia.accounts.ignore', $account) }}" onsubmit="return confirm('Abaikan akun ini?')">

@@ -7,12 +7,11 @@
     <form method="GET" action="{{ route('projects.index') }}" class="flex flex-wrap gap-2">
         <input name="q" value="{{ request('q') }}" placeholder="Cari judul…"
                class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <select name="client_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-            <option value="">Semua klien</option>
-            @foreach ($clients as $client)
-                <option value="{{ $client->id }}" @selected(request('client_id') == $client->id)>{{ $client->name }}</option>
-            @endforeach
-        </select>
+        <x-client-select
+            :clients="$clients"
+            :selected="request('client_id')"
+            empty-label="Semua klien"
+            class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800" />
         <select name="status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
             <option value="">Semua status</option>
             @foreach ($statuses as $status)

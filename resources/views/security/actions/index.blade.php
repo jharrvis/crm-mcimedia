@@ -9,12 +9,11 @@
     <form method="GET" action="{{ route('security.actions.index') }}" class="flex items-end gap-2">
         <div>
             <label class="mb-1 block text-xs font-medium text-slate-500">Klien</label>
-            <select name="client_id" class="{{ $inputClass }}">
-                <option value="">Semua klien</option>
-                @foreach ($clients as $c)
-                    <option value="{{ $c->id }}" @selected((string) request('client_id') === (string) $c->id)>{{ $c->name }}</option>
-                @endforeach
-            </select>
+            <x-client-select
+                :clients="$clients"
+                :selected="request('client_id')"
+                empty-label="Semua klien"
+                :class="$inputClass" />
         </div>
         <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Filter</button>
     </form>

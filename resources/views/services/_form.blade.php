@@ -11,14 +11,11 @@
 
 <div class="grid gap-4 sm:grid-cols-2">
     <div>
-        <label class="mb-1 block text-sm font-medium">Klien <span class="text-red-600">*</span></label>
-        <select name="client_id" required class="{{ $inputClass }}">
-            <option value="">— Pilih klien —</option>
-            @foreach ($clients as $c)
-                <option value="{{ $c->id }}" @selected(old('client_id', $service?->client_id) == $c->id)>{{ $c->name }}</option>
-            @endforeach
-        </select>
-        @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        <x-client-select
+            :clients="$clients"
+            :selected="old('client_id', $service?->client_id)"
+            label="Klien"
+            required />
     </div>
     <div>
         <label class="mb-1 block text-sm font-medium">Jenis <span class="text-red-600">*</span></label>

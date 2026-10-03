@@ -5,15 +5,11 @@
 @endphp
 <div class="space-y-4">
     <div>
-        <label class="mb-1 block text-sm font-medium">Klien</label>
-        <select name="client_id" required
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-            <option value="">— Pilih klien —</option>
-            @foreach ($clients as $client)
-                <option value="{{ $client->id }}" @selected($selectedClient == $client->id)>{{ $client->name }}</option>
-            @endforeach
-        </select>
-        @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        <x-client-select
+            :clients="$clients"
+            :selected="$selectedClient"
+            label="Klien"
+            required />
     </div>
     <div>
         <label class="mb-1 block text-sm font-medium">Judul project</label>

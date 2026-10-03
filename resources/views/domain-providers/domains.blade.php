@@ -27,14 +27,14 @@
       class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
     @csrf
     <div>
-        <label for="client_id" class="block text-xs font-medium text-slate-600 dark:text-slate-300">Impor sebagai layanan milik klien</label>
-        <select id="client_id" name="client_id" required
-                class="mt-1 rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800">
-            <option value="">— pilih klien —</option>
-            @foreach ($clients as $client)
-                <option value="{{ $client->id }}">{{ $client->name }}</option>
-            @endforeach
-        </select>
+        <x-client-select
+            :clients="$clients"
+            id="client_id"
+            label="Impor sebagai layanan milik klien"
+            class="rounded-lg border-slate-300 text-sm dark:border-slate-700 dark:bg-slate-800"
+            label-class="block text-xs font-medium text-slate-600 dark:text-slate-300"
+            empty-label="— pilih klien —"
+            required />
     </div>
     <button type="submit" @disabled(! count($clients))
             class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
