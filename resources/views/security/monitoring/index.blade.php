@@ -266,8 +266,8 @@ function updateChart(metric, data) {
             fill: true,
             tension: 0.3,
             // Buat setiap server beda warna sedikit
-            borderColor: adjustColor(metricColors[metric], newDatasets.length),
-            backgroundColor: adjustColor(metricColors[metric], newDatasets.length).replace('0.8', '0.1'),
+            borderColor: adjustColor(metric, newDatasets.length),
+            backgroundColor: adjustColor(metric, newDatasets.length).replace('0.8', '0.1'),
         });
     });
 
@@ -276,15 +276,17 @@ function updateChart(metric, data) {
     renderLegend(metric);
 }
 
-// Adjust color untuk tiap server (sg2=red, yiari=blue, pa-salatiga=amber)
-function adjustColor(baseColor, index) {
+// Adjust color untuk tiap server (server ke-0=red, ke-1=blue, ke-2=amber)
+function adjustColor(metricKey, serverIndex) {
     const colors = {
         'cpu': ['rgba(239, 68, 68, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(245, 158, 11, 0.8)'],
         'ram': ['rgba(239, 68, 68, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(245, 158, 11, 0.8)'],
         'disk': ['rgba(239, 68, 68, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(245, 158, 11, 0.8)'],
         'network': ['rgba(239, 68, 68, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(245, 158, 11, 0.8)'],
     };
-    return colors[metric]?.[index - 1] || baseColor;
+    const palette = colors[metricKey];
+    if (palette && palette[serverIndex]) return palette[serverIndex];
+    return 'rgba(148, 163, 184, 0.8)'; // fallback slate
 }
 
 // Update status server
