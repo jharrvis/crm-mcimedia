@@ -20,6 +20,7 @@ use App\Domains\Projects\Http\Controllers\ProjectJournalController;
 use App\Domains\Providers\Http\Controllers\DomainProviderController;
 use App\Domains\Reports\Http\Controllers\ReportController;
 use App\Domains\Security\Http\Controllers\ClientSecurityPortalController;
+use App\Domains\Security\Http\Controllers\MonitoringServerController;
 use App\Domains\Security\Http\Controllers\SecurityActionController;
 use App\Domains\Security\Http\Controllers\SecurityDashboardController;
 use App\Domains\Security\Http\Controllers\SecurityIncidentController;
@@ -206,6 +207,12 @@ Route::middleware('auth')->group(function () {
     // Modul monitoring keamanan (F3-3): dashboard, insiden, jurnal, laporan.
     Route::prefix('security')->name('security.')->middleware('permission:security')->group(function () {
         Route::get('/', [SecurityDashboardController::class, 'index'])->name('index');
+
+        Route::prefix('monitoring')->name('monitoring.')->group(function () {
+            Route::get('/', [MonitoringServerController::class, 'index'])->name('index');
+            Route::get('metrics', [MonitoringServerController::class, 'metrics'])->name('metrics');
+            Route::get('health', [MonitoringServerController::class, 'health'])->name('health');
+        });
 
         Route::patch('reports/{report}/send', [SecurityReportController::class, 'send'])->name('reports.send');
         Route::patch('reports/{report}/send-to-client', [SecurityReportController::class, 'sendToClient'])->name('reports.send-to-client');
