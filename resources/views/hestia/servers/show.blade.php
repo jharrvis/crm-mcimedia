@@ -54,6 +54,16 @@
             <dd>{{ $server->scheme }}://{{ $server->host }}:{{ $server->port }}</dd>
         </div>
         <div>
+            <dt class="text-xs uppercase text-slate-500">Endpoint Netdata</dt>
+            <dd>
+                @if ($server->netdata_host)
+                    http://{{ $server->netdata_host }}:{{ $server->netdata_port ?? 19999 }}
+                @else
+                    <span class="text-slate-400">belum dikonfigurasi</span>
+                @endif
+            </dd>
+        </div>
+        <div>
             <dt class="text-xs uppercase text-slate-500">SSL</dt>
             <dd>{{ $server->verify_ssl ? 'Diverifikasi' : 'Tidak diverifikasi' }}</dd>
         </div>

@@ -37,6 +37,8 @@ class HestiaServerRequest extends FormRequest
             'scheme' => ['nullable', 'string', Rule::in(['http', 'https'])],
             'verify_ssl' => ['sometimes', 'boolean'],
             'timeout' => ['nullable', 'integer', 'min:1', 'max:300'],
+            'netdata_host' => ['nullable', 'string', 'max:255'],
+            'netdata_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
             'notes' => ['nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
 
@@ -69,30 +71,32 @@ class HestiaServerRequest extends FormRequest
     }
 
     /**
-     * Data siap-simpan. Kredensial rahasia yang tidak dikirim pada edit
-     * DIJAGA dari nilai lama (bukan ditimpa jadi kosong).
-     *
-     * @return array<string, mixed>
-     */
-    public function payload(): array
-    {
-        $code = $this->string('code')->trim()->value();
-        $name = $this->string('name')->trim()->value();
+     /** Data siap-simpan. Kredensial rahasia yang tidak dikirim pada edit
+          * DIJAGA dari nilai lama (bukan ditimpa jadi kosong).
+          *
+          * @return array<string, mixed>
+          */
+         public function payload(): array
+         {
+             $code = $this->string('code')->trim()->value();
+             $name = $this->string('name')->trim()->value();
 
-        return [
-            'name' => $name,
-            // Code dibuat otomatis dari nama bila admin tidak mengisinya.
-            'code' => $code !== '' ? $code : HestiaServer::makeCode($name),
-            'host' => $this->string('host')->trim()->value(),
-            'port' => (int) ($this->input('port') ?: 8083),
-            'scheme' => $this->input('scheme') ?: 'https',
-            'verify_ssl' => $this->boolean('verify_ssl'),
-            'timeout' => (int) ($this->input('timeout') ?: 30),
-            'is_active' => $this->boolean('is_active'),
-            'notes' => $this->input('notes'),
-            'credentials' => $this->mergedCredentials(),
-        ];
-    }
+             return [
+                 'name' => $name,
+                 // Code dibuat otomatis dari nama bila admin tidak mengisinya.
+                 'code' => $code !== '' ? $code : HestiaServer::makeCode($name),
+                 'host' => $this->string('host')->trim()->value(),
+                 'port' => (int) ($this->input('port') ?: 8083),
+                 'scheme' => $this->input('scheme') ?: 'https',
+                 'verify_ssl' => $this->boolean('verify_ssl'),
+                 'timeout' => (int) ($this->input('timeout') ?: 30),
+                 'netdata_host' => $this->string('netdata_host')->trim()->value() ?: null,
+                 'netdata_port' => $this->filled('netdata_port') ? (int) $this->input('netdata_port') : null,
+                 'is_active' => $this->boolean('is_active'),
+                 'notes' => $this->input('notes'),
+                 'credentials' => $this->mergedCredentials(),
+             ];
+         }
 
     /**
      * @return array<string, string>

@@ -59,7 +59,8 @@
             <tr class="text-left text-xs uppercase text-slate-500">
                 <th class="px-4 py-3">Server</th>
                 <th class="px-4 py-3">Kode</th>
-                <th class="px-4 py-3">Endpoint</th>
+                <th class="px-4 py-3">Endpoint Panel</th>
+                <th class="px-4 py-3">Endpoint Netdata</th>
                 <th class="px-4 py-3">Kredensial</th>
                 <th class="px-4 py-3">Akun</th>
                 <th class="px-4 py-3">Sync terakhir</th>
@@ -84,6 +85,13 @@
                         @unless ($server->verify_ssl)
                             <span class="text-xs text-amber-600">(SSL off)</span>
                         @endunless
+                    </td>
+                    <td class="px-4 py-3 text-slate-500">
+                        @if ($server->netdata_host)
+                            http://{{ $server->netdata_host }}:{{ $server->netdata_port ?? 19999 }}
+                        @else
+                            <span class="text-slate-400">belum dikonfigurasi</span>
+                        @endif
                     </td>
                     <td class="px-4 py-3">
                         {!! $server->isConfigured()

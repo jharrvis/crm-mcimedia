@@ -65,6 +65,22 @@
                    value="{{ old('timeout', $server->timeout ?: 30) }}" class="{{ $inputClass }}">
             @error('timeout') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
+
+        <div>
+            <label for="netdata_host" class="mb-1 block text-sm font-medium">Netdata Host</label>
+            <input id="netdata_host" name="netdata_host" value="{{ old('netdata_host', $server->netdata_host) }}"
+                   placeholder="kosongkan jika sama dengan host panel" class="{{ $inputClass }}">
+            @error('netdata_host') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            <p class="mt-1 text-xs text-slate-500">Host Netdata (biasanya sama IP dengan panel, beda port).</p>
+        </div>
+
+        <div>
+            <label for="netdata_port" class="mb-1 block text-sm font-medium">Netdata Port</label>
+            <input id="netdata_port" name="netdata_port" type="number" min="1" max="65535"
+                   value="{{ old('netdata_port', $server->netdata_port ?: 19999) }}" class="{{ $inputClass }}">
+            @error('netdata_port') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            <p class="mt-1 text-xs text-slate-500">Port Netdata (default 19999).</p>
+        </div>
     </div>
 
     <label class="flex items-center gap-2 text-sm">

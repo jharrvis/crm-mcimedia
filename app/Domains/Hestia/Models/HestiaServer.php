@@ -33,6 +33,7 @@ class HestiaServer extends Model
     /** Field kredensial yang boleh ditampilkan ulang di form (bukan rahasia). */
     protected $fillable = [
         'name', 'code', 'host', 'port', 'scheme', 'verify_ssl', 'timeout',
+        'netdata_host', 'netdata_port',
         'credentials', 'is_active', 'notes',
         'last_sync_at', 'last_sync_status', 'last_synced_at', 'last_sync_message',
     ];
@@ -45,6 +46,7 @@ class HestiaServer extends Model
             'is_active' => 'boolean',
             'port' => 'integer',
             'timeout' => 'integer',
+            'netdata_port' => 'integer',
             'last_sync_at' => 'datetime',
             'last_synced_at' => 'datetime',
         ];
