@@ -44,6 +44,7 @@
                         ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice', 'module' => 'invoices'],
                         ['route' => 'recurring-plans.index', 'match' => 'recurring-plans.*', 'label' => 'Recurring', 'module' => 'invoices'],
                         ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk', 'module' => 'products'],
+                        ['route' => 'product-categories.index', 'match' => 'product-categories.*', 'label' => 'Kategori Produk', 'module' => 'products'],
                         ['route' => 'reports.index', 'match' => 'reports.*', 'label' => 'Laporan', 'module' => 'reports'],
                     ]],
                     ['label' => 'Project', 'items' => [
