@@ -47,11 +47,11 @@
                     </td>
                     <td class="px-4 py-3 text-right tabular-nums">{{ rupiah($product->sales_price) }}</td>
                     <td class="px-4 py-3">
-                        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $product->is_active ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }}">{{ $product->is_active ? 'Aktif' : 'Nonaktif' }}</span>
-                    </td>
-                    <td class="px-4 py-3 text-xs">
                         @if ($product->category)<span class="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $product->category->name }}</span>@else<span class="text-slate-400">—</span>@endif
                         @if ($product->variants->count() > 0)<span class="rounded bg-indigo-100 px-1.5 py-0.5 font-medium text-indigo-600 dark:bg-indigo-900 dark:text-indigo-300">{{ $product->variants->count() }} varian</span>@endif
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $product->is_active ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }}">{{ $product->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                     </td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
                         <a href="{{ route('products.edit', $product) }}" class="text-indigo-600 hover:underline">Ubah</a>

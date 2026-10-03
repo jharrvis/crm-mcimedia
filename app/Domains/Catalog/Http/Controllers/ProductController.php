@@ -5,10 +5,10 @@ namespace App\Domains\Catalog\Http\Controllers;
 use App\Domains\Catalog\Http\Requests\ProductRequest;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Catalog\Models\ProductCategory;
-use App\Domains\Catalog\Models\ProductVariant;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -145,7 +145,9 @@ class ProductController extends Controller
                 'sku' => filled($row['sku'] ?? null) ? $row['sku'] : null,
                 'sales_price' => (int) ($row['sales_price'] ?? 0),
                 'is_active' => filter_var($row['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                'sort_order' => (int) ($row['sort_order'] ?? 0),
+                // sort_order tidak dikirim form UI: pertahankan nilai lama agar
+                // urutan varian tidak hilang setiap kali produk disimpan ulang.
+                'sort_order' => $this->resolveSortOrder($product, $row),
             ];
 
             if (filled($row['id'] ?? null)) {
@@ -165,7 +167,30 @@ class ProductController extends Controller
         $product->variants()->whereKeyNot($keepIds)->delete();
     }
 
-    /** @return \Illuminate\Support\Collection<int, ProductCategory> */
+    /**
+     * Tentukan sort_order varian: input eksplisit menang; bila tidak dikirim
+     * (form UI), pertahankan nilai lama milik produk ini (default 0 untuk baru).
+     *
+     * @param  array<string, mixed>  $row
+     */
+    protected function resolveSortOrder(Product $product, array $row): int
+    {
+        if (array_key_exists('sort_order', $row) && $row['sort_order'] !== null && $row['sort_order'] !== '') {
+            return (int) $row['sort_order'];
+        }
+
+        if (filled($row['id'] ?? null)) {
+            $current = $product->variants()->whereKey((int) $row['id'])->value('sort_order');
+
+            if ($current !== null) {
+                return (int) $current;
+            }
+        }
+
+        return 0;
+    }
+
+    /** @return Collection<int, ProductCategory> */
     protected function categories()
     {
         return ProductCategory::orderBy('sort_order')->orderBy('name')->get();

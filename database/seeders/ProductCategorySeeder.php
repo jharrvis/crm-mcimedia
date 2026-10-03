@@ -68,7 +68,7 @@ class ProductCategorySeeder extends Seeder
             foreach ([['1GB', 550000], ['2GB', 1100000], ['4GB', 2200000]] as $i => [$name, $price]) {
                 $hosting->variants()->create([
                     'name' => $name,
-                    'sku' => "SKU-HOST-SG-".Str::slug($name),
+                    'sku' => 'SKU-HOST-SG-'.Str::slug($name),
                     'sales_price' => $price,
                     'is_active' => true,
                     'sort_order' => $i,

@@ -3,7 +3,6 @@
 namespace Tests\Feature\Catalog;
 
 use App\Domains\Catalog\Models\Product;
-use App\Domains\Catalog\Models\ProductCategory;
 use App\Domains\Catalog\Models\ProductVariant;
 use App\Models\User;
 use Database\Factories\ProductCategoryFactory;
@@ -11,6 +10,7 @@ use Database\Factories\ProductFactory;
 use Database\Seeders\ProductCategorySeeder;
 use Database\Seeders\ProductSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
@@ -196,6 +196,64 @@ class ProductCategoryVariantTest extends TestCase
             ->assertSee('2 varian');
     }
 
+    public function test_index_cells_match_their_headers(): void
+    {
+        $this->login();
+
+        // Dua produk: satu berkategori + varian (nonaktif), satu tanpa kategori (aktif).
+        // Data tiap kolom harus berada pada header yang tepat (regresi kolom tertukar
+        // Status vs Kategori di products/index.blade.php).
+        $category = ProductCategoryFactory::new()->create(['name' => 'Hosting Utama']);
+        $withCategory = ProductFactory::new()->create([
+            'category_id' => $category->id, 'is_active' => false, 'name' => 'Produk Berkategori',
+        ]);
+        ProductVariant::factory()->count(2)->create(['product_id' => $withCategory->id]);
+        ProductFactory::new()->create([
+            'category_id' => null, 'is_active' => true, 'name' => 'Produk Tanpa Kategori',
+        ]);
+
+        $html = $this->get(route('products.index'))->assertOk()->getContent();
+
+        preg_match('#<thead[^>]*>(.*?)</thead>#si', $html, $theadMatches);
+        preg_match('#<tbody[^>]*>(.*?)</tbody>#si', $html, $tbodyMatches);
+
+        $this->assertNotEmpty($theadMatches, 'Dokumen harus punya satu thead');
+        $this->assertNotEmpty($tbodyMatches, 'Dokumen harus punya satu tbody');
+
+        preg_match_all('#<th[^>]*>(.*?)</th>#si', $theadMatches[1], $headerCells);
+        $this->assertCount(6, $headerCells[1]);
+        $headers = array_map(fn ($raw) => trim(strip_tags($raw)), $headerCells[1]);
+        $this->assertSame('Kategori', $headers[3]);
+        $this->assertSame('Status', $headers[4]);
+
+        preg_match_all('#<tr[^>]*>(.*?)</tr>#si', $tbodyMatches[1], $rowMatches);
+        $this->assertGreaterThanOrEqual(2, count($rowMatches[1]));
+
+        $rows = [];
+        foreach ($rowMatches[1] as $rowHtml) {
+            preg_match_all('#<td[^>]*>(.*?)</td>#si', $rowHtml, $cellMatches);
+            if (count($cellMatches[1]) !== 6) {
+                continue;
+            }
+
+            $cells = array_map(fn ($raw) => trim(strip_tags(html_entity_decode($raw))), $cellMatches[1]);
+            $rows[$cells[1]] = $cells; // kolom 1 = Nama
+        }
+
+        $this->assertArrayHasKey('Produk Berkategori', $rows);
+        $this->assertArrayHasKey('Produk Tanpa Kategori', $rows);
+
+        $categorized = $rows['Produk Berkategori'];
+        $this->assertStringContainsString('Hosting Utama', $categorized[3], 'Kolom "Kategori" harus berisi nama kategori.');
+        $this->assertStringContainsString('2 varian', $categorized[3], 'Kolom "Kategori" harus berisi jumlah varian.');
+        $this->assertSame('Nonaktif', $categorized[4], 'Kolom "Status" harus berisi status produk.');
+
+        $plain = $rows['Produk Tanpa Kategori'];
+        $this->assertStringNotContainsString('Hosting Utama', $plain[3]);
+        $this->assertSame('Aktif', $plain[4]);
+        $this->assertStringNotContainsString('varian', $plain[3]);
+    }
+
     // ---------- varian: CRUD di form produk ----------
 
     public function test_edit_form_renders_existing_variants(): void
@@ -263,6 +321,59 @@ class ProductCategoryVariantTest extends TestCase
 
         $this->assertDatabaseHas('product_variants', ['id' => $variant->id]);
         $this->assertSame('Hosting SG Baru', $product->fresh()->name);
+    }
+
+    public function test_update_product_preserves_variant_sort_order_when_not_submitted(): void
+    {
+        $this->login();
+        $product = ProductFactory::new()->create(['name' => 'Hosting SG']);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id, 'name' => '1GB', 'sort_order' => 7,
+        ]);
+
+        // Form UI tidak mengirim sort_order; urutan lama harus tetap utuh.
+        $this->put(route('products.update', $product), [
+            'name' => 'Hosting SG',
+            'is_active' => '1',
+            'variants_sync' => '1',
+            'variants' => [
+                ['id' => $variant->id, 'name' => '1GB', 'sales_price' => 600000, 'is_active' => '1'],
+            ],
+        ])->assertRedirect(route('products.index'));
+
+        $this->assertDatabaseHas('product_variants', ['id' => $variant->id, 'sort_order' => 7]);
+    }
+
+    public function test_update_product_accepts_explicit_variant_sort_order(): void
+    {
+        $this->login();
+        $product = ProductFactory::new()->create(['name' => 'Hosting SG']);
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id, 'name' => '1GB', 'sort_order' => 7,
+        ]);
+
+        $this->put(route('products.update', $product), [
+            'name' => 'Hosting SG',
+            'is_active' => '1',
+            'variants_sync' => '1',
+            'variants' => [
+                ['id' => $variant->id, 'name' => '1GB', 'sort_order' => 3, 'sales_price' => 600000, 'is_active' => '1'],
+            ],
+        ])->assertRedirect(route('products.index'));
+
+        $this->assertDatabaseHas('product_variants', ['id' => $variant->id, 'sort_order' => 3]);
+    }
+
+    public function test_category_show_route_is_not_exposed(): void
+    {
+        $this->login();
+        $category = ProductCategoryFactory::new()->create(['name' => 'Hosting']);
+
+        // resource kategori tidak punya method show -> route tidak didaftarkan.
+        $this->assertFalse(Route::has('product-categories.show'));
+
+        // GET tunggal pada path-nya tidak lagi 500 (sebelumnya method show hilang tapi route terdaftar).
+        $this->get('/product-categories/'.$category->id)->assertStatus(405);
     }
 
     public function test_update_rejects_variant_from_other_product(): void
