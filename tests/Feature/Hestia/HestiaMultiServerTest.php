@@ -43,16 +43,16 @@ class HestiaMultiServerTest extends TestCase
     // 1. Migrasi & seeder
     // ============================================================
 
-    public function test_seeder_creates_three_inactive_servers_without_secrets(): void
+    public function test_seeder_creates_three_active_servers_with_netdata_but_no_secrets(): void
     {
         $this->seed(HestiaServerSeeder::class);
 
         $this->assertDatabaseCount('hestia_servers', 3);
-        $this->assertDatabaseHas('hestia_servers', ['code' => 'sg2', 'name' => 'sg2', 'is_active' => false]);
-        $this->assertDatabaseHas('hestia_servers', ['code' => 'yiari', 'name' => 'YIARI', 'is_active' => false]);
-        $this->assertDatabaseHas('hestia_servers', ['code' => 'pa-salatiga', 'name' => 'PA Salatiga', 'is_active' => false]);
+        $this->assertDatabaseHas('hestia_servers', ['code' => 'sg2', 'name' => 'sg2', 'is_active' => true, 'netdata_host' => '100.119.156.82', 'netdata_port' => 19999]);
+        $this->assertDatabaseHas('hestia_servers', ['code' => 'yiari', 'name' => 'YIARI', 'is_active' => true, 'netdata_host' => '100.114.35.33', 'netdata_port' => 19999]);
+        $this->assertDatabaseHas('hestia_servers', ['code' => 'pa-salatiga', 'name' => 'PA Salatiga', 'is_active' => true, 'netdata_host' => '100.97.142.93', 'netdata_port' => 19999]);
 
-        // Tidak ada kredensial yang dikarang di seeder.
+        // Tidak ada kredensial panel yang dikarang di seeder.
         foreach (HestiaServer::all() as $server) {
             $this->assertEmpty($server->credentialBag());
             $this->assertFalse($server->isConfigured());
