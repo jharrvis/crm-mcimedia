@@ -9,4 +9,5 @@ initProductPickers();
 
 // Chart.js untuk halaman monitoring (di-expose global agar bisa dipakai inline module script)
 import Chart from 'chart.js/auto';
+import 'chartjs-adapter-date-fns';
 window.Chart = Chart;
