@@ -20,6 +20,11 @@ Route::middleware('security.api')->prefix('security')->name('api.security.')->gr
         ->middleware('throttle:60,1')
         ->name('events');
 
+    // Webhook Uptime Kuma: DOWN/UP -> insiden CRM.
+    Route::post('uptime-events', [SecurityEventController::class, 'uptimeEvents'])
+        ->middleware('throttle:60,1')
+        ->name('uptime-events');
+
     // Health check untuk script monitoring.
     Route::get('status', [SecurityEventController::class, 'status'])
         ->middleware('throttle:120,1')
