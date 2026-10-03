@@ -142,6 +142,7 @@ return [
 
         // CC tetap saat laporan dikirim ke klien (F4-3). Kosong = tanpa CC.
         'report_cc_email' => env('CRM_SECURITY_REPORT_CC_EMAIL', 'info@mcimedia.net'),
+        'uptime_default_client_id' => env('SECURITY_UPTIME_DEFAULT_CLIENT_ID', null),
     ],
 
     /*

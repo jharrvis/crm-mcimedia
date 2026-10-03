@@ -5,9 +5,11 @@ namespace App\Domains\Security\Http\Controllers;
 use App\Domains\Security\Models\SecurityIncident;
 use App\Domains\Security\Models\SecurityReport;
 use App\Domains\Security\Services\SecurityEventIngest;
+use App\Domains\Security\Services\UptimeEventIngest;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * API monitoring keamanan (F3-3) — dipanggil script monitoring server klien.
@@ -38,6 +40,25 @@ class SecurityEventController extends Controller
             'duplicates' => $result['duplicates'],
             'errors' => $result['errors'],
         ]);
+    }
+
+    /**
+     * POST /api/security/uptime-events — webhook Uptime Kuma (DOWN/UP).
+     */
+    public function uptimeEvents(Request $request, UptimeEventIngest $ingest): JsonResponse
+    {
+        $validated = $request->validate([
+            'monitor_id' => ['required', 'string', 'max:191'],
+            'monitor_name' => ['required', 'string', 'max:255'],
+            'url' => ['required', 'string', 'max:500', 'url'],
+            'status' => ['required', Rule::in(['down', 'up'])],
+            'occurred_at' => ['nullable', 'date'],
+            'message' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $result = $ingest->handle($validated);
+
+        return response()->json($result);
     }
 
     /**
