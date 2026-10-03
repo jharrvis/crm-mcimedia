@@ -3,8 +3,16 @@
 
     $inputClass = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800';
 
-    // Produk aktif untuk picker baris item (F2-3). Boleh kosong bila belum ada katalog.
+    // Produk aktif untuk picker baris item (F2-3) — dirender server sebagai
+    // bootstrap JSON (termasuk varian aktifnya), query lebih lanjut via AJAX
+    // /products/picker/search. Boleh kosong bila belum ada katalog.
     $products = $products ?? collect();
+    // Kategori untuk modal tambah cepat; disuplai controller create/edit.
+    $categories = $categories ?? collect();
+    // Tombol "Tambahkan ... ke stok" hanya bila user punya izin manage modul
+    // products — sama dengan resolveAction() middleware permission (POST → manage).
+    // Server tetap menolak via middleware; ini sekadar menyembunyikan opsi.
+    $canCreateProducts = auth()->user()?->hasPermission('products', 'manage') ?? false;
 
     /** @var Invoice|null $invoice */
     $existingItems = isset($invoice) && $invoice
@@ -30,7 +38,7 @@
     }
 @endphp
 
-<div class="grid gap-4 sm:grid-cols-2">
+<div class="grid gap-4 sm:grid-cols-2" data-can-create-products="{{ $canCreateProducts ? '1' : '0' }}">
     <div>
         <label class="mb-1 block text-sm font-medium">Klien <span class="text-red-600">*</span></label>
         <select name="client_id" id="invoice-client" required class="{{ $inputClass }}">
@@ -90,6 +98,12 @@
     </div>
 </div>
 
+{{-- Bootstrap picker produk: JSON tersimpan di <script type="application/json">
+     agar < dan > dalam nama produk tidak membobol markup. Hex-escape < agar
+     `</script>` di data tidak menutup tag lebih awal. --}}
+<script type="application/json" id="picker-bootstrap">@json($products, JSON_HEX_TAG)</script>
+<script type="application/json" id="picker-categories">@json($categories, JSON_HEX_TAG)</script>
+
 <!-- Item invoice (dinamis) -->
 <div class="mt-6">
     <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -118,7 +132,7 @@
         <table class="w-full text-sm" id="items-table">
             <thead>
                 <tr class="bg-slate-50 text-left text-xs uppercase text-slate-500 dark:bg-slate-800">
-                    <th class="w-56 px-3 py-2">Produk</th>
+                    <th class="w-56 px-3 py-2">Produk <span class="font-normal normal-case text-[10px]">— ketik buku & produk</span></th>
                     <th class="px-3 py-2">Deskripsi</th>
                     <th class="w-24 px-3 py-2">Qty</th>
                     <th class="w-40 px-3 py-2">Harga satuan (IDR)</th>
@@ -130,12 +144,11 @@
                 @foreach ($itemRows as $row)
                     <tr class="item-row border-t border-slate-100 dark:border-slate-800">
                         <td class="px-3 py-2">
-                            <select data-role="product" class="{{ $inputClass }}" title="Pilih produk untuk mengisi deskripsi & harga otomatis">
-                                <option value="">— Pilih produk —</option>
-                                @foreach ($products as $p)
-                                    <option value="{{ $p->id }}" data-name="{{ $p->name }}" data-price="{{ $p->sales_price }}">{{ $p->name }} — {{ rupiah($p->sales_price) }}</option>
-                                @endforeach
-                            </select>
+                            <div data-role="product-search-box" class="relative">
+                                <input type="text" data-role="product-search" autocomplete="off" spellcheck="false" placeholder="Cari nama atau SKU…" class="{{ $inputClass }} pr-8" title="Ketik nama/SKU produk, pilih dari saran, lalu pilih varian bila ada — deskripsi & harga satuan auto-terisi">
+                                <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">&#9660;</span>
+                            </div>
+                            <div data-role="variant-select-box" class="mt-1.5" hidden></div>
                         </td>
                         <td class="px-3 py-2">
                             <input name="items[{{ $loop->index }}][description]" value="{{ $row['description'] ?? '' }}" placeholder="Deskripsi item…" class="{{ $inputClass }}" data-role="description">
@@ -167,12 +180,11 @@
 <template id="item-row-template">
     <tr class="item-row border-t border-slate-100 dark:border-slate-800">
         <td class="px-3 py-2">
-            <select data-role="product" class="{{ $inputClass }}" title="Pilih produk untuk mengisi deskripsi & harga otomatis">
-                <option value="">— Pilih produk —</option>
-                @foreach ($products as $p)
-                    <option value="{{ $p->id }}" data-name="{{ $p->name }}" data-price="{{ $p->sales_price }}">{{ $p->name }} — {{ rupiah($p->sales_price) }}</option>
-                @endforeach
-            </select>
+            <div data-role="product-search-box" class="relative">
+                <input type="text" data-role="product-search" autocomplete="off" spellcheck="false" placeholder="Cari nama atau SKU…" class="{{ $inputClass }} pr-8" title="Ketik nama/SKU produk, pilih dari saran, lalu pilih varian bila ada — deskripsi & harga satuan auto-terisi">
+                <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">&#9660;</span>
+            </div>
+            <div data-role="variant-select-box" class="mt-1.5" hidden></div>
         </td>
         <td class="px-3 py-2">
             <input name="__NAME__[description]" placeholder="Deskripsi item…" class="{{ $inputClass }}" data-role="description">
@@ -238,18 +250,9 @@
 
         body.addEventListener('input', recalc);
 
-        // Picker produk: saat produk dipilih, isi deskripsi + harga satuan baris itu.
-        // Admin tetap bisa mengubah manual setelahnya. product_id TIDAK dikirim ke server.
-        body.addEventListener('change', (e) => {
-            const select = e.target.closest('[data-role=product]');
-            if (! select || ! select.value) return;
-
-            const row = select.closest('tr.item-row');
-            const opt = select.selectedOptions[0];
-            row.querySelector('[data-role=description]').value = opt.dataset.name;
-            row.querySelector('[data-role=unit_price]').value = opt.dataset.price;
-            recalc();
-        });
+        // Picker produk (live search + varian) ditangani di resources/js/product-picker.js.
+        // Admin tetap bisa mengubah deskripsi & harga manual setelahnya.
+        // product_id TIDAK dikirim ke server (snapshot nama + harga saja).
 
         // Sembunyikan layanan yang bukan milik klien terpilih dan lepas centangnya,
         // supaya tidak ada service_ids milik klien lain yang ikut terkirim.
@@ -320,3 +323,37 @@
         recalc();
     })();
 </script>
+
+{{-- Dialog tambah cepat produk (AJAX ke products/picker/quick-create).
+     <dialog> native: Esc/overlay ditangani browser. --}}
+<dialog id="picker-quick-create" data-quick-create-form
+        class="w-[92vw] max-w-md rounded-xl border border-slate-200 bg-white p-0 backdrop:bg-slate-900/50 dark:border-slate-700 dark:bg-slate-900">
+    <form method="dialog" data-quick-layer class="p-5 space-y-4" onsubmit="return false;">
+        <div>
+            <h3 class="text-base font-semibold">Tambah Produk ke Stok</h3>
+            <p class="mt-1 text-xs text-slate-500">Produk baru langsung tersedia di picker invoice.</p>
+        </div>
+        <div>
+            <label class="mb-1 block text-sm font-medium">Nama Produk <span class="text-red-600">*</span></label>
+            <input type="text" data-quick-name required maxlength="255" class="{{ $inputClass }}" placeholder="mis. Hosting 5GB (SG)">
+        </div>
+        <div>
+            <label class="mb-1 block text-sm font-medium">Harga Jual (IDR)</label>
+            <input type="number" data-quick-price min="0" step="1" value="0" class="{{ $inputClass }}">
+        </div>
+        <div>
+            <label class="mb-1 block text-sm font-medium">Kategori</label>
+            <select data-quick-category class="{{ $inputClass }}">
+                <option value="">— Tanpa kategori —</option>
+                @foreach ($categories as $cat)
+                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <p data-quick-error class="hidden text-xs text-red-600"></p>
+        <div class="flex justify-end gap-2 pt-1">
+            <button type="button" data-role="quick-cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
+            <button type="button" data-role="quick-confirm" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan Produk</button>
+        </div>
+    </form>
+</dialog>

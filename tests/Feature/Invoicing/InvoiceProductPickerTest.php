@@ -33,12 +33,13 @@ class InvoiceProductPickerTest extends TestCase
             'is_active' => true,
         ]);
 
+        // Payload bootstrap sekarang JSON server-rendered (#picker-bootstrap),
+        // bukan <option data-price>: nama produk + harga jual ter-encode di JSON.
         $this->get(route('invoices.create'))
             ->assertOk()
-            ->assertSee('Hosting 1GB (SG)')
-            ->assertSee('data-price="1100000"', false)
-            ->assertSee('data-name="Hosting 1GB (SG)"', false)
-            ->assertSee(rupiah($product->sales_price));
+            ->assertSee('"name":"Hosting 1GB (SG)"', false)
+            ->assertSee('"sales_price":1100000', false)
+            ->assertSee('SKU0012');
     }
 
     public function test_form_hides_inactive_products(): void

@@ -3,6 +3,7 @@
 namespace App\Domains\Invoicing\Http\Controllers;
 
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Catalog\Models\ProductCategory;
 use App\Domains\Clients\Models\Client;
 use App\Domains\Core\Models\ActivityLog;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
@@ -57,7 +58,11 @@ class InvoiceController extends Controller
         return view('invoices.create', [
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'services' => Service::orderBy('name')->get(['id', 'client_id', 'name', 'price']),
-            'products' => Product::active()->get(['id', 'name', 'sales_price']),
+            // Bootstrap katalog untuk picker UX-2 (server-rendered agar tes
+            // lama tetap terbaca): produk aktif beserta varian aktifnya.
+            'products' => Product::active()->with(['variants' => fn ($v) => $v->active()->orderBy('sort_order')])
+                ->get(['id', 'sku', 'name', 'sales_price', 'category_id']),
+            'categories' => ProductCategory::orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -66,7 +71,8 @@ class InvoiceController extends Controller
         $data = $request->validated();
         $items = $data['items'];
         $serviceIds = $request->serviceIds();
-        unset($data['items'], $data['service_ids']);
+        $saveAction = $request->saveAction();
+        unset($data['items'], $data['service_ids'], $data['save_action']);
 
         $invoice = DB::transaction(function () use ($data, $items, $serviceIds) {
             $invoice = Invoice::create([
@@ -91,6 +97,18 @@ class InvoiceController extends Controller
 
             return $invoice;
         });
+
+        if ($saveAction === 'confirm') {
+            $invoice->markSent();
+
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', "Invoice {$invoice->number} disimpan dan ditandai terkirim.");
+        }
+
+        if ($saveAction === 'send') {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', "Invoice {$invoice->number} disimpan sebagai draf. Pilih Kirim Email / WhatsApp untuk mengirim ke klien.");
+        }
 
         return redirect()->route('invoices.show', $invoice)
             ->with('success', "Invoice {$invoice->number} berhasil dibuat.");
@@ -133,7 +151,9 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'services' => Service::orderBy('name')->get(['id', 'client_id', 'name', 'price']),
-            'products' => Product::active()->get(['id', 'name', 'sales_price']),
+            'products' => Product::active()->with(['variants' => fn ($v) => $v->active()->orderBy('sort_order')])
+                ->get(['id', 'sku', 'name', 'sales_price', 'category_id']),
+            'categories' => ProductCategory::orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -155,7 +175,8 @@ class InvoiceController extends Controller
         $data = $request->validated();
         $items = $data['items'];
         $serviceIds = $request->serviceIds();
-        unset($data['items'], $data['service_ids']);
+        $saveAction = $request->saveAction();
+        unset($data['items'], $data['service_ids'], $data['save_action']);
 
         DB::transaction(function () use ($invoice, $data, $items, $serviceIds) {
             $invoice->update($data);
@@ -174,6 +195,18 @@ class InvoiceController extends Controller
 
             $invoice->recalculateTotals();
         });
+
+        if ($saveAction === 'confirm') {
+            $invoice->markSent();
+
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', "Invoice {$invoice->number} disimpan dan ditandai terkirim.");
+        }
+
+        if ($saveAction === 'send') {
+            return redirect()->route('invoices.show', $invoice)
+                ->with('success', "Invoice {$invoice->number} disimpan sebagai draf. Pilih Kirim Email / WhatsApp untuk mengirim ke klien.");
+        }
 
         return redirect()->route('invoices.show', $invoice)
             ->with('success', "Invoice {$invoice->number} berhasil diperbarui.");
