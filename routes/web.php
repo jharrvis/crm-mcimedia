@@ -2,6 +2,7 @@
 
 use App\Domains\Access\Http\Controllers\RoleController;
 use App\Domains\Access\Http\Controllers\UserController;
+use App\Domains\Catalog\Http\Controllers\ProductCategoryController;
 use App\Domains\Catalog\Http\Controllers\ProductController;
 use App\Domains\Clients\Http\Controllers\ClientContactController;
 use App\Domains\Clients\Http\Controllers\ClientController;
@@ -185,6 +186,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('products/{product}/toggle', [ProductController::class, 'toggle'])
         ->middleware('permission:products')->name('products.toggle');
     Route::resource('products', ProductController::class)->middleware('permission:products');
+
+    // Kategori produk (UX-1): CRUD via UI, dipakai untuk grup/filter katalog.
+    Route::resource('product-categories', ProductCategoryController::class)->middleware('permission:products');
 
     Route::get('profile/password', [ProfileController::class, 'edit'])->name('profile.password.edit');
     Route::put('profile/password', [ProfileController::class, 'update'])->name('profile.password.update');

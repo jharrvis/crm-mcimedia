@@ -7,7 +7,7 @@
     <form method="POST" action="{{ route('products.update', $product) }}" class="space-y-4">
         @csrf
         @method('PUT')
-        @include('products._form', ['product' => $product])
+        @include('products._form', ['product' => $product, 'categories' => $categories ?? collect()])
         <div class="flex gap-2 pt-2">
             <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan perubahan</button>
             <a href="{{ route('products.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Batal</a>
