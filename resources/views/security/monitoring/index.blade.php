@@ -82,7 +82,7 @@
 
 @push('scripts')
 <script type="module">
-import Chart from 'chart.js/auto';
+// Chart tersedia global dari app.js (bundled via Vite)
 
 // Konfigurasi default Chart.js
 Chart.defaults.font.family = 'inherit';

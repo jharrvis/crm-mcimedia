@@ -6,3 +6,7 @@ import { initProductPickers } from './product-picker';
 // picker produk lewat data-picker-bound per input baris item.
 initDueDatePickers();
 initProductPickers();
+
+// Chart.js untuk halaman monitoring (di-expose global agar bisa dipakai inline module script)
+import Chart from 'chart.js/auto';
+window.Chart = Chart;

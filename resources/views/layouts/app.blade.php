@@ -143,5 +143,6 @@
         try { localStorage.theme = dark ? 'dark' : 'light'; } catch (e) {}
     });
 </script>
+    @stack('scripts')
 </body>
 </html>
