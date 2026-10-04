@@ -3,6 +3,7 @@
 namespace App\Domains\Security\Services;
 
 use App\Domains\Security\Models\SecurityIncident;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -10,6 +11,10 @@ use Illuminate\Support\Str;
 /**
  * Layanan pembuatan kartu kanban otomatis untuk insiden P1.
  * Menulis langsung ke database kanban board mci-team.
+ *
+ * Catatan keamanan (t_db983e91): path board dibaca dari
+ * config('crm.security.kanban_board_path') dan saat APP_ENV=testing
+ * ditulis ke sandbox, tidak pernah ke board production.
  */
 class IncidentKanbanCardCreator
 {
@@ -18,11 +23,71 @@ class IncidentKanbanCardCreator
 
     public function __construct()
     {
-        $this->kanbanDbPath = base_path('../../.hermes/kanban/boards/mci-team/kanban.db');
-        // Fallback jika path berbeda
-        if (! file_exists($this->kanbanDbPath)) {
-            $this->kanbanDbPath = '/home/ubuntu/.hermes/kanban/boards/mci-team/kanban.db';
+        $this->kanbanDbPath = $this->resolveDbPath();
+    }
+
+    /**
+     * Resolve path board: sandbox saat testing, production sebaliknya.
+     *
+     * Sandbox dibuat dengan skema yang sama agar tes bisa menulis kartu
+     * tanpa menyentuh board production.
+     */
+    private function resolveDbPath(): string
+    {
+        $productionPath = config('crm.security.kanban_board_path')
+            ?: base_path('../../.hermes/kanban/boards/mci-team/kanban.db');
+
+        // Jangan pernah pakai board production saat testing.
+        if ($this->isTestEnvironment()) {
+            $sandboxPath = config('crm.security.kanban_sandbox_path');
+            if ($sandboxPath && $sandboxPath !== $productionPath) {
+                $this->ensureSandbox($sandboxPath);
+                return $sandboxPath;
+            }
         }
+
+        // Fallback lama untuk deployment yang path-nya berbeda.
+        if (! file_exists($productionPath)) {
+            $fallback = '/home/ubuntu/.hermes/kanban/boards/mci-team/kanban.db';
+            return file_exists($fallback) ? $fallback : $productionPath;
+        }
+
+        return $productionPath;
+    }
+
+    private function isTestEnvironment(): bool
+    {
+        return App::environment('testing') || app()->runningUnitTests();
+    }
+
+    /**
+     * Pastikan file sandbox + skema ada. Idempoten.
+     */
+    private function ensureSandbox(string $path): void
+    {
+        if (file_exists($path)) {
+            return;
+        }
+
+        @mkdir(dirname($path), 0o755, true);
+
+        $db = new \SQLite3($path);
+        $db->enableExceptions(true);
+        $db->exec('CREATE TABLE IF NOT EXISTS tasks (
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            body TEXT,
+            assignee TEXT,
+            status TEXT,
+            priority INTEGER,
+            created_by TEXT,
+            created_at INTEGER,
+            workspace_kind TEXT,
+            workspace_path TEXT,
+            tenant TEXT,
+            completion_contract TEXT
+        )');
+        $db->close();
     }
 
     /**
@@ -30,6 +95,17 @@ class IncidentKanbanCardCreator
      */
     public function createForP1Incident(SecurityIncident $incident): ?string
     {
+        // Idempotency guard: jangan buat kartu ganda untuk insiden yang sama.
+        $existing = $this->findOpenCardForIncident($incident->id);
+        if ($existing !== null) {
+            Log::info('Kartu kanban untuk insiden ini sudah ada, dilewati.', [
+                'incident_id' => $incident->id,
+                'kanban_card_id' => $existing,
+                'board' => $this->boardSlug,
+            ]);
+            return $existing;
+        }
+
         if (! file_exists($this->kanbanDbPath)) {
             Log::warning('Database kanban tidak ditemukan, kartu tidak dibuat.', [
                 'incident_id' => $incident->id,
@@ -85,6 +161,43 @@ class IncidentKanbanCardCreator
                 'incident_id' => $incident->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+            ]);
+            return null;
+        }
+    }
+
+    /**
+     * Cek apakah sudah ada kartu open untuk incident_id ini (idempotency).
+     *
+     * Mencegah kartu ganda saat re-open insiden atau retry webhook.
+     */
+    private function findOpenCardForIncident(int $incidentId): ?string
+    {
+        if (! file_exists($this->kanbanDbPath)) {
+            return null;
+        }
+
+        try {
+            $db = new \SQLite3($this->kanbanDbPath);
+            $db->enableExceptions(true);
+
+            $stmt = $db->prepare('SELECT id FROM tasks
+                WHERE body LIKE :pattern
+                AND status IN (\'todo\', \'ready\', \'running\', \'blocked\')
+                ORDER BY created_at DESC LIMIT 1');
+            // Format body: "**Insiden CRM:** #<id>\n" — newline akhir mencegah
+            // #1 cocok dengan #10, #11, dst.
+            $stmt->bindValue(':pattern', "%Insiden CRM:** #{$incidentId}\n%", SQLITE3_TEXT);
+            $result = $stmt->execute();
+            $id = $result->fetchArray(SQLITE3_ASSOC)['id'] ?? null;
+            $db->close();
+
+            return $id;
+        } catch (\Throwable $e) {
+            // Sandbox belum punya skema atau DB tidak bisa dibaca: anggap belum ada.
+            Log::warning('Gagal mengecek kartu kanban yang ada, lanjut membuat baru.', [
+                'incident_id' => $incidentId,
+                'error' => $e->getMessage(),
             ]);
             return null;
         }
