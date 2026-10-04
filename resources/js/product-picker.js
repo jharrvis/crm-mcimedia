@@ -127,9 +127,10 @@ function buildDropdown({ query, canCreate, matches }) {
  */
 function positionDropdown(dropdown, input) {
     const rect = input.getBoundingClientRect();
-    // Align left with input, place just below it with a small gap.
-    dropdown.style.left = rect.left + window.scrollX + 'px';
-    dropdown.style.top = rect.bottom + window.scrollY + 4 + 'px';
+    // fixed = viewport-relative: JANGAN tambah scrollX/scrollY
+    // (itu hanya untuk absolute). Menambahkannya melempar dropdown keluar layar.
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.top = rect.bottom + 4 + 'px';
     dropdown.style.width = rect.width + 'px';
 }
 
