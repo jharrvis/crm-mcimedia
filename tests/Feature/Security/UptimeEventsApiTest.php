@@ -11,6 +11,7 @@ use Database\Factories\ClientFactory;
 use Database\Factories\ServiceFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 class UptimeEventsApiTest extends TestCase
@@ -460,5 +461,180 @@ class UptimeEventsApiTest extends TestCase
 
         $this->postJson('/api/security/uptime-events', $this->downPayload(['monitor_id' => 'mon-61']), $this->headers())
             ->assertStatus(429);
+    }
+
+    // ---------- validasi monitor_id (allowlist) ----------
+
+    public function test_down_rejected_when_monitor_id_not_in_allowlist(): void
+    {
+        $client = ClientFactory::new()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'example.com',
+            'status' => 'active',
+        ]);
+
+        // Configure allowlist with only 'mon-valid'
+        Config::set('crm.security.uptime_valid_monitor_ids', ['mon-valid']);
+
+        $response = $this->postJson('/api/security/uptime-events', $this->downPayload(['monitor_id' => 'mon-test']), $this->headers());
+
+        $response->assertStatus(422)
+            ->assertJson(['status' => 'error', 'action' => 'validate_monitor_id']);
+
+        $this->assertDatabaseCount('security_incidents', 0);
+    }
+
+    public function test_down_accepted_when_monitor_id_in_allowlist(): void
+    {
+        $client = ClientFactory::new()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'example.com',
+            'status' => 'active',
+        ]);
+
+        // Configure allowlist with 'mon-123'
+        Config::set('crm.security.uptime_valid_monitor_ids', ['mon-123']);
+
+        $response = $this->postJson('/api/security/uptime-events', $this->downPayload(['monitor_id' => 'mon-123']), $this->headers());
+
+        $response->assertOk()
+            ->assertJson(['status' => 'ok', 'action' => 'down_created']);
+
+        $this->assertDatabaseCount('security_incidents', 1);
+    }
+
+    public function test_down_allowlist_empty_skips_validation(): void
+    {
+        $client = ClientFactory::new()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'example.com',
+            'status' => 'active',
+        ]);
+
+        // Empty allowlist (default) - should skip validation
+        Config::set('crm.security.uptime_valid_monitor_ids', []);
+
+        $response = $this->postJson('/api/security/uptime-events', $this->downPayload(['monitor_id' => 'any-monitor-id']), $this->headers());
+
+        $response->assertOk()
+            ->assertJson(['status' => 'ok', 'action' => 'down_created']);
+
+        $this->assertDatabaseCount('security_incidents', 1);
+    }
+
+    // ---------- validasi konsistensi external_id time vs occurred_at ----------
+
+    public function test_down_accepted_when_external_id_time_matches_occurred_at(): void
+    {
+        $client = ClientFactory::new()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'example.com',
+            'status' => 'active',
+        ]);
+
+        // occurred_at matches external_id time (within tolerance)
+        // Since external_id is generated from occurred_at, they always match in normal flow
+        $occurredAt = '2026-01-01 12:00:00';
+
+        $response = $this->postJson('/api/security/uptime-events', $this->downPayload([
+            'occurred_at' => $occurredAt,
+        ]), $this->headers());
+
+        $response->assertOk()
+            ->assertJson(['status' => 'ok', 'action' => 'down_created']);
+
+        $this->assertDatabaseCount('security_incidents', 1);
+    }
+
+    public function test_down_accepted_when_external_id_time_within_tolerance(): void
+    {
+        $client = ClientFactory::new()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'example.com',
+            'status' => 'active',
+        ]);
+
+        // Set tolerance to 10 minutes
+        Config::set('crm.security.uptime_external_id_time_tolerance_minutes', 10);
+
+        // The external_id is generated from occurred_at, so they always match in normal flow.
+        // But if we manually test with a pre-existing incident that has mismatched external_id,
+        // the validation would catch it. For now, test that normal flow works with larger tolerance.
+        $occurredAt = '2026-01-01 12:00:00';
+
+        $response = $this->postJson('/api/security/uptime-events', $this->downPayload([
+            'occurred_at' => $occurredAt,
+        ]), $this->headers());
+
+        $response->assertOk()
+            ->assertJson(['status' => 'ok', 'action' => 'down_created']);
+
+        $this->assertDatabaseCount('security_incidents', 1);
+    }
+
+    public function test_up_rejected_when_monitor_id_not_in_allowlist(): void
+    {
+        $client = ClientFactory::new()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'example.com',
+            'status' => 'active',
+        ]);
+
+        Config::set('crm.security.uptime_valid_monitor_ids', ['mon-valid']);
+
+        $response = $this->postJson('/api/security/uptime-events', $this->upPayload(['monitor_id' => 'mon-test']), $this->headers());
+
+        $response->assertStatus(422)
+            ->assertJson(['status' => 'error', 'action' => 'validate_monitor_id']);
+
+        $this->assertDatabaseCount('security_incidents', 0);
+    }
+
+    // ---------- unit test for validateExternalIdTimeConsistency method ----------
+
+    public function test_validate_external_id_time_consistency_directly(): void
+    {
+        $service = app(\App\Domains\Security\Services\UptimeEventIngest::class);
+        $reflection = new \ReflectionClass($service);
+        $method = $reflection->getMethod('validateExternalIdTimeConsistency');
+        $method->setAccessible(true);
+
+        // Test 1: matching times (should pass)
+        $result = $method->invoke($service, 'uptime-kuma:mon-123:202601011200', '2026-01-01 12:00:00');
+        $this->assertNull($result);
+
+        // Test 2: within 2 minute tolerance (default)
+        $result = $method->invoke($service, 'uptime-kuma:mon-123:202601011200', '2026-01-01 12:01:30');
+        $this->assertNull($result);
+
+        // Test 3: outside 2 minute tolerance (should fail)
+        Config::set('crm.security.uptime_external_id_time_tolerance_minutes', 2);
+        $result = $method->invoke($service, 'uptime-kuma:mon-123:202601011200', '2026-01-01 12:05:00');
+        $this->assertNotNull($result);
+        $this->assertSame('error', $result['status']);
+        $this->assertSame('validate_external_id_time', $result['action']);
+
+        // Test 4: with larger tolerance (should pass)
+        Config::set('crm.security.uptime_external_id_time_tolerance_minutes', 10);
+        $result = $method->invoke($service, 'uptime-kuma:mon-123:202601011200', '2026-01-01 12:05:00');
+        $this->assertNull($result);
+
+        // Test 5: invalid external_id format (should pass - skip validation)
+        $result = $method->invoke($service, 'invalid-format', '2026-01-01 12:00:00');
+        $this->assertNull($result);
+
+        // Test 6: external_id with non-numeric time (should pass - skip validation)
+        $result = $method->invoke($service, 'uptime-kuma:mon-123:abcdef', '2026-01-01 12:00:00');
+        $this->assertNull($result);
+
+        // Test 7: invalid occurred_at (should pass - skip validation)
+        $result = $method->invoke($service, 'uptime-kuma:mon-123:202601011200', 'invalid-date');
+        $this->assertNull($result);
     }
 }

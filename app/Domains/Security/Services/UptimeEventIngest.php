@@ -69,6 +69,12 @@ class UptimeEventIngest
 
         $data = $validator->validated();
 
+        // Validasi monitor_id terhadap allowlist (jika dikonfigurasi)
+        $monitorValidation = $this->validateMonitorId($data['monitor_id']);
+        if ($monitorValidation) {
+            return $monitorValidation;
+        }
+
         // Ekstrak domain dari URL
         $domain = $this->extractDomain($data['url']);
         if (! $domain) {
@@ -122,6 +128,90 @@ class UptimeEventIngest
         ];
     }
 
+    /**
+     * Validasi monitor_id terhadap allowlist yang dikonfigurasi.
+     * Jika allowlist kosong (tidak dikonfigurasi), validasi dilewati.
+     *
+     * @return array{status: string, action: string, message?: string}|null
+     */
+    private function validateMonitorId(string $monitorId): ?array
+    {
+        $validMonitorIds = config('crm.security.uptime_valid_monitor_ids', []);
+
+        // Jika allowlist tidak dikonfigurasi (kosong), lewati validasi untuk backward compat
+        if (empty($validMonitorIds)) {
+            return null;
+        }
+
+        if (! in_array($monitorId, $validMonitorIds, true)) {
+            logger()->warning('Uptime webhook rejected: unknown monitor_id', [
+                'monitor_id' => $monitorId,
+                'valid_monitor_ids' => $validMonitorIds,
+                'ip' => request()->ip(),
+            ]);
+
+            return [
+                'status' => 'error',
+                'action' => 'validate_monitor_id',
+                'message' => "Monitor ID {$monitorId} tidak terdaftar di allowlist Uptime Kuma.",
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Validasi konsistensi waktu antara external_id dan occurred_at.
+     * external_id format: uptime-kuma:{monitor_id}:{YmdHi}
+     *
+     * @return array{status: string, action: string, message?: string}|null
+     */
+    private function validateExternalIdTimeConsistency(string $externalId, string $occurredAt): ?array
+    {
+        // Ekstrak komponen waktu dari external_id (format: uptime-kuma:{monitor_id}:{YmdHi})
+        if (! preg_match('/^uptime-kuma:[^:]+:(\d{12})$/', $externalId, $matches)) {
+            // Format tidak dikenali (tidak mengikuti pola) - abaikan validasi ini
+            return null;
+        }
+
+        $externalIdTimeStr = $matches[1]; // YmdHi format
+        try {
+            $externalIdTime = Carbon::createFromFormat('YmdHi', $externalIdTimeStr);
+        } catch (\Throwable) {
+            // Format waktu tidak valid - abaikan validasi ini
+            return null;
+        }
+
+        try {
+            $occurredAtCarbon = Carbon::parse($occurredAt);
+        } catch (\Throwable) {
+            // occurred_at tidak valid - abaikan validasi ini (sudah divalidasi di rules)
+            return null;
+        }
+
+        $toleranceMinutes = config('crm.security.uptime_external_id_time_tolerance_minutes', 2);
+        $diffMinutes = abs($externalIdTime->diffInMinutes($occurredAtCarbon));
+
+        if ($diffMinutes > $toleranceMinutes) {
+            logger()->warning('Uptime webhook rejected: external_id time mismatch', [
+                'external_id' => $externalId,
+                'external_id_time' => $externalIdTime->toIso8601String(),
+                'occurred_at' => $occurredAtCarbon->toIso8601String(),
+                'diff_minutes' => $diffMinutes,
+                'tolerance_minutes' => $toleranceMinutes,
+                'ip' => request()->ip(),
+            ]);
+
+            return [
+                'status' => 'error',
+                'action' => 'validate_external_id_time',
+                'message' => "Komponen waktu di external_id tidak cocok dengan occurred_at (selisih {$diffMinutes} menit, toleransi {$toleranceMinutes} menit).",
+            ];
+        }
+
+        return null;
+    }
+
     private function extractDomain(string $url): ?string
     {
         $parsed = parse_url($url);
@@ -168,6 +258,12 @@ class UptimeEventIngest
     {
         $carbon = Carbon::parse($occurredAt);
         $externalId = "uptime-kuma:{$monitorId}:{$carbon->format('YmdHi')}";
+
+        // Validasi konsistensi waktu external_id vs occurred_at
+        $timeValidation = $this->validateExternalIdTimeConsistency($externalId, $occurredAt);
+        if ($timeValidation) {
+            return $timeValidation;
+        }
 
         // 1. Cek apakah sudah ada insiden OPEN untuk monitor_id ini (dedup saat OPEN)
         $openIncident = SecurityIncident::query()

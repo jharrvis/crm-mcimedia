@@ -147,6 +147,27 @@ return [
 
         /*
         |----------------------------------------------------------------------
+        | Allowlist monitor ID Uptime Kuma yang valid untuk webhook /api/security/uptime-events
+        |----------------------------------------------------------------------
+        |
+        | Hanya monitor_id yang terdaftar di sini yang boleh membuat insiden P1 via webhook.
+        | Format: array string monitor_id, mis. ['mon-1', 'mon-2', ...].
+        | Bisa diisi via ENV: SECURITY_UPTIME_VALID_MONITOR_IDS='["mon-1","mon-2"]' (JSON array).
+        | Jika kosong/NULL: validasi dilewati (backward compat, tidak direkomendasikan untuk production).
+        |
+        */
+        'uptime_valid_monitor_ids' => json_decode(env('SECURITY_UPTIME_VALID_MONITOR_IDS', '[]'), true) ?: [],
+
+        /*
+        |----------------------------------------------------------------------
+        | Toleransi (menit) perbedaan waktu antara komponen waktu di external_id
+        | (format uptime-kuma:{monitor_id}:{YmdHi}) dan field occurred_at webhook.
+        |----------------------------------------------------------------------
+        */
+        'uptime_external_id_time_tolerance_minutes' => env('SECURITY_UPTIME_EXTERNAL_ID_TOLERANCE_MINUTES', 2),
+
+        /*
+        |----------------------------------------------------------------------
         | Board kanban eksternal untuk insiden P1 (t_db983e91)
         |----------------------------------------------------------------------
         |

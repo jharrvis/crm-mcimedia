@@ -12,6 +12,7 @@
     <a href="{{ route('security.incidents.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Insiden</a>
     <a href="{{ route('security.actions.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Jurnal tindakan</a>
     <a href="{{ route('security.reports.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Laporan</a>
+    <a href="{{ route('security.monitoring.dashboard') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Monitoring Dashboard</a>
     <a href="{{ route('security.incidents.create') }}" class="ml-auto rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Catat insiden</a>
 </div>
 
