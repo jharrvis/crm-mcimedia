@@ -24,6 +24,7 @@ use App\Domains\Security\Http\Controllers\MonitoringServerController;
 use App\Domains\Security\Http\Controllers\SecurityActionController;
 use App\Domains\Security\Http\Controllers\SecurityDashboardController;
 use App\Domains\Security\Http\Controllers\SecurityIncidentController;
+use App\Domains\Security\Http\Controllers\SecurityMonitoringController;
 use App\Domains\Security\Http\Controllers\SecurityPortalController;
 use App\Domains\Security\Http\Controllers\SecurityReportController;
 use App\Domains\Services\Http\Controllers\ReminderController;
@@ -212,6 +213,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [MonitoringServerController::class, 'index'])->name('index');
             Route::get('metrics', [MonitoringServerController::class, 'metrics'])->name('metrics');
             Route::get('health', [MonitoringServerController::class, 'health'])->name('health');
+
+            // Security Monitoring Dashboard (F3-3): ringkasan status, grafik traffic, log serangan, status layanan
+            Route::get('dashboard', [SecurityMonitoringController::class, 'index'])->name('dashboard');
+            Route::get('dashboard/summary', [SecurityMonitoringController::class, 'summary'])->name('dashboard.summary');
+            Route::get('dashboard/traffic', [SecurityMonitoringController::class, 'traffic'])->name('dashboard.traffic');
+            Route::get('dashboard/attacks', [SecurityMonitoringController::class, 'attacks'])->name('dashboard.attacks');
+            Route::get('dashboard/services', [SecurityMonitoringController::class, 'services'])->name('dashboard.services');
         });
 
         Route::patch('reports/{report}/send', [SecurityReportController::class, 'send'])->name('reports.send');

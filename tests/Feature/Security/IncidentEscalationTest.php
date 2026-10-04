@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Mockery;
 use Tests\TestCase;
 
 class IncidentEscalationTest extends TestCase
@@ -22,10 +23,17 @@ class IncidentEscalationTest extends TestCase
     use RefreshDatabase;
 
     private const TOKEN = 'test-security-token-123';
+    private \Mockery\MockInterface $kanbanCardCreatorMock;
 
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Mock IncidentKanbanCardCreator to prevent ANY database writes during tests
+        $this->kanbanCardCreatorMock = Mockery::mock(IncidentKanbanCardCreator::class);
+        $this->kanbanCardCreatorMock->shouldReceive('createForP1Incident')
+            ->andReturn('mock-card-id');
+        $this->app->instance(IncidentKanbanCardCreator::class, $this->kanbanCardCreatorMock);
 
         Config::set([
             'crm.security.api_enabled' => true,
@@ -43,6 +51,12 @@ class IncidentEscalationTest extends TestCase
         Http::fake([
             'https://api.fonnte.com/send' => Http::response(['status' => 'success'], 200),
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     /** @return array<string, string> */
@@ -291,15 +305,11 @@ class IncidentEscalationTest extends TestCase
 
         $incident = SecurityIncident::firstOrFail();
 
-        // Verify kanban card was created (check database)
-        // Since we can't easily test the external kanban DB in unit tests,
-        // we verify the service is called without error
-        $creator = app(IncidentKanbanCardCreator::class);
-        $cardId = $creator->createForP1Incident($incident);
-
-        // In test environment, kanban DB might not exist, so cardId could be null
-        // Just verify no exception thrown
-        $this->assertTrue(true);
+        // Verify the mocked kanban card creator was called with the incident
+        $this->kanbanCardCreatorMock->shouldHaveReceived('createForP1Incident')
+            ->with(Mockery::on(function ($arg) use ($incident) {
+                return $arg instanceof SecurityIncident && $arg->id === $incident->id;
+            }));
     }
 
     // ===== Tests for escalation command =====
@@ -484,5 +494,54 @@ class IncidentEscalationTest extends TestCase
         $incident = SecurityIncident::latest('id')->first();
         $this->assertSame(1, $incident->flap_count); // Reset because old ones >1 hour
         $this->assertFalse($incident->is_flapping);
+    }
+
+    // ===== Regression test for test isolation =====
+
+    /**
+     * Regression test: memastikan IncidentKanbanCardCreator TIDAK menulis ke board production
+     * saat APP_ENV=testing.
+     *
+     * Test ini memverifikasi bahwa:
+     * 1. Service di-mock di test suite (tidak ada DB write nyata)
+     * 2. Config kanban_sandbox_path berbeda dari kanban_board_path
+     * 3. Environment testing terdeteksi dengan benar
+     */
+    public function test_regression_no_production_board_write_in_testing(): void
+    {
+        // 1. Verifikasi environment testing aktif
+        $this->assertTrue(app()->environment('testing'), 'APP_ENV harus testing saat test dijalankan');
+
+        // 2. Verifikasi config sandbox berbeda dari production
+        $productionPath = config('crm.security.kanban_board_path');
+        $sandboxPath = config('crm.security.kanban_sandbox_path');
+        $this->assertNotEmpty($productionPath, 'kanban_board_path harus terkonfigurasi');
+        $this->assertNotEmpty($sandboxPath, 'kanban_sandbox_path harus terkonfigurasi');
+        $this->assertNotEquals($productionPath, $sandboxPath, 'Sandbox path harus berbeda dari production path');
+
+        // 3. Verifikasi service menggunakan sandbox saat testing (bukan production)
+        // Kita buat instance real service (bukan mock) untuk test ini saja
+        $realCreator = new \App\Domains\Security\Services\IncidentKanbanCardCreator();
+
+        // Gunakan reflection untuk akses private property $kanbanDbPath
+        $reflection = new \ReflectionClass($realCreator);
+        $property = $reflection->getProperty('kanbanDbPath');
+        $property->setAccessible(true);
+        $usedPath = $property->getValue($realCreator);
+
+        // Path yang dipakai harus sandbox path, BUKAN production path
+        $this->assertEquals($sandboxPath, $usedPath,
+            'IncidentKanbanCardCreator harus menggunakan sandbox path di environment testing, '
+            . "tapi menggunakan: {$usedPath} (expected: {$sandboxPath})"
+        );
+        $this->assertNotEquals($productionPath, $usedPath,
+            'IncidentKanbanCardCreator TIDAK BOLEH menggunakan production path di environment testing'
+        );
+
+        // 4. Verifikasi mock terpasang di container (test isolation)
+        $containerCreator = $this->app->make(IncidentKanbanCardCreator::class);
+        $this->assertInstanceOf(\Mockery\MockInterface::class, $containerCreator,
+            'Container harus mengembalikan mock IncidentKanbanCardCreator selama test'
+        );
     }
 }
