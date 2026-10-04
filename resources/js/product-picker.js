@@ -96,7 +96,8 @@ function ensureVariantSelectForRow(row, productRow, onVariantPick) {
 
 function buildDropdown({ query, canCreate, matches }) {
     const root = document.createElement('div');
-    root.className = 'absolute left-0 right-0 z-40 mt-1 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800';
+    // Use fixed positioning (portal to body) so dropdown escapes overflow containers.
+    root.className = 'fixed z-50 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800';
     root.setAttribute('role', 'listbox');
     root.dataset.pickerDropdown = '1';
     let html = '';
@@ -120,6 +121,18 @@ function buildDropdown({ query, canCreate, matches }) {
     return root;
 }
 
+/**
+ * Position the dropdown relative to the input element using fixed positioning
+ * (portal to document.body) so it escapes any overflow:hidden/clipping containers.
+ */
+function positionDropdown(dropdown, input) {
+    const rect = input.getBoundingClientRect();
+    // Align left with input, place just below it with a small gap.
+    dropdown.style.left = rect.left + window.scrollX + 'px';
+    dropdown.style.top = rect.bottom + window.scrollY + 4 + 'px';
+    dropdown.style.width = rect.width + 'px';
+}
+
 /** Controller untuk satu baris input picker. */
 function attachRowPicker(row, context) {
     const input = row.querySelector('[data-role=product-search]');
@@ -131,7 +144,15 @@ function attachRowPicker(row, context) {
     let debounce = null;
 
     function closeDropdown() {
-        if (dropdown) { dropdown.remove(); dropdown = null; }
+        if (dropdown) {
+            // Clean up scroll/resize listeners
+            if (dropdown._reposition) {
+                window.removeEventListener('scroll', dropdown._reposition);
+                window.removeEventListener('resize', dropdown._reposition);
+            }
+            dropdown.remove();
+            dropdown = null;
+        }
         if (abort) { abort.abort(); abort = null; }
     }
 
@@ -140,9 +161,14 @@ function attachRowPicker(row, context) {
         const canCreate = context.canCreate;
         if (!matches.length && !canCreate && query.trim() === '') return;
         dropdown = buildDropdown({ query, canCreate, matches });
-        const target = row.querySelector('[data-role=product-search-box]') || input.parentElement;
-        target.style.position = target.style.position || 'relative';
-        target.appendChild(dropdown);
+        // Portal to body to escape overflow containers (table overflow-x-auto, etc.)
+        document.body.appendChild(dropdown);
+        positionDropdown(dropdown, input);
+        // Reposition on scroll/resize while open
+        const reposition = () => positionDropdown(dropdown, input);
+        window.addEventListener('scroll', reposition, { passive: true });
+        window.addEventListener('resize', reposition);
+        dropdown._reposition = reposition;
 
         dropdown.addEventListener('click', async (e) => {
             const addBtn = e.target.closest('[data-quick-create]');
@@ -399,9 +425,9 @@ export function initProductPickers() {
     document.addEventListener('click', (e) => {
         const open = document.querySelector('[data-picker-dropdown]');
         if (!open) return;
-        const row = open.closest('[data-role=product-search-box]')?.closest('tr.item-row') || open.closest('tr.item-row');
-        if (row && (e.target.closest('[data-picker-dropdown]') || e.target.closest('[data-role=product-search]'))) return;
-        if (!row || !open.contains(e.target)) open.remove();
+        // Check if click is on the dropdown itself or the search input that opened it
+        if (e.target.closest('[data-picker-dropdown]') || e.target.closest('[data-role=product-search]')) return;
+        open.remove();
     });
 
     // -- Split button simpan invoice (default → draf) --

@@ -259,6 +259,51 @@ class InvoiceUiTest extends TestCase
         $this->assertDatabaseCount('invoices', 0);
     }
 
+    public function test_store_respects_save_action_send(): void
+    {
+        $this->login();
+        $client = ClientFactory::new()->create();
+
+        $response = $this->post(route('invoices.store'), array_merge($this->invoicePayload($client), [
+            'save_action' => 'send',
+        ]));
+
+        $invoice = Invoice::with('items')->first();
+        $response->assertRedirect(route('invoices.show', $invoice));
+        $response->assertSessionHas('success', "Invoice {$invoice->number} disimpan sebagai draf. Pilih Kirim Email / WhatsApp untuk mengirim ke klien.");
+        $this->assertSame(InvoiceStatus::Draft, $invoice->status);
+    }
+
+    public function test_store_respects_save_action_confirm(): void
+    {
+        $this->login();
+        $client = ClientFactory::new()->create();
+
+        $response = $this->post(route('invoices.store'), array_merge($this->invoicePayload($client), [
+            'save_action' => 'confirm',
+        ]));
+
+        $invoice = Invoice::with('items')->first();
+        $response->assertRedirect(route('invoices.show', $invoice));
+        $response->assertSessionHas('success', "Invoice {$invoice->number} disimpan dan ditandai terkirim.");
+        $this->assertSame(InvoiceStatus::Sent, $invoice->status);
+    }
+
+    public function test_update_respects_save_action_confirm(): void
+    {
+        $this->login();
+        $invoice = InvoiceFactory::new()->withItems(500000)->create(['status' => InvoiceStatus::Draft]);
+        $client = $invoice->client;
+
+        $response = $this->put(route('invoices.update', $invoice), array_merge($this->invoicePayload($client), [
+            'save_action' => 'confirm',
+        ]));
+
+        $response->assertRedirect(route('invoices.show', $invoice));
+        $response->assertSessionHas('success', "Invoice {$invoice->number} disimpan dan ditandai terkirim.");
+        $this->assertSame(InvoiceStatus::Sent, $invoice->fresh()->status);
+    }
+
     // ---------- show & edit ----------
 
     public function test_show_page_displays_items_and_totals(): void
