@@ -223,6 +223,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('reports/{report}', [SecurityReportController::class, 'destroy'])->name('reports.destroy');
 
         Route::resource('incidents', SecurityIncidentController::class)->except('show');
+        Route::get('incidents/api', [SecurityIncidentController::class, 'api'])->name('incidents.api');
         Route::resource('actions', SecurityActionController::class)->except('show');
     });
 

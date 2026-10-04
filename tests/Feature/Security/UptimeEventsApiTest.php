@@ -141,7 +141,7 @@ class UptimeEventsApiTest extends TestCase
         $this->assertDatabaseHas('security_incidents', [
             'client_id' => $client->id,
             'source' => 'monitor',
-            'severity' => 'high',
+            'severity' => 'critical',
             'title' => '[example.com] Website down',
             'status' => 'open',
         ]);
@@ -235,7 +235,7 @@ class UptimeEventsApiTest extends TestCase
 
         $incident = SecurityIncident::firstOrFail();
         $this->assertSame($client->id, $incident->client_id);
-        $this->assertSame(IncidentSeverity::High, $incident->severity);
+        $this->assertSame(IncidentSeverity::Critical, $incident->severity);
         $this->assertSame(IncidentSource::Monitor, $incident->source);
         $this->assertSame(IncidentStatus::Open, $incident->status);
         $this->assertStringStartsWith('uptime-kuma:mon-123:', $incident->external_id);
@@ -292,12 +292,19 @@ class UptimeEventsApiTest extends TestCase
         ]);
 
         $time1 = '2026-01-01 10:00:00';
-        $time2 = '2026-01-01 11:00:00';
+        $time2 = '2026-01-01 10:40:00'; // 40 menit setelah resolve pertama -> insiden BARU (bukan re-open)
 
+        // DOWN pertama -> buat insiden
         $this->postJson('/api/security/uptime-events', $this->downPayload([
             'occurred_at' => $time1,
         ]), $this->headers())->assertJson(['action' => 'down_created']);
 
+        // UP -> resolve insiden pertama
+        $this->postJson('/api/security/uptime-events', $this->upPayload([
+            'occurred_at' => '2026-01-01 10:05:00',
+        ]), $this->headers())->assertJson(['action' => 'up_resolved']);
+
+        // DOWN kedua (occurred_at beda, >30 menit setelah resolve) -> buat insiden BARU
         $this->postJson('/api/security/uptime-events', $this->downPayload([
             'occurred_at' => $time2,
         ]), $this->headers())->assertJson(['action' => 'down_created']);

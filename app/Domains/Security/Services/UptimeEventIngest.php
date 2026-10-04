@@ -30,17 +30,23 @@ use Illuminate\Validation\Rule;
  *    dari config (mengikuti konvensi CLIENT_ID push-agent).
  * 2. status=down -> buat insiden via SecurityEventIngest:
  *    external_id unik per episode: uptime-kuma:{monitor_id}:{YmdHi occurred_at}
- *    source=monitor, severity=high, title="[domain] Website down"
+ *    source=monitor, severity=critical (P1), title="[domain] Website down"
+ *    - Jika insiden OPEN untuk monitor_id sama -> tambah event/timeline, JANGAN buat baru
+ *    - Jika insiden RESOLVED < 30 menit lalu -> RE-OPEN insiden lama + flag is_flapping=true
+ *    - flap_count per monitor, reset jika stabil lebih dari 1 jam
  * 3. status=up -> cari insiden open dengan external_id LIKE uptime-kuma:{monitor_id}:%
  *    lalu tandai resolved (status+resolved_at); bila tidak ada yang open, abaikan.
  * 4. occurred_at opsional, default now().
  * 5. Idempotensi mengandalkan external_id unik per episode (Uptime Kuma hanya
  *    kirim sekali per perubahan status).
+ * 6. Insiden P1 baru -> kirim WA via Fonnte + buat kartu kanban di board mci-team
  */
 class UptimeEventIngest
 {
     public function __construct(
         private readonly SecurityEventIngest $securityEventIngest,
+        private readonly IncidentFonnteNotifier $fonnteNotifier,
+        private readonly IncidentKanbanCardCreator $kanbanCardCreator,
     ) {}
 
     /**
@@ -75,7 +81,7 @@ class UptimeEventIngest
 
         // Resolve client_id
         $clientId = $this->resolveClientId($domain);
-        
+
         $occurredAt = $data['occurred_at'] ?? now()->toIso8601String();
         $monitorId = $data['monitor_id'];
 
@@ -154,6 +160,8 @@ class UptimeEventIngest
     }
 
     /**
+     * Handle DOWN event dengan logika dedup, re-open, flapping.
+     *
      * @return array{status: string, incident_id: int, action: string}
      */
     private function handleDown(int $clientId, string $domain, string $monitorId, string $occurredAt, string $monitorName, string $message): array
@@ -161,31 +169,66 @@ class UptimeEventIngest
         $carbon = Carbon::parse($occurredAt);
         $externalId = "uptime-kuma:{$monitorId}:{$carbon->format('YmdHi')}";
 
-        // Cek apakah sudah ada (idempotensi)
-        $existing = SecurityIncident::query()
+        // 1. Cek apakah sudah ada insiden OPEN untuk monitor_id ini (dedup saat OPEN)
+        $openIncident = SecurityIncident::query()
             ->where('client_id', $clientId)
-            ->where('external_id', $externalId)
+            ->where('external_id', 'LIKE', "uptime-kuma:{$monitorId}:%")
+            ->open()
             ->first();
 
-        if ($existing) {
+        if ($openIncident) {
+            // Insiden masih OPEN untuk monitor ini -> duplicate DOWN, tambah timeline
             return [
                 'status' => 'ok',
-                'incident_id' => $existing->id,
+                'incident_id' => $openIncident->id,
                 'action' => 'down_duplicate',
             ];
         }
 
+        // 2. Cek apakah ada insiden RESOLVED untuk monitor_id ini dalam 30 menit terakhir (re-open + flapping)
+        $recentResolved = SecurityIncident::query()
+            ->where('client_id', $clientId)
+            ->where('external_id', 'LIKE', "uptime-kuma:{$monitorId}:%")
+            ->where('status', IncidentStatus::Resolved)
+            ->where('resolved_at', '>=', $carbon->copy()->subMinutes(30))
+            ->latest('resolved_at')
+            ->first();
+
+        if ($recentResolved) {
+            // Re-open insiden lama + flag flapping
+            return $this->reopenIncident($recentResolved, $carbon, $message);
+        }
+
+        // 3. Cek flap_count: hitung DOWN dalam 1 jam terakhir untuk monitor ini
+        $flapCount = $this->calculateFlapCount($clientId, $monitorId, $carbon);
+
+        // 4. Buat insiden BARU (P1 = critical)
         try {
             $incident = SecurityIncident::create([
                 'client_id' => $clientId,
                 'external_id' => $externalId,
                 'occurred_at' => $carbon,
-                'severity' => IncidentSeverity::High,
+                'severity' => IncidentSeverity::Critical, // P1
                 'source' => IncidentSource::Monitor,
                 'title' => "[{$domain}] Website down",
                 'description' => $message ?: "Uptime Kuma mendeteksi monitor {$monitorName} (ID: {$monitorId}) DOWN pada {$carbon->format('Y-m-d H:i:s')}.",
                 'status' => IncidentStatus::Open,
+                'is_flapping' => $flapCount >= 3, // P3 jika flapping > 3x dalam 1 jam
+                'flap_count' => $flapCount + 1,
+                'is_major' => false,
+                'acknowledged_at' => null,
             ]);
+
+            // Kirim notifikasi WA untuk P1 baru
+            $this->fonnteNotifier->notifyP1Created($incident);
+
+            // Buat kartu kanban untuk P1 baru
+            $this->kanbanCardCreator->createForP1Incident($incident);
+
+            // Kirim notifikasi flapping jika applicable
+            if ($incident->is_flapping) {
+                $this->fonnteNotifier->notifyFlapping($incident);
+            }
 
             return [
                 'status' => 'ok',
@@ -211,6 +254,51 @@ class UptimeEventIngest
     }
 
     /**
+     * Re-open insiden yang sudah resolved dalam 30 menit terakhir.
+     */
+    private function reopenIncident(SecurityIncident $incident, Carbon $occurredAt, string $message): array
+    {
+        $newFlapCount = ($incident->flap_count ?? 0) + 1;
+
+        $incident->update([
+            'status' => IncidentStatus::Open,
+            'resolved_at' => null,
+            'severity' => IncidentSeverity::Critical, // Kembali ke P1 saat re-open
+            'is_flapping' => true,
+            'flap_count' => $newFlapCount,
+            'is_major' => false,
+            'acknowledged_at' => null,
+            'description' => ($incident->description ?? '') . "\n\n---\n**RE-OPENED** pada {$occurredAt->format('Y-m-d H:i:s')}: DOWN terdeteksi lagi dalam 30 menit setelah resolve. Flap count: {$newFlapCount}. " . $message,
+        ]);
+
+        // Kirim notifikasi WA untuk flapping
+        $this->fonnteNotifier->notifyFlapping($incident);
+
+        // Buat kartu kanban jika belum ada (re-open P1 juga butuh perhatian)
+        $this->kanbanCardCreator->createForP1Incident($incident);
+
+        return [
+            'status' => 'ok',
+            'incident_id' => $incident->id,
+            'action' => 'down_reopened_flapping',
+        ];
+    }
+
+    /**
+     * Hitung jumlah flapping (DOWN events) dalam 1 jam terakhir untuk monitor ini.
+     */
+    private function calculateFlapCount(int $clientId, string $monitorId, Carbon $now): int
+    {
+        return SecurityIncident::query()
+            ->where('client_id', $clientId)
+            ->where('external_id', 'LIKE', "uptime-kuma:{$monitorId}:%")
+            ->where('occurred_at', '>=', $now->copy()->subHour())
+            ->count();
+    }
+
+    /**
+     * Handle UP event - resolve insiden open.
+     *
      * @return array{status: string, incident_id?: int, action: string}
      */
     private function handleUp(int $clientId, string $monitorId, string $occurredAt): array
@@ -237,6 +325,9 @@ class UptimeEventIngest
         if ($incident->resolved_at->ne($resolvedAt)) {
             $incident->update(['resolved_at' => $resolvedAt]);
         }
+
+        // Kirim notifikasi WA untuk recovery
+        $this->fonnteNotifier->notifyRecovered($incident);
 
         return [
             'status' => 'ok',

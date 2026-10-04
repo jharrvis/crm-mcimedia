@@ -9,6 +9,7 @@ use App\Domains\Security\Enums\IncidentStatus;
 use App\Domains\Security\Http\Requests\SecurityIncidentRequest;
 use App\Domains\Security\Models\SecurityIncident;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,11 +18,16 @@ class SecurityIncidentController extends Controller
 {
     public function index(Request $request): View
     {
+        $severity = $request->string('severity')->value();
+        $status = $request->string('status')->value();
+        $search = $request->string('q')->value();
+        $clientId = $request->integer('client_id');
+
         $incidents = SecurityIncident::with('client')
-            ->when($request->filled('client_id'), fn ($q) => $q->where('client_id', $request->integer('client_id')))
-            ->when($request->filled('severity') && $request->string('severity') !== 'all', fn ($q) => $q->where('severity', $request->string('severity')))
-            ->when($request->filled('status') && $request->string('status') !== 'all', fn ($q) => $q->where('status', $request->string('status')))
-            ->when($request->filled('q'), fn ($q) => $q->where('title', 'like', '%'.$request->string('q').'%'))
+            ->when($clientId > 0, fn ($query) => $query->where('client_id', $clientId))
+            ->when($severity !== '' && $severity !== 'all', fn ($query) => $query->where('severity', $severity))
+            ->when($status !== '' && $status !== 'all', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', fn ($query) => $query->where('title', 'like', '%'.$search.'%'))
             ->orderByDesc('occurred_at')
             ->orderByDesc('id')
             ->paginate(25)
@@ -97,5 +103,67 @@ class SecurityIncidentController extends Controller
 
         return redirect()->route('security.incidents.index')
             ->with('success', "Insiden \"{$title}\" dihapus.");
+    }
+
+    /**
+     * JSON endpoint for realtime incident list polling.
+     * Returns the same filtered data as index() but as JSON.
+     */
+    public function api(Request $request): JsonResponse
+    {
+        $severity = $request->string('severity')->value();
+        $status = $request->string('status')->value();
+        $search = $request->string('q')->value();
+        $clientId = $request->integer('client_id');
+
+        $incidents = SecurityIncident::with('client')
+            ->when($clientId > 0, fn ($query) => $query->where('client_id', $clientId))
+            ->when($severity !== '' && $severity !== 'all', fn ($query) => $query->where('severity', $severity))
+            ->when($status !== '' && $status !== 'all', fn ($query) => $query->where('status', $status))
+            ->when($search !== '', fn ($query) => $query->where('title', 'like', '%'.$search.'%'))
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        $data = $incidents->items()->map(function ($incident) {
+            return [
+                'id' => $incident->id,
+                'occurred_at' => $incident->occurred_at?->toIso8601String(),
+                'client' => $incident->client ? ['id' => $incident->client->id, 'name' => $incident->client->name] : null,
+                'severity' => [
+                    'value' => $incident->severity->value,
+                    'label' => $incident->severity->label(),
+                    'badgeClass' => $incident->severity->badgeClass(),
+                ],
+                'source' => [
+                    'value' => $incident->source->value,
+                    'label' => $incident->source->label(),
+                ],
+                'title' => $incident->title,
+                'description' => $incident->description,
+                'status' => [
+                    'value' => $incident->status->value,
+                    'label' => $incident->status->label(),
+                    'badgeClass' => $incident->status->badgeClass(),
+                ],
+                'edit_url' => route('security.incidents.edit', $incident),
+                'destroy_url' => route('security.incidents.destroy', $incident),
+            ];
+        });
+
+        return response()->json([
+            'data' => $data,
+            'current_page' => $incidents->currentPage(),
+            'last_page' => $incidents->lastPage(),
+            'total' => $incidents->total(),
+            'per_page' => $incidents->perPage(),
+            'filters' => [
+                'client_id' => $clientId > 0 ? $clientId : null,
+                'severity' => $severity !== '' ? $severity : 'all',
+                'status' => $status !== '' ? $status : 'all',
+                'q' => $search,
+            ],
+        ]);
     }
 }

@@ -24,6 +24,7 @@ class SecurityIncident extends Model
     protected $fillable = [
         'client_id', 'external_id', 'occurred_at', 'severity', 'source',
         'title', 'description', 'status', 'resolved_at',
+        'is_flapping', 'flap_count', 'is_major', 'acknowledged_at', 'wa_notification_meta',
     ];
 
     protected function casts(): array
@@ -34,6 +35,11 @@ class SecurityIncident extends Model
             'status' => IncidentStatus::class,
             'occurred_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'acknowledged_at' => 'datetime',
+            'is_flapping' => 'boolean',
+            'is_major' => 'boolean',
+            'flap_count' => 'integer',
+            'wa_notification_meta' => 'array',
         ];
     }
 
@@ -55,6 +61,45 @@ class SecurityIncident extends Model
     public function scopeSeverity(Builder $query, IncidentSeverity $severity): Builder
     {
         return $query->where('severity', $severity);
+    }
+
+    /**
+     * Insiden yang memerlukan eskalasi (P1 open > 15 menit, atau P1/P2 open > 30 menit).
+     */
+    public function scopeNeedsEscalation(Builder $query): Builder
+    {
+        return $query->open()
+            ->where(function ($q) {
+                // P1 (critical) open > 15 menit -> naik ke P2
+                $q->where('severity', IncidentSeverity::Critical)
+                    ->where('occurred_at', '<=', now()->subMinutes(15))
+                    ->where('is_major', false);
+            })
+            ->orWhere(function ($q) {
+                // P1/P2 open > 30 menit -> is_major = true
+                $q->whereIn('severity', [IncidentSeverity::Critical, IncidentSeverity::High])
+                    ->where('occurred_at', '<=', now()->subMinutes(30))
+                    ->where('is_major', false);
+            });
+    }
+
+    /**
+     * Cek apakah insiden sudah mendapat notifikasi WA untuk level eskalasi tertentu.
+     */
+    public function hasWaNotified(string $level): bool
+    {
+        $meta = $this->wa_notification_meta ?? [];
+        return isset($meta[$level]) && $meta[$level] === true;
+    }
+
+    /**
+     * Tandai notifikasi WA sudah dikirim untuk level tertentu.
+     */
+    public function markWaNotified(string $level): void
+    {
+        $meta = $this->wa_notification_meta ?? [];
+        $meta[$level] = true;
+        $this->update(['wa_notification_meta' => $meta]);
     }
 
     /**

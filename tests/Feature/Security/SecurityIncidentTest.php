@@ -150,6 +150,80 @@ class SecurityIncidentTest extends TestCase
         $this->assertDatabaseMissing('security_incidents', ['id' => $incident->id]);
     }
 
+    public function test_api_endpoint_returns_filtered_incidents(): void
+    {
+        $this->login();
+        $client = ClientFactory::new()->create();
+
+        SecurityIncidentFactory::new()->create(['client_id' => $client->id, 'severity' => IncidentSeverity::Critical, 'status' => IncidentStatus::Open, 'title' => 'Insiden A kritis']);
+        SecurityIncidentFactory::new()->create(['client_id' => $client->id, 'severity' => IncidentSeverity::Low, 'status' => IncidentStatus::Resolved, 'title' => 'Insiden B rendah']);
+
+        // Test without filters
+        $response = $this->getJson(route('security.incidents.api'));
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'data',
+            'current_page',
+            'last_page',
+            'total',
+            'per_page',
+            'filters',
+        ]);
+        $this->assertEquals(2, $response->json('total'));
+
+        // Test with status filter
+        $response = $this->getJson(route('security.incidents.api', ['status' => 'open']));
+        $response->assertOk();
+        $this->assertEquals(1, $response->json('total'));
+        $this->assertEquals('open', $response->json('data.0.status.value'));
+
+        // Test with severity filter
+        $response = $this->getJson(route('security.incidents.api', ['severity' => 'critical']));
+        $response->assertOk();
+        $this->assertEquals(1, $response->json('total'));
+        $this->assertEquals('critical', $response->json('data.0.severity.value'));
+
+        // Test with client_id filter
+        $response = $this->getJson(route('security.incidents.api', ['client_id' => $client->id]));
+        $response->assertOk();
+        $this->assertEquals(2, $response->json('total'));
+
+        // Test with search filter
+        $response = $this->getJson(route('security.incidents.api', ['q' => 'kritis']));
+        $response->assertOk();
+        $this->assertEquals(1, $response->json('total'));
+
+        // Test combined filters
+        $response = $this->getJson(route('security.incidents.api', [
+            'client_id' => $client->id,
+            'severity' => 'critical',
+            'status' => 'open',
+        ]));
+        $response->assertOk();
+        $this->assertEquals(1, $response->json('total'));
+
+        // Test data structure includes required fields for JS rendering
+        $response = $this->getJson(route('security.incidents.api'));
+        $response->assertOk();
+        $first = $response->json('data.0');
+        $this->assertArrayHasKey('id', $first);
+        $this->assertArrayHasKey('occurred_at', $first);
+        $this->assertArrayHasKey('client', $first);
+        $this->assertArrayHasKey('severity', $first);
+        $this->assertArrayHasKey('source', $first);
+        $this->assertArrayHasKey('title', $first);
+        $this->assertArrayHasKey('description', $first);
+        $this->assertArrayHasKey('status', $first);
+        $this->assertArrayHasKey('edit_url', $first);
+        $this->assertArrayHasKey('destroy_url', $first);
+        $this->assertArrayHasKey('value', $first['severity']);
+        $this->assertArrayHasKey('label', $first['severity']);
+        $this->assertArrayHasKey('badgeClass', $first['severity']);
+        $this->assertArrayHasKey('value', $first['status']);
+        $this->assertArrayHasKey('label', $first['status']);
+        $this->assertArrayHasKey('badgeClass', $first['status']);
+    }
+
     public function test_index_filters_by_client_severity_and_status(): void
     {
         $this->login();

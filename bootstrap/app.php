@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\EscalateSecurityIncidentsCommand;
 use App\Domains\Invoicing\Console\Commands\GenerateRecurringInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand;
@@ -27,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
+        // Eskalasi insiden keamanan: cek setiap menit (F3-3).
+        $schedule->command('crm:escalate-incidents')->everyMinute();
+
         // Pengingat jatuh tempo layanan, setiap hari pukul 08:00.
         $schedule->command('crm:services-expiring')->dailyAt('08:00');
         // Invoice recurring per siklus (F4-11), sebelum pengingat jatuh tempo.
@@ -39,6 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('hestia:sync')->dailyAt('06:30');
     })
     ->withCommands([
+        EscalateSecurityIncidentsCommand::class,
         ServicesExpiringCommand::class,
         GenerateRenewalInvoicesCommand::class,
         GenerateRecurringInvoicesCommand::class,
