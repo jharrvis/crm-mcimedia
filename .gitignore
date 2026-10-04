@@ -18,6 +18,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+/storage/app/test-kanban-sandbox.db
 /vendor
 Homestead.json
 Homestead.yaml
