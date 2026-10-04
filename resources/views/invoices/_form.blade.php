@@ -328,7 +328,7 @@
      <dialog> native: Esc/overlay ditangani browser. --}}
 <dialog id="picker-quick-create" data-quick-create-form
         class="w-[92vw] max-w-md rounded-xl border border-slate-200 bg-white p-0 backdrop:bg-slate-900/50 dark:border-slate-700 dark:bg-slate-900">
-    <form method="dialog" data-quick-layer class="p-5 space-y-4" onsubmit="return false;">
+    <div data-quick-layer class="p-5 space-y-4">
         <div>
             <h3 class="text-base font-semibold">Tambah Produk ke Stok</h3>
             <p class="mt-1 text-xs text-slate-500">Produk baru langsung tersedia di picker invoice.</p>
@@ -355,5 +355,5 @@
             <button type="button" data-role="quick-cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
             <button type="button" data-role="quick-confirm" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan Produk</button>
         </div>
-    </form>
+    </div>
 </dialog>
