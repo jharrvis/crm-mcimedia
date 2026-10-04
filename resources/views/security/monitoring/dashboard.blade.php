@@ -4,8 +4,8 @@
 
 @section('content')
 @php
-    $severityClass = fn (\\App\\Domains\\Security\\Enums\\IncidentSeverity $s) => $s->badgeClass();
-    $severityLabel = fn (\\App\\Domains\\Security\\Enums\\IncidentSeverity $s) => $s->label();
+    $severityClass = fn (\App\Domains\Security\Enums\IncidentSeverity $s) => $s->badgeClass();
+    $severityLabel = fn (\App\Domains\Security\Enums\IncidentSeverity $s) => $s->label();
 @endphp
 
 <div class="mb-4 flex flex-wrap items-center gap-2">
