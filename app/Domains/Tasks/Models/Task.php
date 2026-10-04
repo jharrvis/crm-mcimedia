@@ -22,6 +22,7 @@ class Task extends Model
     protected $fillable = [
         'title', 'description', 'client_id', 'project_id', 'assigned_user_id',
         'priority', 'due_date', 'status', 'completed_at',
+        'kanban_card_id', 'kanban_status', 'kanban_summary', 'kanban_comments', 'kanban_synced_at',
     ];
 
     protected function casts(): array
@@ -31,6 +32,8 @@ class Task extends Model
             'status' => TaskStatus::class,
             'due_date' => 'date',
             'completed_at' => 'datetime',
+            'kanban_comments' => 'array',
+            'kanban_synced_at' => 'datetime',
         ];
     }
 

@@ -58,7 +58,7 @@
                         $prioColor = ['high' => 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300', 'medium' => 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300', 'low' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'][$task->priority->value];
                     @endphp
                     <tr class="border-t border-slate-100 dark:border-slate-800">
-                        <td class="py-2 pr-4"><a href="{{ route('tasks.edit', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a></td>
+                        <td class="py-2 pr-4"><a href="{{ route('tasks.show', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a></td>
                         <td class="py-2 pr-4">{{ $task->client?->name ?? '—' }}</td>
                         <td class="py-2 pr-4">{{ $task->project?->title ?? '—' }}</td>
                         <td class="py-2 pr-4"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $prioColor }}">{{ $task->priority->label() }}</span></td>

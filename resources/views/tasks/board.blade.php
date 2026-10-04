@@ -64,7 +64,7 @@
                     <article draggable="true" data-task-id="{{ $task->id }}"
                              class="cursor-grab rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm shadow-sm active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800">
                         <div class="flex items-start justify-between gap-2">
-                            <a href="{{ route('tasks.edit', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a>
+                            <a href="{{ route('tasks.show', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a>
                             <span class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium {{ $prioColor }}">{{ $task->priority->label() }}</span>
                         </div>
                         <p class="mt-1 text-xs text-slate-500">
