@@ -19,6 +19,7 @@ enum Module: string
     case Reports = 'reports';
     case Security = 'security';
     case Hestia = 'hestia';
+    case Providers = 'providers';
     case Activity = 'activity';
     case Reminders = 'reminders';
     case Users = 'users';
@@ -36,6 +37,7 @@ enum Module: string
             self::Reports => 'Laporan',
             self::Security => 'Keamanan',
             self::Hestia => 'Sinkron Hestia',
+            self::Providers => 'Provider Domain',
             self::Activity => 'Aktivitas',
             self::Reminders => 'Pengingat',
             self::Users => 'Pengguna',

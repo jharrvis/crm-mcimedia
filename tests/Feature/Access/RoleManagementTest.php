@@ -57,6 +57,23 @@ class RoleManagementTest extends TestCase
         $this->assertArrayNotHasKey('unknown-module', $role->permissions);
     }
 
+    public function test_providers_module_can_be_granted_via_role_form(): void
+    {
+        // t_d85674c4: modul `providers` (dulu dipakai sidebar tapi belum ada di
+        // enum) harus tersimpan lewat form role, bukan dibuang sebagai modul asing.
+        $this->actingUser();
+
+        $this->post(route('roles.store'), [
+            'name' => 'domain-ops',
+            'label' => 'Domain Ops',
+            'permissions' => ['providers' => 'manage'],
+        ])->assertRedirect(route('roles.index'));
+
+        $role = Role::where('name', 'domain-ops')->firstOrFail();
+        $this->assertSame(['providers' => 'manage'], $role->permissions);
+        $this->assertTrue($role->grantsModule(Module::Providers));
+    }
+
     public function test_name_and_label_are_required(): void
     {
         $this->actingUser();

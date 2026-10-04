@@ -126,18 +126,27 @@ Route::middleware('auth')->group(function () {
     // Registry penyedia domain/hosting (F4-5): CRUD provider, aktif/nonaktif,
     // dan daftar domain dari driver terpilih. Route aksi didaftarkan sebelum
     // resource agar tidak tertangkap oleh domain-providers/{domain_provider}.
-    Route::get('domain-providers/{domain_provider}/domains', [DomainProviderController::class, 'domains'])
-        ->name('domain-providers.domains');
-    Route::patch('domain-providers/{domain_provider}/toggle', [DomainProviderController::class, 'toggle'])
-        ->name('domain-providers.toggle');
-    // F4-7: aksi khusus driver NameSilo — ubah auto-renew & impor ke layanan CRM.
-    Route::post('domain-providers/{domain_provider}/auto-renew', [DomainProviderController::class, 'autoRenew'])
-        ->name('domain-providers.auto-renew');
-    Route::post('domain-providers/{domain_provider}/import-services', [DomainProviderController::class, 'importServices'])
-        ->name('domain-providers.import-services');
-    Route::resource('domain-providers', DomainProviderController::class)->except('show');
+    // t_d85674c4: grup ini memakai modul `providers` — sama dengan pemetaan
+    // sidebar "Provider Domain". Sebelumnya hanya `auth`, sehingga user tanpa
+    // modul providers tetap bisa CRUD provider & membaca kredensialnya.
+    Route::middleware('permission:providers')->group(function () {
+        Route::get('domain-providers/{domain_provider}/domains', [DomainProviderController::class, 'domains'])
+            ->name('domain-providers.domains');
+        Route::patch('domain-providers/{domain_provider}/toggle', [DomainProviderController::class, 'toggle'])
+            ->name('domain-providers.toggle');
+        // F4-7: aksi khusus driver NameSilo — ubah auto-renew & impor ke layanan CRM.
+        Route::post('domain-providers/{domain_provider}/auto-renew', [DomainProviderController::class, 'autoRenew'])
+            ->name('domain-providers.auto-renew');
+        Route::post('domain-providers/{domain_provider}/import-services', [DomainProviderController::class, 'importServices'])
+            ->name('domain-providers.import-services');
+        Route::resource('domain-providers', DomainProviderController::class)->except('show');
+    });
+
     // Manajemen server HestiaCP (F4-12) — sg2, YIARI, PA Salatiga, dll.
-    Route::prefix('hestia/servers')->name('hestia.servers.')->group(function () {
+    // t_d85674c4: modul `hestia` (pemetaan sidebar "Server Hestia"); sebelumnya
+    // hanya `auth` sehingga siapa pun yang login bisa ubah/hapus server &
+    // memicu sinkronisasi.
+    Route::prefix('hestia/servers')->name('hestia.servers.')->middleware('permission:hestia')->group(function () {
         Route::get('/', [HestiaServerController::class, 'index'])->name('index');
         Route::get('create', [HestiaServerController::class, 'create'])->name('create');
         Route::post('/', [HestiaServerController::class, 'store'])->name('store');
@@ -185,9 +194,13 @@ Route::middleware('auth')->group(function () {
     Route::resource('invoices', InvoiceController::class)->middleware('permission:invoices');
 
     // Paket invoice recurring (F4-11): CRUD paket + aksi tagih/aktivasi.
-    Route::post('recurring-plans/{recurringPlan}/generate', [RecurringPlanController::class, 'generateNow'])->name('recurring-plans.generate-now');
-    Route::patch('recurring-plans/{recurringPlan}/toggle', [RecurringPlanController::class, 'toggle'])->name('recurring-plans.toggle');
-    Route::resource('recurring-plans', RecurringPlanController::class);
+    // t_d85674c4: modul `invoices` (pemetaan sidebar "Recurring"); sebelumnya
+    // hanya `auth` — gap yang sama dengan hestia/servers & domain-providers.
+    Route::middleware('permission:invoices')->group(function () {
+        Route::post('recurring-plans/{recurringPlan}/generate', [RecurringPlanController::class, 'generateNow'])->name('recurring-plans.generate-now');
+        Route::patch('recurring-plans/{recurringPlan}/toggle', [RecurringPlanController::class, 'toggle'])->name('recurring-plans.toggle');
+        Route::resource('recurring-plans', RecurringPlanController::class);
+    });
 
     // Picker produk live di form invoice (UX-2): pencarian by nama/SKU
     // (server-side, termasuk varian) + tambah cepat "ke stok" via AJAX.
