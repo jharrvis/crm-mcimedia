@@ -27,15 +27,19 @@ class ProductPickerController extends Controller
     {
         $q = trim($request->string('q')->toString());
 
+        // Escape wildcard LIKE (_ dan %) agar user input tidak jadi wildcard.
+        $like = '%'.addcslashes($q, '%_\\').'%';
+
         $products = Product::query()
             ->active()
             ->with(['variants' => fn ($v) => $v->active()->orderBy('sort_order')->orderBy('name')])
-            ->when($q !== '', fn ($query) => $query->where(function ($w) use ($q) {
-                $w->where('name', 'like', "%{$q}%")
-                    ->orWhere('sku', 'like', "%{$q}%")
+            ->when($q !== '', fn ($query) => $query->where(function ($w) use ($like) {
+                $w->where('name', 'like', $like)
+                    ->orWhere('sku', 'like', $like)
                     // Varian ikut dicari agar "1GB" menemukan produk induknya.
-                    ->orWhereHas('variants', fn ($v) => $v->where('name', 'like', "%{$q}%")
-                        ->orWhere('sku', 'like', "%{$q}%"));
+                    // Pakai scope active() supaya varian nonaktif tidak menyeret produk induknya.
+                    ->orWhereHas('variants', fn ($v) => $v->active()->where('name', 'like', $like)
+                        ->orWhere('sku', 'like', $like));
             }))
             ->limit(self::LIMIT)
             ->get(['id', 'sku', 'name', 'sales_price']);

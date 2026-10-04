@@ -308,7 +308,10 @@ export function initProductPickers() {
     async function confirmQuickCreate(nameVal, priceStr, categoryId, pendingRow) {
         const d = getQuickDialog();
         const errEl = d ? d.querySelector('[data-quick-error]') : null;
+        const confirmBtn = d ? d.querySelector('[data-role=quick-confirm]') : null;
         if (errEl) errEl.textContent = '';
+        // Kunci tombol selama request agar tidak double-create.
+        if (confirmBtn) confirmBtn.disabled = true;
         const payload = {
             name: nameVal,
             sales_price: priceStr ? Number(priceStr) : 0,
@@ -354,6 +357,8 @@ export function initProductPickers() {
             // buka kembali untuk diperbaiki
             if (d && !d.open) d.showModal();
             quickCreatePendingRow = rowRef; quickCreatePendingResolve = rr;
+        } finally {
+            if (confirmBtn) confirmBtn.disabled = false;
         }
     }
 
