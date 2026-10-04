@@ -147,6 +147,10 @@ Route::middleware('auth')->group(function () {
         Route::delete('{hestia_server}', [HestiaServerController::class, 'destroy'])->name('destroy');
         Route::post('{hestia_server}/test', [HestiaServerController::class, 'test'])->name('test');
         Route::post('{hestia_server}/sync', [HestiaServerController::class, 'sync'])->name('sync');
+        // t_dcccffd9: sync bertahap via AJAX — mulai sesi, lalu proses per batch
+        // (tombol Sync tidak lagi submit form panjang yang rawan gateway timeout).
+        Route::post('{hestia_server}/sync/start', [HestiaServerController::class, 'syncStart'])->name('sync.start');
+        Route::post('{hestia_server}/sync/batch', [HestiaServerController::class, 'syncBatch'])->name('sync.batch');
     });
 
     // Invoice (F2-2): resource + aksi transisi status + PDF.

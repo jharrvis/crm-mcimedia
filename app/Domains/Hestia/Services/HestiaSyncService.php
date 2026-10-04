@@ -33,6 +33,11 @@ use Illuminate\Support\Facades\Log;
  * menghentikan server lain — pemanggil (command/controller) mengiterasi
  * server-server aktif.
  *
+ * t_dcccffd9 (sync bertahap via UI): logika per-user diekstrak ke `syncUser()`
+ * dan penonaktifan akun hilang diekspos lewat `deactivateMissing()` agar
+ * `HestiaBatchSyncService` memakai jalur upsert yang sama — `sync()` tetap
+ * menjadi "sync penuh sekali jalan" yang dipakai command & fallback non-JS.
+ *
  * Tidak ada exception yang keluar dari sync() — kegagalan direkam di SyncLog
  * agar pemanggil (command/controller) cukup memeriksa isSuccess().
  */
@@ -56,8 +61,6 @@ class HestiaSyncService
             'started_at' => $startedAt,
         ]);
 
-        $serverCode = $server?->code;
-
         try {
             // Kill switch global: HESTIA_ENABLED=false mematikan sinkronisasi
             // untuk server env maupun server yang dikelola lewat UI.
@@ -77,27 +80,12 @@ class HestiaSyncService
             $seenKeys = [];
 
             foreach ($client->users() as $username => $userData) {
-                $username = $this->normalizeUsername($username, $userData);
-                if ($username === '') {
-                    continue;
-                }
+                $result = $this->syncUser($client, $server, $username, $userData);
 
-                $plan = isset($userData['PACKAGE']) ? (string) $userData['PACKAGE'] : null;
-
-                // F4-13: kuota paket & status suspend hanya ada di level AKUN.
-                $userQuota = HestiaQuota::fromUserPayload(is_array($userData) ? $userData : []);
-                $userSuspended = HestiaQuota::isYes($userData['SUSPENDED'] ?? null) ?? false;
-
-                foreach ($client->webDomains($username) as $domain => $data) {
-                    $domain = mb_strtolower(trim((string) $domain));
-                    if ($domain === '' || ! is_array($data)) {
-                        continue;
-                    }
-
-                    $pulled++;
-                    $seenKeys[] = HestiaAccount::keyFor($username, $domain, $serverCode);
-                    $this->upsertAccount($username, $domain, $data, $plan, $server, $serverCode, $userQuota, $userSuspended) ? $created++ : $updated++;
-                }
+                $pulled += $result['pulled'];
+                $created += $result['created'];
+                $updated += $result['updated'];
+                array_push($seenKeys, ...$result['seen_keys']);
             }
 
             // Hanya nonaktifkan bila benar-benar ada data yang ditarik (hindari
@@ -144,6 +132,57 @@ class HestiaSyncService
         $server?->recordSyncResult($log->isSuccess(), $log->message);
 
         return $log;
+    }
+
+    /**
+     * Tarik & simpan SATU user Hestia beserta seluruh web domain miliknya.
+     *
+     * Diekstrak dari `sync()` (t_dcccffd9) supaya sinkronisasi bertahap (batch)
+     * memakai implementasi upsert yang SAMA dengan sync penuh — tidak ada dua
+     * jalur logika yang bisa berbeda diam-diam. Exception per user (mis. API
+     * timeout) dibiarkan naik ke pemanggil: `sync()` menggagalkan seluruh sync,
+     * sedangkan pemanggil batch mencatatnya sebagai error akun lalu melanjutkan
+     * ke akun berikutnya.
+     *
+     * @param  int|string  $username  kunci dari `v-list-users` (bisa numerik)
+     * @param  mixed  $userData  payload user; nilai non-array diperlakukan kosong
+     * @return array{pulled: int, created: int, updated: int, seen_keys: list<string>}
+     *
+     * @throws HestiaApiException bila API Hestia gagal (pesan tanpa kredensial).
+     */
+    public function syncUser(HestiaClient $client, ?HestiaServer $server, int|string $username, mixed $userData): array
+    {
+        $userData = is_array($userData) ? $userData : [];
+
+        $username = $this->normalizeUsername($username, $userData);
+        if ($username === '') {
+            return ['pulled' => 0, 'created' => 0, 'updated' => 0, 'seen_keys' => []];
+        }
+
+        $serverCode = $server?->code;
+        $plan = isset($userData['PACKAGE']) ? (string) $userData['PACKAGE'] : null;
+
+        // F4-13: kuota paket & status suspend hanya ada di level AKUN.
+        $userQuota = HestiaQuota::fromUserPayload($userData);
+        $userSuspended = HestiaQuota::isYes($userData['SUSPENDED'] ?? null) ?? false;
+
+        $pulled = 0;
+        $created = 0;
+        $updated = 0;
+        $seenKeys = [];
+
+        foreach ($client->webDomains($username) as $domain => $data) {
+            $domain = mb_strtolower(trim((string) $domain));
+            if ($domain === '' || ! is_array($data)) {
+                continue;
+            }
+
+            $pulled++;
+            $seenKeys[] = HestiaAccount::keyFor($username, $domain, $serverCode);
+            $this->upsertAccount($username, $domain, $data, $plan, $server, $serverCode, $userQuota, $userSuspended) ? $created++ : $updated++;
+        }
+
+        return ['pulled' => $pulled, 'created' => $created, 'updated' => $updated, 'seen_keys' => $seenKeys];
     }
 
     /** Petakan akun (manual oleh admin) ke klien + buat/hubungkan Service. */
@@ -267,9 +306,14 @@ class HestiaSyncService
      * WAJIB discope ke server: setiap server punya daftar akunnya sendiri, jadi
      * sync server A tidak boleh menonaktifkan akun server B (F4-12).
      *
+     * Publik sejak t_dcccffd9: dipanggil `sync()` (sync penuh) maupun
+     * `HestiaBatchSyncService::finalize()` (batch terakhir) — keduanya hanya
+     * boleh memanggilnya dengan daftar `seen_keys` yang LENGKAP untuk server
+     * terkait, karena akun yang tidak ada di daftar dianggap hilang.
+     *
      * @param  list<string>  $seenKeys
      */
-    private function deactivateMissing(array $seenKeys, ?HestiaServer $server = null): int
+    public function deactivateMissing(array $seenKeys, ?HestiaServer $server = null): int
     {
         $stale = HestiaAccount::query()
             ->forServer($server)

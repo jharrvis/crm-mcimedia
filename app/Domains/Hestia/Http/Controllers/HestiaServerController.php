@@ -5,10 +5,14 @@ namespace App\Domains\Hestia\Http\Controllers;
 use App\Domains\Hestia\Http\Requests\HestiaServerRequest;
 use App\Domains\Hestia\Models\HestiaAccount;
 use App\Domains\Hestia\Models\HestiaServer;
+use App\Domains\Hestia\Models\HestiaSyncBatch;
 use App\Domains\Hestia\Models\HestiaSyncLog;
+use App\Domains\Hestia\Services\HestiaBatchSyncService;
 use App\Domains\Hestia\Services\HestiaClient;
 use App\Domains\Hestia\Services\HestiaSyncOrchestrator;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * CRUD server HestiaCP (F4-12).
@@ -118,6 +122,108 @@ class HestiaServerController extends Controller
 
         return redirect()->route('hestia.servers.index')
             ->with('success', "Sinkronisasi \"{$hestia_server->name}\" selesai: {$log->pulled} ditarik, {$log->created} baru, {$log->updated} diperbarui, {$log->deactivated} dinonaktifkan.");
+    }
+
+    /**
+     * Mulai sesi sinkronisasi BERTAHAP (AJAX) untuk satu server — t_dcccffd9.
+     *
+     * Beda dengan `sync()` (satu request panjang yang rawan gateway timeout):
+     * di sini daftar akun ditarik sekali, lalu browser memanggil `syncBatch()`
+     * berulang (default 10 akun per batch). Respons JSON dipakai frontend untuk
+     * menggambar progress bar. Form POST lama tetap tersedia untuk pengguna
+     * tanpa JavaScript.
+     */
+    public function syncStart(Request $request, HestiaServer $hestia_server, HestiaBatchSyncService $batches): JsonResponse
+    {
+        if (! config('crm.hestia.enabled', false)) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'Sinkronisasi dinonaktifkan global (HESTIA_ENABLED=false).',
+            ], 422);
+        }
+
+        if (! $hestia_server->isConfigured()) {
+            return response()->json([
+                'ok' => false,
+                'error' => "Kredensial server \"{$hestia_server->name}\" belum lengkap (butuh access/secret key atau user+password).",
+            ], 422);
+        }
+
+        try {
+            $batch = $batches->start($hestia_server, $request->integer('batch_size') ?: null);
+        } catch (\Throwable $e) {
+            // Pesan HestiaApiException dijamin tidak memuat kredensial.
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['ok' => true, 'batch' => $this->batchPayload($batch)]);
+    }
+
+    /**
+     * Proses satu batch berikutnya dari sesi yang dibuat `syncStart()`.
+     *
+     * Sesi wajib milik server pada URL (batch_id dari server lain ditolak),
+     * dan request yang diulang setelah sesi selesai mengembalikan keadaan
+     * akhir apa adanya — aman untuk retry.
+     */
+    public function syncBatch(Request $request, HestiaServer $hestia_server, HestiaBatchSyncService $batches): JsonResponse
+    {
+        $batch = HestiaSyncBatch::query()
+            ->where('hestia_server_id', $hestia_server->id)
+            ->find($request->integer('batch_id'));
+
+        if (! $batch instanceof HestiaSyncBatch) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'Sesi sinkronisasi tidak ditemukan untuk server ini.',
+            ], 404);
+        }
+
+        try {
+            $batch = $batches->advance($batch);
+        } catch (\Throwable $e) {
+            return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+
+        return response()->json(['ok' => true, 'batch' => $this->batchPayload($batch)]);
+    }
+
+    /**
+     * Bentuk JSON progres sesi batch untuk frontend.
+     *
+     * Tidak memuat data kredensial: hanya hitungan, nama server, pesan hasil,
+     * dan daftar akun gagal (nama user + pesan error).
+     */
+    private function batchPayload(HestiaSyncBatch $batch): array
+    {
+        $total = max(0, (int) $batch->total_users);
+        $processed = min($total, max(0, (int) $batch->processed_users));
+
+        return [
+            'id' => $batch->id,
+            'status' => $batch->status,
+            'done' => ! $batch->isRunning(),
+            'batch_size' => (int) $batch->batch_size,
+            'total_users' => $total,
+            'processed_users' => $processed,
+            'percent' => $total > 0 ? (int) round($processed / $total * 100) : 100,
+            'server' => [
+                'id' => $batch->hestia_server_id,
+                'name' => $batch->server?->name,
+            ],
+            'totals' => [
+                'pulled' => (int) $batch->pulled,
+                'created' => (int) $batch->created,
+                'updated' => (int) $batch->updated,
+                'deactivated' => (int) $batch->deactivated,
+                'unmapped' => (int) $batch->unmapped,
+                'failed_users' => $batch->failedCount(),
+            ],
+            'errors' => array_values($batch->errors ?? []),
+            'message' => $batch->message,
+            'started_at' => $batch->started_at?->toIso8601String(),
+            'finished_at' => $batch->finished_at?->toIso8601String(),
+        ];
     }
 
     /** Detail singkat hasil sinkronisasi satu server. */

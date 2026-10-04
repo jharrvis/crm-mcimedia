@@ -30,6 +30,9 @@
     </div>
 </div>
 
+{{-- Progres sinkronisasi bertahap (AJAX, t_dcccffd9) --}}
+@include('hestia.servers._sync_progress')
+
 {{-- Status global --}}
 @unless ($environmentEnabled)
     <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
@@ -113,10 +116,23 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex flex-wrap items-center gap-2">
-                            <form method="POST" action="{{ route('hestia.servers.sync', $server) }}">
-                                @csrf
-                                <button class="text-xs font-semibold text-indigo-600 hover:underline">Sinkron</button>
-                            </form>
+                            {{-- Sinkron bertahap via AJAX (t_dcccffd9): proses dipecah per
+                                 batch oleh server sehingga tidak ada request panjang yang
+                                 kena gateway timeout. Fallback tanpa JavaScript: form POST lama. --}}
+                            <button type="button"
+                                    data-hestia-sync
+                                    data-sync-start-url="{{ route('hestia.servers.sync.start', $server) }}"
+                                    data-sync-batch-url="{{ route('hestia.servers.sync.batch', $server) }}"
+                                    data-sync-server="{{ $server->name }}"
+                                    class="text-xs font-semibold text-indigo-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50">
+                                Sinkron
+                            </button>
+                            <noscript>
+                                <form method="POST" action="{{ route('hestia.servers.sync', $server) }}">
+                                    @csrf
+                                    <button class="text-xs font-semibold text-indigo-600 hover:underline">Sinkron</button>
+                                </form>
+                            </noscript>
                             <form method="POST" action="{{ route('hestia.servers.test', $server) }}">
                                 @csrf
                                 <button class="text-xs font-semibold text-slate-600 hover:underline dark:text-slate-300">Uji</button>

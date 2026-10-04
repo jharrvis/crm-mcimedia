@@ -228,6 +228,54 @@ Catatan penting:
 - Rollback: `php artisan migrate:rollback --step=1` menghapus 4 kolom;
   data lama (termasuk `raw`) tidak tersentuh.
 
+### Sinkronisasi bertahap via AJAX di halaman Server Hestia (t_dcccffd9)
+
+Tombol **Sinkron** di `/hestia/servers` (daftar server & halaman detail) tidak
+lagi mengirim satu form POST panjang — proses dipecah menjadi beberapa request
+pendek oleh server sehingga tidak menabrak gateway timeout (kasus nyata: 59
+akun pada satu server):
+
+```
+POST /hestia/servers/{server}/sync/start        → buat sesi, tarik daftar akun sekali
+POST /hestia/servers/{server}/sync/batch        → proses batch berikutnya (JSON)
+     body: { "batch_id": <id> }                 → ulang sampai "done": true
+```
+
+- Default **10 akun per batch** (field `batch_size` opsional di request start,
+  maksimum 50); progress bar menampilkan "Menyinkronkan akun 20/59… 34%",
+  semua tombol sync dinonaktifkan selama proses, hasil akhir + daftar akun
+  gagal tampil tanpa reload halaman.
+- Frontend memakai timeout 120 dtk per request (≥ 60 dtk) dan mengulang
+  otomatis request yang timeout — batch bersifat idempotent (`next_offset`
+  hanya maju setelah batch tersimpan), jadi retry tidak menggandakan upsert.
+- Kegagalan satu akun tidak menghentikan batch; **penonaktifan akun yang
+  hilang dilewati** selama masih ada akun gagal ditarik. Sesi `running` yang
+  ditinggalkan (tab ditutup) otomatis dibatalkan saat sesi baru dimulai untuk
+  server yang sama.
+- Tanpa JavaScript: form POST lama ke `POST /hestia/servers/{server}/sync`
+  tetap berfungsi (fallback `<noscript>`).
+- State sesi tersimpan di tabel `hestia_sync_batches` (satu sesi = satu baris
+  `hestia_sync_logs`, sehingga riwayat `/hestia` tidak berubah). Sesi selesai
+  tidak dibersihkan otomatis — hapus manual bila perlu, atau biarkan sebagai
+  jejak audit tarikan terakhir.
+
+Deploy:
+
+```
+npm run build                    # modul JS baru (resources/js/hestia-sync.js)
+php artisan migrate --force      # migration 2026_10_10_200001 (aditif, 1 tabel)
+php artisan config:cache && php artisan route:cache && php artisan view:cache
+```
+
+Tidak ada variabel `.env` baru. Verifikasi cepat: buka `/hestia/servers`, klik
+Sinkron pada server terbesar — progress bar berjalan per batch, tidak ada
+request yang menggantung, dan hasil akhir muncul tanpa reload.
+
+Rollback: `php artisan migrate:rollback --step=1` menghapus tabel
+`hestia_sync_batches` saja — akun, layanan, dan riwayat `hestia_sync_logs`
+tidak tersentuh; tombol sync kembali memakai jalur form POST lama (hapus dulu
+perubahan Blade bila ingin benar-benar kembali).
+
 ## Monitoring keamanan (F3-3)
 
 Modul keamanan dipakai untuk mencatat insiden, jurnal tindakan, dan arsip
