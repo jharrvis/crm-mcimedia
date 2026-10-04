@@ -84,6 +84,8 @@
 
 <div class="mt-4" id="incidents-pagination">{{ $incidents->links() }}</div>
 
+@endsection
+
 @push('scripts')
 <script>
 (function() {
