@@ -129,6 +129,15 @@ class TaskController extends Controller
             ->with('success', 'Tugas berhasil dihapus.');
     }
 
+    public function show(Task $task)
+    {
+        $task->load(['client', 'project', 'assignee']);
+
+        return view('tasks.show', [
+            'task' => $task,
+        ]);
+    }
+
     public function complete(Task $task)
     {
         $task->complete();
