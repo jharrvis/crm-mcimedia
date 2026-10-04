@@ -143,6 +143,24 @@ return [
         // CC tetap saat laporan dikirim ke klien (F4-3). Kosong = tanpa CC.
         'report_cc_email' => env('CRM_SECURITY_REPORT_CC_EMAIL', 'info@mcimedia.net'),
         'uptime_default_client_id' => env('SECURITY_UPTIME_DEFAULT_CLIENT_ID', null),
+
+        /*
+        |----------------------------------------------------------------------
+        | Board kanban eksternal untuk insiden P1 (t_db983e91)
+        |----------------------------------------------------------------------
+        |
+        | Path absolut ke SQLite board Hermes. Jangan pernah hardcode path
+        | production di kode layanan agar test suite tidak menulis ke board
+        | asli. Saat APP_ENV=testing path ini di-override ke sandbox
+        | (lihat IncidentKanbanCardCreator) dan INSERT ke board production
+        | dilewati sepenuhnya.
+        |
+        | - kanban_board_path: path board production (di luar repo).
+        | - kanban_sandbox_path: path aman untuk testing; dibuat otomatis
+        |   jika belum ada. Harus berada di luar board production.
+        */
+        'kanban_board_path' => env('KANBAN_BOARD_PATH', base_path('../../.hermes/kanban/boards/mci-team/kanban.db')),
+        'kanban_sandbox_path' => env('KANBAN_SANDBOX_PATH', storage_path('app/test-kanban-sandbox.db')),
     ],
 
     /*
