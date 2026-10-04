@@ -74,6 +74,7 @@ return [
     'fonnte' => [
         'enabled' => env('FONNTE_ENABLED', false),
         'token' => env('FONNTE_TOKEN', ''),
+        'target' => env('FONNTE_TARGET', ''),
         'endpoint' => env('FONNTE_ENDPOINT', 'https://api.fonnte.com/send'),
     ],
 
