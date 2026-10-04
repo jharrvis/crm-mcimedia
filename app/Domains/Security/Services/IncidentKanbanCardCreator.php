@@ -40,10 +40,21 @@ class IncidentKanbanCardCreator
         // Jangan pernah pakai board production saat testing.
         if ($this->isTestEnvironment()) {
             $sandboxPath = config('crm.security.kanban_sandbox_path');
-            if ($sandboxPath && $sandboxPath !== $productionPath) {
-                $this->ensureSandbox($sandboxPath);
-                return $sandboxPath;
+            // Fail-safe: sandbox kosong -> pakai default storage; tidak pernah
+            // jatuh ke board production.
+            if (! $sandboxPath) {
+                $sandboxPath = storage_path('app/test-kanban-sandbox.db');
             }
+
+            if ($sandboxPath === $productionPath) {
+                throw new \RuntimeException(
+                    'KANBAN_SANDBOX_PATH tidak boleh sama dengan KANBAN_BOARD_PATH '
+                    . 'saat environment testing: kartu akan bocor ke board production.'
+                );
+            }
+
+            $this->ensureSandbox($sandboxPath);
+            return $sandboxPath;
         }
 
         // Fallback lama untuk deployment yang path-nya berbeda.
