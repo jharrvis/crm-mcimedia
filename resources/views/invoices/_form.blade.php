@@ -335,7 +335,7 @@
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium">Nama Produk <span class="text-red-600">*</span></label>
-            <input type="text" data-quick-name required maxlength="255" class="{{ $inputClass }}" placeholder="mis. Hosting 5GB (SG)">
+            <input type="text" data-quick-name maxlength="255" class="{{ $inputClass }}" placeholder="mis. Hosting 5GB (SG)">
         </div>
         <div>
             <label class="mb-1 block text-sm font-medium">Harga Jual (IDR)</label>
