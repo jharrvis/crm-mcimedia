@@ -21,7 +21,7 @@
     <div class="flex gap-2">
         <a href="{{ route('security.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Dashboard</a>
         <a href="{{ route('security.reports.create', request('client_id') ? ['client_id' => request('client_id')] : []) }}"
-           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Unggah laporan</a>
+           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Unggah laporan</a>
     </div>
 </div>
 
@@ -47,7 +47,7 @@
                     <td class="px-4 py-3 text-slate-500">{{ $report->sent_at?->format('d/m/Y H:i') ?? '—' }}</td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
                         @if ($report->hasFile())
-                            <a href="{{ route('security.reports.download', $report) }}" class="text-sm text-indigo-600 hover:underline">Unduh</a>
+                            <a href="{{ route('security.reports.download', $report) }}" class="text-sm text-brand-600 hover:underline">Unduh</a>
                             <form method="POST" action="{{ route('security.reports.send-to-client', $report) }}" class="inline"
                                   onsubmit="return confirm('Kirim laporan periode {{ $report->period }} ke email kontak klien?')">
                                 @csrf

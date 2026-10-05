@@ -24,7 +24,7 @@
             Lihat akun hasil sync
         </a>
         <a href="{{ route('hestia.servers.create') }}"
-           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
             Tambah server
         </a>
     </div>
@@ -75,7 +75,7 @@
             @forelse ($servers as $server)
                 <tr class="border-t border-slate-100 dark:border-slate-800">
                     <td class="px-4 py-3">
-                        <a href="{{ route('hestia.servers.show', $server) }}" class="font-medium text-indigo-600 hover:underline">
+                        <a href="{{ route('hestia.servers.show', $server) }}" class="font-medium text-brand-600 hover:underline">
                             {{ $server->name }}
                         </a>
                         @if ($server->notes)
@@ -124,13 +124,13 @@
                                     data-sync-start-url="{{ route('hestia.servers.sync.start', $server) }}"
                                     data-sync-batch-url="{{ route('hestia.servers.sync.batch', $server) }}"
                                     data-sync-server="{{ $server->name }}"
-                                    class="text-xs font-semibold text-indigo-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50">
+                                    class="text-xs font-semibold text-brand-600 hover:underline disabled:cursor-not-allowed disabled:opacity-50">
                                 Sinkron
                             </button>
                             <noscript>
                                 <form method="POST" action="{{ route('hestia.servers.sync', $server) }}">
                                     @csrf
-                                    <button class="text-xs font-semibold text-indigo-600 hover:underline">Sinkron</button>
+                                    <button class="text-xs font-semibold text-brand-600 hover:underline">Sinkron</button>
                                 </form>
                             </noscript>
                             <form method="POST" action="{{ route('hestia.servers.test', $server) }}">
@@ -162,6 +162,6 @@
 <p class="mt-4 text-xs text-slate-500">
    Server tak aktif tidak ikut dijadwalkan. Hapus server tidak menghapus akun/layanan —
     data hanya kehilangan sumbernya (akun tetap tersimpan di
-    <a href="{{ route('hestia.index') }}" class="text-indigo-600 hover:underline">daftar akun</a>).
+    <a href="{{ route('hestia.index') }}" class="text-brand-600 hover:underline">daftar akun</a>).
 </p>
 @endsection

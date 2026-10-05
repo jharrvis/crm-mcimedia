@@ -60,7 +60,7 @@
                            data-name="{{ $s->name }}"
                            data-price="{{ $s->price }}"
                            @checked(in_array((int) $s->id, $selectedServices, true))
-                           class="service-check rounded border-slate-300 text-indigo-600">
+                           class="service-check rounded border-slate-300 text-brand-600">
                     <span class="service-label">{{ $s->name }}</span>
                     <span class="ml-auto text-xs tabular-nums text-slate-500">{{ rupiah($s->price) }}</span>
                 </label>
@@ -113,7 +113,7 @@
                     class="rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950">
                 Isi dari layanan dipilih
             </button>
-            <button type="button" id="add-item" class="rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:hover:bg-indigo-950">+ Tambah baris</button>
+            <button type="button" id="add-item" class="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:hover:bg-brand-950">+ Tambah baris</button>
         </div>
     </div>
     @error('items')<p class="mb-2 text-xs text-red-600">{{ $message }}</p>@enderror
@@ -353,7 +353,7 @@
         <p data-quick-error class="hidden text-xs text-red-600"></p>
         <div class="flex justify-end gap-2 pt-1">
             <button type="button" data-role="quick-cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Batal</button>
-            <button type="button" data-role="quick-confirm" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan Produk</button>
+            <button type="button" data-role="quick-confirm" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Simpan Produk</button>
         </div>
     </div>
 </dialog>

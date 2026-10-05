@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('recurring-plans.create') }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Buat paket</a>
+    <a href="{{ route('recurring-plans.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Buat paket</a>
     <span class="text-sm text-slate-500">Invoice terbit otomatis per siklus: bulanan, 3, 6, atau 12 bulan.</span>
 </div>
 
@@ -51,12 +51,12 @@
                 @endphp
                 <tr class="border-t border-slate-100 dark:border-slate-800 {{ $due ? 'bg-amber-50 dark:bg-amber-950/30' : '' }}">
                     <td class="px-4 py-3">
-                        <a href="{{ route('recurring-plans.show', $plan) }}" class="font-medium text-indigo-600 hover:underline">{{ $plan->title }}</a>
+                        <a href="{{ route('recurring-plans.show', $plan) }}" class="font-medium text-brand-600 hover:underline">{{ $plan->title }}</a>
                         @if ($plan->service)
                             <p class="text-xs text-slate-500">{{ $plan->service->name }}</p>
                         @endif
                     </td>
-                    <td class="px-4 py-3"><a href="{{ route('clients.show', $plan->client) }}" class="hover:text-indigo-600">{{ $plan->client?->name ?? '—' }}</a></td>
+                    <td class="px-4 py-3"><a href="{{ route('clients.show', $plan->client) }}" class="hover:text-brand-600">{{ $plan->client?->name ?? '—' }}</a></td>
                     <td class="px-4 py-3">{{ $plan->cycle->label() }}</td>
                     <td class="px-4 py-3">
                         {{ tgl_id($plan->next_invoice_date) }}
@@ -79,14 +79,14 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right">
-                        <a href="{{ route('recurring-plans.show', $plan) }}" class="text-indigo-600 hover:underline">Detail</a>
+                        <a href="{{ route('recurring-plans.show', $plan) }}" class="text-brand-600 hover:underline">Detail</a>
                     </td>
                 </tr>
             @empty
                 <tr>
                     <td colspan="7" class="px-4 py-6 text-center text-sm text-slate-500">
                         Belum ada paket recurring.
-                        <a href="{{ route('recurring-plans.create') }}" class="text-indigo-600 hover:underline">Buat paket pertama</a>
+                        <a href="{{ route('recurring-plans.create') }}" class="text-brand-600 hover:underline">Buat paket pertama</a>
                         agar invoice terbit otomatis per siklus.
                     </td>
                 </tr>

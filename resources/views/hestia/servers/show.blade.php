@@ -9,7 +9,7 @@
 @endphp
 
 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-    <a href="{{ route('hestia.servers.index') }}" class="text-sm text-indigo-600 hover:underline">&larr; Kembali ke daftar server</a>
+    <a href="{{ route('hestia.servers.index') }}" class="text-sm text-brand-600 hover:underline">&larr; Kembali ke daftar server</a>
     <div class="flex items-center gap-2">
         {{-- Sinkron bertahap via AJAX (t_dcccffd9) — fallback tanpa JavaScript
              tetap memakai form POST lama. --}}
@@ -18,13 +18,13 @@
                 data-sync-start-url="{{ route('hestia.servers.sync.start', $server) }}"
                 data-sync-batch-url="{{ route('hestia.servers.sync.batch', $server) }}"
                 data-sync-server="{{ $server->name }}"
-                class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
+                class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
             Sinkronkan server ini
         </button>
         <noscript>
             <form method="POST" action="{{ route('hestia.servers.sync', $server) }}">
                 @csrf
-                <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
                     Sinkronkan server ini
                 </button>
             </form>
@@ -137,7 +137,7 @@
                     <td class="px-4 py-3">{{ $account->hestia_user }}</td>
                     <td class="px-4 py-3">
                         @if ($account->client)
-                            <a href="{{ route('clients.show', $account->client) }}" class="text-indigo-600 hover:underline">{{ $account->client->name }}</a>
+                            <a href="{{ route('clients.show', $account->client) }}" class="text-brand-600 hover:underline">{{ $account->client->name }}</a>
                         @else
                             <span class="text-slate-500">belum dipetakan</span>
                         @endif

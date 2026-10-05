@@ -44,7 +44,7 @@
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="font-bold">Kontak ({{ $client->contacts->count() }})</h2>
                 <a href="{{ route('clients.contacts.create', $client) }}"
-                   class="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">Tambah kontak</a>
+                   class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">Tambah kontak</a>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -59,7 +59,7 @@
                                 <td class="py-2 pr-4">{{ $contact->email ?? '—' }}</td>
                                 <td class="py-2 pr-4">{{ $contact->whatsapp ?? '—' }}</td>
                                 <td class="py-2 text-right">
-                                    <a href="{{ route('clients.contacts.edit', [$client, $contact]) }}" class="text-indigo-600 hover:underline">Ubah</a>
+                                    <a href="{{ route('clients.contacts.edit', [$client, $contact]) }}" class="text-brand-600 hover:underline">Ubah</a>
                                     <form method="POST" action="{{ route('clients.contacts.destroy', [$client, $contact]) }}" class="inline"
                                           onsubmit="return confirm('Hapus kontak ini?')">
                                         @csrf
@@ -89,7 +89,7 @@
                             <tr class="border-t border-slate-100 dark:border-slate-800 {{ $isSub ? 'bg-slate-50/60 dark:bg-slate-950/30' : '' }}">
                                 <td class="py-2 pr-4 {{ $isSub ? 'pl-8' : '' }}">
                                     @if ($isSub)<span class="mr-1 text-slate-400" aria-hidden="true">↳</span>@endif
-                                    <a href="{{ route('services.show', $service) }}" class="font-medium text-indigo-600 hover:underline">{{ $service->name }}</a>
+                                    <a href="{{ route('services.show', $service) }}" class="font-medium text-brand-600 hover:underline">{{ $service->name }}</a>
                                     @if ($service->parent)<p class="text-xs text-slate-400">dari {{ $service->parent->name }}</p>@endif
                                 </td>
                                 <td class="py-2 pr-4">{{ $service->type->label() }}</td>
@@ -114,7 +114,7 @@
                     <tbody>
                         @forelse ($client->projects as $project)
                             <tr class="border-t border-slate-100 dark:border-slate-800">
-                                <td class="py-2 pr-4"><a href="{{ route('projects.show', $project) }}" class="font-medium text-indigo-600 hover:underline">{{ $project->title }}</a></td>
+                                <td class="py-2 pr-4"><a href="{{ route('projects.show', $project) }}" class="font-medium text-brand-600 hover:underline">{{ $project->title }}</a></td>
                                 <td class="py-2 pr-4">{{ $project->status->label() }}</td>
                                 <td class="py-2">{{ tgl_id($project->deadline) }}</td>
                             </tr>

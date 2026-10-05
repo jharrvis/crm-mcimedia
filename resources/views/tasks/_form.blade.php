@@ -79,7 +79,7 @@
         @endif
     </div>
     <div class="flex gap-2 pt-2">
-        <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+        <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
             {{ $isEdit ? 'Simpan perubahan' : 'Tambah tugas' }}
         </button>
         <a href="{{ route('tasks.index') }}"

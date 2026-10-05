@@ -103,7 +103,7 @@ function buildDropdown({ query, canCreate, matches }) {
     let html = '';
     if (canCreate && query.trim() !== '') {
         const label = escapeHtml(query.trim());
-        html += `<button type="button" data-quick-create="${escapeHtmlAttr(query.trim())}" role="option" class="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-indigo-50 dark:border-slate-800 dark:hover:bg-slate-700"><span class="text-indigo-600">+ Tambahkan “</span><span class="font-semibold text-slate-900 dark:text-white">${label}</span><span class="text-indigo-600">” ke stok</span></button>`;
+        html += `<button type="button" data-quick-create="${escapeHtmlAttr(query.trim())}" role="option" class="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-brand-50 dark:border-slate-800 dark:hover:bg-slate-700"><span class="text-brand-600">+ Tambahkan “</span><span class="font-semibold text-slate-900 dark:text-white">${label}</span><span class="text-brand-600">” ke stok</span></button>`;
     }
     if (matches && matches.length) {
         for (const p of matches) {

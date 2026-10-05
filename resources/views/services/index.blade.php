@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('services.create') }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah layanan</a>
+    <a href="{{ route('services.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah layanan</a>
 </div>
 
 <form method="GET" action="{{ route('services.index') }}" class="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-5 dark:border-slate-800 dark:bg-slate-900">
@@ -66,13 +66,13 @@
                 @endphp
                 <tr class="border-t border-slate-100 dark:border-slate-800 {{ $rowClass }}">
                     <td class="px-4 py-3">
-                        <a href="{{ route('clients.show', $service->client) }}" class="hover:text-indigo-600">{{ $service->client?->name ?? '—' }}</a>
+                        <a href="{{ route('clients.show', $service->client) }}" class="hover:text-brand-600">{{ $service->client?->name ?? '—' }}</a>
                     </td>
                     <td class="px-4 py-3 {{ $isSub ? 'pl-10' : '' }}">
                         @if ($isSub)
                             <span class="mr-1 text-slate-400" aria-hidden="true">↳</span>
                         @endif
-                        <a href="{{ route('services.show', $service) }}" class="font-medium text-indigo-600 hover:underline">{{ $service->name }}</a>
+                        <a href="{{ route('services.show', $service) }}" class="font-medium text-brand-600 hover:underline">{{ $service->name }}</a>
                         @if ($service->reference)<p class="text-xs text-slate-500">{{ $service->reference }}</p>@endif
                         @if ($service->parent)
                             <p class="text-xs text-slate-400">Subdomain dari <a href="{{ route('services.show', $service->parent) }}" class="hover:underline">{{ $service->parent->name }}</a></p>
@@ -92,9 +92,9 @@
                         <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $service->status->value === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }}">{{ $service->status->label() }}</span>
                     </td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('services.show', $service) }}" class="text-indigo-600 hover:underline">Detail</a>
+                        <a href="{{ route('services.show', $service) }}" class="text-brand-600 hover:underline">Detail</a>
                         <span class="mx-1 text-slate-300">|</span>
-                        <a href="{{ route('services.edit', $service) }}" class="text-indigo-600 hover:underline">Ubah</a>
+                        <a href="{{ route('services.edit', $service) }}" class="text-brand-600 hover:underline">Ubah</a>
                         <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('services.destroy', $service) }}" class="inline" onsubmit="return confirm('Hapus layanan ini?')">
                             @csrf

@@ -37,11 +37,11 @@
     </form>
     <div class="flex shrink-0 items-center gap-2">
         <div class="rounded-lg border border-slate-300 p-0.5 text-sm dark:border-slate-700">
-            <a href="{{ route('tasks.board', request()->query()) }}" class="px-3 py-1.5 text-slate-600 hover:text-indigo-600 dark:text-slate-300">Papan</a>
-            <span class="rounded-md bg-indigo-600 px-3 py-1.5 font-semibold text-white">Daftar</span>
+            <a href="{{ route('tasks.board', request()->query()) }}" class="px-3 py-1.5 text-slate-600 hover:text-brand-600 dark:text-slate-300">Papan</a>
+            <span class="rounded-md bg-brand-600 px-3 py-1.5 font-semibold text-white">Daftar</span>
         </div>
         <a href="{{ route('tasks.create') }}"
-           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah tugas</a>
+           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah tugas</a>
     </div>
 </div>
 
@@ -58,7 +58,7 @@
                         $prioColor = ['high' => 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300', 'medium' => 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300', 'low' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'][$task->priority->value];
                     @endphp
                     <tr class="border-t border-slate-100 dark:border-slate-800">
-                        <td class="py-2 pr-4"><a href="{{ route('tasks.show', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a></td>
+                        <td class="py-2 pr-4"><a href="{{ route('tasks.show', $task) }}" class="font-medium hover:text-brand-600">{{ $task->title }}</a></td>
                         <td class="py-2 pr-4">{{ $task->client?->name ?? '—' }}</td>
                         <td class="py-2 pr-4">{{ $task->project?->title ?? '—' }}</td>
                         <td class="py-2 pr-4"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $prioColor }}">{{ $task->priority->label() }}</span></td>
@@ -77,7 +77,7 @@
                                 </form>
                             @endif
                             <span class="text-slate-300"> · </span>
-                            <a href="{{ route('tasks.edit', $task) }}" class="text-indigo-600 hover:underline">Ubah</a>
+                            <a href="{{ route('tasks.edit', $task) }}" class="text-brand-600 hover:underline">Ubah</a>
                             <span class="text-slate-300"> · </span>
                             <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="inline" onsubmit="return confirm('Hapus tugas ini?')">
                                 @csrf @method('DELETE')

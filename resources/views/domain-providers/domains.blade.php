@@ -10,7 +10,7 @@
     </div>
     <div class="flex items-center gap-3">
         <a href="{{ route('domain-providers.domains', $provider) }}" class="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700">Muat ulang</a>
-        <a href="{{ route('domain-providers.edit', $provider) }}" class="text-sm text-indigo-600 hover:underline">Ubah provider</a>
+        <a href="{{ route('domain-providers.edit', $provider) }}" class="text-sm text-brand-600 hover:underline">Ubah provider</a>
         <a href="{{ route('domain-providers.index') }}" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Kembali</a>
     </div>
 </div>
@@ -37,7 +37,7 @@
         </select>
     </div>
     <button type="submit" @disabled(! count($clients))
-            class="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50">
+            class="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-500 disabled:cursor-not-allowed disabled:opacity-50">
         Impor jadi layanan
     </button>
     <p class="text-xs text-slate-500 dark:text-slate-400">

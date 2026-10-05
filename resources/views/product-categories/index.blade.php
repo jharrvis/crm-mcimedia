@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('product-categories.create') }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah kategori</a>
+    <a href="{{ route('product-categories.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah kategori</a>
     <a href="{{ route('products.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">← Kembali ke produk</a>
 </div>
 
@@ -29,10 +29,10 @@
                     </td>
                     <td class="px-4 py-3 text-slate-500">{{ $category->description ?? '—' }}</td>
                     <td class="px-4 py-3 text-right">
-                        <a href="{{ route('products.index', ['category_id' => $category->id]) }}" class="text-indigo-600 hover:underline">{{ $category->products_count }} produk</a>
+                        <a href="{{ route('products.index', ['category_id' => $category->id]) }}" class="text-brand-600 hover:underline">{{ $category->products_count }} produk</a>
                     </td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('product-categories.edit', $category) }}" class="text-indigo-600 hover:underline">Ubah</a>
+                        <a href="{{ route('product-categories.edit', $category) }}" class="text-brand-600 hover:underline">Ubah</a>
                         <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('product-categories.destroy', $category) }}" class="inline" onsubmit="return confirm('Hapus kategori ini? Produknya tetap tersimpan tanpa kategori.')">
                             @csrf

@@ -6,7 +6,7 @@
 @php $progress = $project->progressPercent(); @endphp
 
 <div class="mb-4 flex items-center justify-between">
-    <a href="{{ route('projects.index') }}" class="text-sm text-indigo-600 hover:underline">← Kembali ke daftar</a>
+    <a href="{{ route('projects.index') }}" class="text-sm text-brand-600 hover:underline">← Kembali ke daftar</a>
     <div class="flex gap-2">
         <a href="{{ route('projects.reports.index', $project) }}"
            class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Laporan pencapaian</a>
@@ -23,11 +23,11 @@
     <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <h2 class="mb-3 text-lg font-bold">{{ $project->title }}</h2>
         <dl class="space-y-2 text-sm">
-            <div><dt class="text-slate-500">Klien</dt><dd><a href="{{ route('clients.show', $project->client) }}" class="text-indigo-600 hover:underline">{{ $project->client?->name ?? '—' }}</a></dd></div>
+            <div><dt class="text-slate-500">Klien</dt><dd><a href="{{ route('clients.show', $project->client) }}" class="text-brand-600 hover:underline">{{ $project->client?->name ?? '—' }}</a></dd></div>
             <div>
                 <dt class="text-slate-500">Status</dt>
                 <dd>
-                    <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">{{ $project->status->label() }}</span>
+                    <span class="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">{{ $project->status->label() }}</span>
                     @if ($project->isOverdue())
                         <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">Overdue</span>
                     @endif
@@ -39,7 +39,7 @@
                 <dt class="text-slate-500">Progress ({{ $project->doneTasksCount() }}/{{ $project->tasksCount() }} task)</dt>
                 <dd class="mt-1 flex items-center gap-2">
                     <div class="h-2 w-32 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                        <div class="h-full rounded-full {{ $progress === 100 ? 'bg-green-500' : 'bg-indigo-500' }}" style="width: {{ $progress }}%"></div>
+                        <div class="h-full rounded-full {{ $progress === 100 ? 'bg-green-500' : 'bg-brand-500' }}" style="width: {{ $progress }}%"></div>
                     </div>
                     <span class="text-sm font-semibold">{{ $progress }}%</span>
                 </dd>
@@ -55,11 +55,11 @@
         <div class="mt-4 border-t border-slate-100 pt-3 text-sm dark:border-slate-800">
             <div class="mb-2 flex items-center justify-between">
                 <p class="text-slate-500">Laporan pencapaian</p>
-                <a href="{{ route('projects.reports.index', $project) }}" class="text-xs text-indigo-600 hover:underline">Lihat semua</a>
+                <a href="{{ route('projects.reports.index', $project) }}" class="text-xs text-brand-600 hover:underline">Lihat semua</a>
             </div>
             @forelse ($project->achievementReports->take(3) as $report)
                 <p class="text-xs">
-                    <a href="{{ route('projects.reports.show', [$project, $report]) }}" class="text-indigo-600 hover:underline">{{ $report->periodLabel() }}</a>
+                    <a href="{{ route('projects.reports.show', [$project, $report]) }}" class="text-brand-600 hover:underline">{{ $report->periodLabel() }}</a>
                     <span class="text-slate-400">· {{ tgl_id($report->generated_at) }}</span>
                 </p>
             @empty
@@ -74,7 +74,7 @@
                 <h2 class="font-bold">Tugas project ini ({{ $project->tasksCount() }})</h2>
                 <div class="flex gap-2 text-sm">
                     <a href="{{ route('tasks.board', ['project_id' => $project->id]) }}" class="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Papan</a>
-                    <a href="{{ route('tasks.create') }}" class="rounded-lg bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-700">Tambah tugas</a>
+                    <a href="{{ route('tasks.create') }}" class="rounded-lg bg-brand-600 px-3 py-1.5 font-semibold text-white hover:bg-brand-700">Tambah tugas</a>
                 </div>
             </div>
             @if ($project->tasks->isEmpty())
@@ -91,7 +91,7 @@
                                     $prioColor = ['high' => 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300', 'medium' => 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300', 'low' => 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'][$task->priority->value];
                                 @endphp
                                 <tr class="border-t border-slate-100 dark:border-slate-800">
-                                    <td class="py-2 pr-4"><a href="{{ route('tasks.edit', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a></td>
+                                    <td class="py-2 pr-4"><a href="{{ route('tasks.edit', $task) }}" class="font-medium hover:text-brand-600">{{ $task->title }}</a></td>
                                     <td class="py-2 pr-4"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $prioColor }}">{{ $task->priority->label() }}</span></td>
                                     <td class="py-2 pr-4 {{ $task->isOverdue() ? 'font-semibold text-red-600' : '' }}">{{ tgl_id($task->due_date) }}</td>
                                     <td class="py-2 pr-4"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $task->status->badgeClasses() }}">{{ $task->status->label() }}</span></td>
@@ -108,7 +108,7 @@
                                             </form>
                                         @endif
                                         <span class="text-slate-300"> · </span>
-                                        <a href="{{ route('tasks.edit', $task) }}" class="text-indigo-600 hover:underline">Ubah</a>
+                                        <a href="{{ route('tasks.edit', $task) }}" class="text-brand-600 hover:underline">Ubah</a>
                                         <span class="text-slate-300"> · </span>
                                         <form method="POST" action="{{ route('tasks.destroy', $task) }}" class="inline" onsubmit="return confirm('Hapus tugas ini?')">
                                             @csrf @method('DELETE')
@@ -127,7 +127,7 @@
             <div class="mb-3 flex items-center justify-between">
                 <h2 class="font-bold">Jurnal progress ({{ $project->journals->count() }})</h2>
                 <button type="button" data-toggle-journal
-                        class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">Tulis entri</button>
+                        class="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700">Tulis entri</button>
             </div>
 
             <form method="POST" action="{{ route('projects.journals.store', $project) }}"
@@ -154,7 +154,7 @@
                 <textarea name="body" rows="3" required placeholder="Update apa yang sudah dikerjakan…"
                           class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">{{ old('body') }}</textarea>
                 <div class="flex gap-2">
-                    <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan entri</button>
+                    <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Simpan entri</button>
                 </div>
                 </div>
             </form>
@@ -174,7 +174,7 @@
                             <p class="mt-1 whitespace-pre-line text-sm">{{ $journal->body }}</p>
                             <div class="mt-1 flex gap-2 text-xs">
                                 <details class="inline">
-                                    <summary class="cursor-pointer text-indigo-600 hover:underline">Ubah</summary>
+                                    <summary class="cursor-pointer text-brand-600 hover:underline">Ubah</summary>
                                     <form method="POST" action="{{ route('projects.journals.update', [$project, $journal]) }}"
                                           class="mt-2 grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
                                         @csrf @method('PATCH')
@@ -189,7 +189,7 @@
                                         </div>
                                         <textarea name="body" rows="2" required
                                                   class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">{{ $journal->body }}</textarea>
-                                        <button class="justify-self-start rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">Simpan</button>
+                                        <button class="justify-self-start rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">Simpan</button>
                                     </form>
                                 </details>
                                 <form method="POST" action="{{ route('projects.journals.destroy', [$project, $journal]) }}" class="inline"

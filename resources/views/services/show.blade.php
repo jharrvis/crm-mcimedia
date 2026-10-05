@@ -5,7 +5,7 @@
 @section('content')
 <div class="max-w-3xl rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
     <div class="mb-4 flex flex-wrap gap-2">
-        <a href="{{ route('services.edit', $service) }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Ubah</a>
+        <a href="{{ route('services.edit', $service) }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Ubah</a>
         <form method="POST" action="{{ route('services.destroy', $service) }}" onsubmit="return confirm('Hapus layanan ini?')">
             @csrf
             @method('DELETE')
@@ -15,14 +15,14 @@
     </div>
 
     <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-        <div><dt class="text-slate-500">Klien</dt><dd class="font-medium"><a href="{{ route('clients.show', $service->client) }}" class="text-indigo-600 hover:underline">{{ $service->client?->name ?? '—' }}</a></dd></div>
+        <div><dt class="text-slate-500">Klien</dt><dd class="font-medium"><a href="{{ route('clients.show', $service->client) }}" class="text-brand-600 hover:underline">{{ $service->client?->name ?? '—' }}</a></dd></div>
         <div><dt class="text-slate-500">Jenis</dt><dd class="font-medium">{{ $service->type->label() }}</dd></div>
         <div><dt class="text-slate-500">Nama layanan</dt><dd class="font-medium">{{ $service->name }}</dd></div>
         <div>
             <dt class="text-slate-500">Domain induk</dt>
             <dd class="font-medium">
                 @if ($service->parent)
-                    <a href="{{ route('services.show', $service->parent) }}" class="text-indigo-600 hover:underline">{{ $service->parent->name }}</a>
+                    <a href="{{ route('services.show', $service->parent) }}" class="text-brand-600 hover:underline">{{ $service->parent->name }}</a>
                     <span class="text-xs text-slate-500">(subdomain)</span>
                 @else
                     —
@@ -64,7 +64,7 @@
                         <tr class="border-t border-slate-100 dark:border-slate-800">
                             <td class="py-2 pr-4">
                                 <span class="mr-1 text-slate-400" aria-hidden="true">↳</span>
-                                <a href="{{ route('services.show', $child) }}" class="font-medium text-indigo-600 hover:underline">{{ $child->name }}</a>
+                                <a href="{{ route('services.show', $child) }}" class="font-medium text-brand-600 hover:underline">{{ $child->name }}</a>
                             </td>
                             <td class="py-2 pr-4 text-slate-500">{{ $child->reference ?? '—' }}</td>
                             <td class="py-2 pr-4">{{ tgl_id($child->end_date) }}</td>

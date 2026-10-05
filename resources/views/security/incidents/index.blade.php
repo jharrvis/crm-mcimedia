@@ -46,7 +46,7 @@
     <div class="flex gap-2">
         <a href="{{ route('security.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Dashboard</a>
         <a href="{{ route('security.incidents.create', request('client_id') ? ['client_id' => request('client_id')] : []) }}"
-           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Catat insiden</a>
+           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Catat insiden</a>
     </div>
 </div>
 
@@ -174,7 +174,7 @@
                 </td>
                 <td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-xs font-medium ${incident.status?.badgeClass ?? ''}">${incident.status?.label ?? incident.status}</span></td>
                 <td class="px-4 py-3 text-right whitespace-nowrap">
-                    <a href="${incident.edit_url ?? '/security/incidents/' + incident.id + '/edit'}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
+                    <a href="${incident.edit_url ?? '/security/incidents/' + incident.id + '/edit'}" class="text-sm text-brand-600 hover:underline">Ubah</a>
                     <form method="POST" action="${incident.destroy_url ?? '/security/incidents/' + incident.id}" class="inline" onsubmit="return confirm('Hapus insiden ini?')">
                         <input type="hidden" name="_token" value="${document.querySelector('meta[name=csrf-token]')?.content ?? ''}">
                         <input type="hidden" name="_method" value="DELETE">
@@ -191,7 +191,7 @@
         let html = '<nav aria-label="Pagination" class="flex justify-center"><ul class="flex items-center gap-1">';
         for (let i = 1; i <= data.last_page; i++) {
             if (i === data.current_page) {
-                html += `<li><span class="px-3 py-1 text-sm font-medium bg-indigo-600 text-white rounded">${i}</span></li>`;
+                html += `<li><span class="px-3 py-1 text-sm font-medium bg-brand-600 text-white rounded">${i}</span></li>`;
             } else {
                 html += `<li><a href="?page=${i}${buildFilterParams() ? '&' + buildFilterParams() : ''}" class="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">${i}</a></li>`;
             }

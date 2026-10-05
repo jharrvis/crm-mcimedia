@@ -10,7 +10,7 @@
         <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Cari</button>
     </form>
     <a href="{{ route('users.create') }}"
-       class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah pengguna</a>
+       class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah pengguna</a>
 </div>
 
 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -37,11 +37,11 @@
                         @if ($user->role)
                             <span class="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ $user->role->label }}</span>
                         @else
-                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">Administrator (tanpa role)</span>
+                            <span class="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">Administrator (tanpa role)</span>
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right">
-                        <a href="{{ route('users.edit', $user) }}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
+                        <a href="{{ route('users.edit', $user) }}" class="text-sm text-brand-600 hover:underline">Ubah</a>
                         @unless ($user->is(auth()->user()))
                             <form method="POST" action="{{ route('users.destroy', $user) }}" class="inline"
                                   onsubmit="return confirm('Hapus pengguna {{ $user->name }}?')">

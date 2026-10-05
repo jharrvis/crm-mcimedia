@@ -16,8 +16,8 @@
                 <tbody>
                     @foreach ($overdue as $s)
                         <tr class="border-t border-slate-100 dark:border-slate-800">
-                            <td class="py-2 pr-4"><a href="{{ route('clients.show', $s->client) }}" class="hover:text-indigo-600">{{ $s->client?->name ?? '—' }}</a></td>
-                            <td class="py-2 pr-4"><a href="{{ route('services.show', $s) }}" class="font-medium text-indigo-600 hover:underline">{{ $s->name }}</a></td>
+                            <td class="py-2 pr-4"><a href="{{ route('clients.show', $s->client) }}" class="hover:text-brand-600">{{ $s->client?->name ?? '—' }}</a></td>
+                            <td class="py-2 pr-4"><a href="{{ route('services.show', $s) }}" class="font-medium text-brand-600 hover:underline">{{ $s->name }}</a></td>
                             <td class="py-2 pr-4">{{ $s->type->label() }}</td>
                             <td class="py-2 pr-4">{{ tgl_id($s->end_date) }}</td>
                             <td class="py-2 pr-4 font-semibold text-red-600">{{ abs($s->daysUntilEnd()) }} hari</td>
@@ -43,8 +43,8 @@
                 <tbody>
                     @foreach ($expiring as $s)
                         <tr class="border-t border-slate-100 dark:border-slate-800">
-                            <td class="py-2 pr-4"><a href="{{ route('clients.show', $s->client) }}" class="hover:text-indigo-600">{{ $s->client?->name ?? '—' }}</a></td>
-                            <td class="py-2 pr-4"><a href="{{ route('services.show', $s) }}" class="font-medium text-indigo-600 hover:underline">{{ $s->name }}</a></td>
+                            <td class="py-2 pr-4"><a href="{{ route('clients.show', $s->client) }}" class="hover:text-brand-600">{{ $s->client?->name ?? '—' }}</a></td>
+                            <td class="py-2 pr-4"><a href="{{ route('services.show', $s) }}" class="font-medium text-brand-600 hover:underline">{{ $s->name }}</a></td>
                             <td class="py-2 pr-4">{{ $s->type->label() }}</td>
                             <td class="py-2 pr-4">{{ tgl_id($s->end_date) }}</td>
                             <td class="py-2 pr-4 font-semibold text-amber-600">{{ $s->daysUntilEnd() }} hari</td>

@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-    <a href="{{ route('projects.reports.index', $project) }}" class="text-sm text-indigo-600 hover:underline">← Kembali ke daftar laporan</a>
+    <a href="{{ route('projects.reports.index', $project) }}" class="text-sm text-brand-600 hover:underline">← Kembali ke daftar laporan</a>
     <div class="flex gap-2">
         <a href="{{ route('projects.reports.pdf', [$project, $report]) }}"
-           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Unduh PDF</a>
+           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Unduh PDF</a>
         <form method="POST" action="{{ route('projects.reports.destroy', [$project, $report]) }}" onsubmit="return confirm('Hapus laporan ini?')">
             @csrf @method('DELETE')
             <button class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Hapus</button>

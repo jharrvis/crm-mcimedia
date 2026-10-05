@@ -6,7 +6,7 @@
 <div class="mb-4 flex items-center justify-between">
     <p class="text-sm text-slate-500">Atur role dan hak akses per modul untuk setiap pengguna.</p>
     <a href="{{ route('roles.create') }}"
-       class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah role</a>
+       class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah role</a>
 </div>
 
 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -28,7 +28,7 @@
                     </td>
                     <td class="px-4 py-3">
                         @if ($role->is_admin)
-                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">Administrator — semua modul</span>
+                            <span class="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">Administrator — semua modul</span>
                         @else
                             @php $map = $role->permissionMap(); @endphp
                             @foreach (\App\Domains\Access\Enums\Module::cases() as $module)
@@ -45,7 +45,7 @@
                     </td>
                     <td class="px-4 py-3 text-center">{{ $role->users_count }}</td>
                     <td class="px-4 py-3 text-right">
-                        <a href="{{ route('roles.edit', $role) }}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
+                        <a href="{{ route('roles.edit', $role) }}" class="text-sm text-brand-600 hover:underline">Ubah</a>
                         @unless ($role->is_admin)
                             <form method="POST" action="{{ route('roles.destroy', $role) }}" class="inline"
                                   onsubmit="return confirm('Hapus role {{ $role->label }}?')">

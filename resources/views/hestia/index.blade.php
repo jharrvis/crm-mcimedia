@@ -44,7 +44,7 @@
 <div class="mb-4 flex flex-wrap items-center gap-2">
     <form method="POST" action="{{ route('hestia.sync') }}">
         @csrf
-        <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+        <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
             Sinkronkan semua server
         </button>
     </form>
@@ -252,14 +252,14 @@
                     </td>
                     <td class="px-4 py-3">
                         @if ($account->client)
-                            <a href="{{ route('clients.show', $account->client) }}" class="text-indigo-600 hover:underline">{{ $account->client->name }}</a>
+                            <a href="{{ route('clients.show', $account->client) }}" class="text-brand-600 hover:underline">{{ $account->client->name }}</a>
                         @else
                             —
                         @endif
                     </td>
                     <td class="px-4 py-3">
                         @if ($account->service)
-                            <a href="{{ route('services.show', $account->service) }}" class="text-indigo-600 hover:underline">{{ $account->service->name }}</a>
+                            <a href="{{ route('services.show', $account->service) }}" class="text-brand-600 hover:underline">{{ $account->service->name }}</a>
                         @else
                             —
                         @endif

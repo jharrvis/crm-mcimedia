@@ -52,7 +52,7 @@
     </div>
 
     <div class="flex items-center gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
-        <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">{{ $submitLabel ?? 'Simpan' }}</button>
+        <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">{{ $submitLabel ?? 'Simpan' }}</button>
         <a href="{{ route('domain-providers.index') }}" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Batal</a>
     </div>
 </form>

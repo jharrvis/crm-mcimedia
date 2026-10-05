@@ -12,7 +12,7 @@
         </td>
         <td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $incident->status->badgeClass() }}">{{ $incident->status->label() }}</span></td>
         <td class="px-4 py-3 text-right whitespace-nowrap">
-            <a href="{{ route('security.incidents.edit', $incident) }}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
+            <a href="{{ route('security.incidents.edit', $incident) }}" class="text-sm text-brand-600 hover:underline">Ubah</a>
             <form method="POST" action="{{ route('security.incidents.destroy', $incident) }}" class="inline"
                   onsubmit="return confirm('Hapus insiden ini?')">
                 @csrf

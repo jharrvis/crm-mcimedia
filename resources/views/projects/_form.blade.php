@@ -52,7 +52,7 @@
         </div>
     </div>
     <div class="flex gap-2 pt-2">
-        <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+        <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
             {{ $project ? 'Simpan perubahan' : 'Tambah project' }}
         </button>
         <a href="{{ $project ? route('projects.show', $project) : route('projects.index') }}"

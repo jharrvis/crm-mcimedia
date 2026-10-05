@@ -30,7 +30,7 @@
         @error('file')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
     <div class="flex gap-2 pt-2">
-        <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Unggah</button>
+        <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Unggah</button>
         <a href="{{ route('security.reports.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Batal</a>
     </div>
 </form>

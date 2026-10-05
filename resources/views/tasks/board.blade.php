@@ -32,11 +32,11 @@
     </form>
     <div class="flex shrink-0 items-center gap-2">
         <div class="rounded-lg border border-slate-300 p-0.5 text-sm dark:border-slate-700">
-            <span class="rounded-md bg-indigo-600 px-3 py-1.5 font-semibold text-white">Papan</span>
-            <a href="{{ route('tasks.index', request()->query()) }}" class="px-3 py-1.5 text-slate-600 hover:text-indigo-600 dark:text-slate-300">Daftar</a>
+            <span class="rounded-md bg-brand-600 px-3 py-1.5 font-semibold text-white">Papan</span>
+            <a href="{{ route('tasks.index', request()->query()) }}" class="px-3 py-1.5 text-slate-600 hover:text-brand-600 dark:text-slate-300">Daftar</a>
         </div>
         <a href="{{ route('tasks.create') }}"
-           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah tugas</a>
+           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah tugas</a>
     </div>
 </div>
 
@@ -50,7 +50,7 @@
                  data-column="{{ $column['status']->value }}">
             <header class="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                 <div class="flex items-center gap-2">
-                    <span class="h-2.5 w-2.5 rounded-full {{ ['open' => 'bg-slate-400', 'in_progress' => 'bg-amber-500', 'review' => 'bg-indigo-500', 'done' => 'bg-green-500'][$column['status']->value] }}"></span>
+                    <span class="h-2.5 w-2.5 rounded-full {{ ['open' => 'bg-slate-400', 'in_progress' => 'bg-amber-500', 'review' => 'bg-brand-500', 'done' => 'bg-green-500'][$column['status']->value] }}"></span>
                     <h2 class="text-sm font-bold">{{ $column['status']->label() }}</h2>
                 </div>
                 <span data-count class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $column['count'] }}</span>
@@ -64,12 +64,12 @@
                     <article draggable="true" data-task-id="{{ $task->id }}"
                              class="cursor-grab rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm shadow-sm active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800">
                         <div class="flex items-start justify-between gap-2">
-                            <a href="{{ route('tasks.show', $task) }}" class="font-medium hover:text-indigo-600">{{ $task->title }}</a>
+                            <a href="{{ route('tasks.show', $task) }}" class="font-medium hover:text-brand-600">{{ $task->title }}</a>
                             <span class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium {{ $prioColor }}">{{ $task->priority->label() }}</span>
                         </div>
                         <p class="mt-1 text-xs text-slate-500">
                             {{ $task->client?->name ?? '—' }}
-                            @if ($task->project) · <a href="{{ route('projects.show', $task->project) }}" class="hover:text-indigo-600">{{ $task->project->title }}</a> @endif
+                            @if ($task->project) · <a href="{{ route('projects.show', $task->project) }}" class="hover:text-brand-600">{{ $task->project->title }}</a> @endif
                         </p>
                         <p class="mt-1 text-xs {{ $task->isOverdue() ? 'font-semibold text-red-600' : 'text-slate-500' }}">
                             Due: {{ tgl_id($task->due_date) }}

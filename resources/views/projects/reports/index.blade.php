@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mb-4 flex items-center justify-between">
-    <a href="{{ route('projects.show', $project) }}" class="text-sm text-indigo-600 hover:underline">← Kembali ke project</a>
+    <a href="{{ route('projects.show', $project) }}" class="text-sm text-brand-600 hover:underline">← Kembali ke project</a>
     <span class="text-sm text-slate-500">{{ $project->client?->name ?? '—' }}</span>
 </div>
 
@@ -44,7 +44,7 @@
                 <textarea name="narrative" rows="4" maxlength="5000" placeholder="Narasi manual untuk laporan ini…"
                           class="rounded-lg border border-slate-300 px-3 py-2 dark:border-slate-700 dark:bg-slate-800">{{ old('narrative') }}</textarea>
             </label>
-            <button class="rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">Buat laporan</button>
+            <button class="rounded-lg bg-brand-600 px-4 py-2 font-semibold text-white hover:bg-brand-700">Buat laporan</button>
         </form>
     </div>
 
@@ -62,15 +62,15 @@
                         @foreach ($reports as $report)
                             <tr class="border-t border-slate-100 dark:border-slate-800">
                                 <td class="py-2 pr-4">
-                                    <a href="{{ route('projects.reports.show', [$project, $report]) }}" class="font-medium text-indigo-600 hover:underline">{{ $report->periodLabel() }}</a>
+                                    <a href="{{ route('projects.reports.show', [$project, $report]) }}" class="font-medium text-brand-600 hover:underline">{{ $report->periodLabel() }}</a>
                                     @if ($report->narrative)<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">ada narasi</span>@endif
                                 </td>
                                 <td class="py-2 pr-4 text-slate-500">{{ tgl_id($report->generated_at ?? $report->created_at) }}</td>
                                 <td class="py-2 pr-4 text-slate-500">{{ $report->author?->name ?? 'Sistem' }}</td>
                                 <td class="whitespace-nowrap py-2">
-                                    <a href="{{ route('projects.reports.show', [$project, $report]) }}" class="text-indigo-600 hover:underline">Lihat</a>
+                                    <a href="{{ route('projects.reports.show', [$project, $report]) }}" class="text-brand-600 hover:underline">Lihat</a>
                                     <span class="text-slate-300"> · </span>
-                                    <a href="{{ route('projects.reports.pdf', [$project, $report]) }}" class="text-indigo-600 hover:underline">Unduh PDF</a>
+                                    <a href="{{ route('projects.reports.pdf', [$project, $report]) }}" class="text-brand-600 hover:underline">Unduh PDF</a>
                                     <span class="text-slate-300"> · </span>
                                     <form method="POST" action="{{ route('projects.reports.destroy', [$project, $report]) }}" class="inline"
                                           onsubmit="return confirm('Hapus laporan ini?')">

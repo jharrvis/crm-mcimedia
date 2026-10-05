@@ -21,7 +21,7 @@
     <div class="flex gap-2">
         <a href="{{ route('security.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Dashboard</a>
         <a href="{{ route('security.actions.create', request('client_id') ? ['client_id' => request('client_id')] : []) }}"
-           class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Catat tindakan</a>
+           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Catat tindakan</a>
     </div>
 </div>
 
@@ -46,7 +46,7 @@
                     <td class="px-4 py-3">{{ $action->performed_by ?? '—' }}</td>
                     <td class="px-4 py-3 max-w-md text-slate-500">{{ $action->result ? \Illuminate\Support\Str::limit($action->result, 120) : '—' }}</td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('security.actions.edit', $action) }}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
+                        <a href="{{ route('security.actions.edit', $action) }}" class="text-sm text-brand-600 hover:underline">Ubah</a>
                         <form method="POST" action="{{ route('security.actions.destroy', $action) }}" class="inline"
                               onsubmit="return confirm('Hapus catatan tindakan ini?')">
                             @csrf

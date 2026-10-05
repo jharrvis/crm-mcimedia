@@ -13,7 +13,7 @@
     <a href="{{ route('security.actions.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Jurnal tindakan</a>
     <a href="{{ route('security.reports.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Laporan</a>
     <a href="{{ route('security.monitoring.dashboard') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Monitoring Dashboard</a>
-    <a href="{{ route('security.incidents.create') }}" class="ml-auto rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Catat insiden</a>
+    <a href="{{ route('security.incidents.create') }}" class="ml-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Catat insiden</a>
 </div>
 
 <p class="mb-4 text-sm text-slate-500">
@@ -37,7 +37,7 @@
                 @php $counts = $openByClient[$client->id] ?? []; @endphp
                 <tr class="border-t border-slate-100 align-top dark:border-slate-800">
                     <td class="px-4 py-3">
-                        <a href="{{ route('security.incidents.index', ['client_id' => $client->id]) }}" class="font-medium text-indigo-600 hover:underline">{{ $client->name }}</a>
+                        <a href="{{ route('security.incidents.index', ['client_id' => $client->id]) }}" class="font-medium text-brand-600 hover:underline">{{ $client->name }}</a>
                     </td>
                     <td class="px-4 py-3">
                         @if ($totalOpen($counts) === 0)
@@ -56,7 +56,7 @@
                     </td>
                     <td class="px-4 py-3">{{ $actionsThisMonth[$client->id] ?? 0 }}</td>
                     <td class="px-4 py-3">
-                        <a href="{{ route('security.reports.index', ['client_id' => $client->id]) }}" class="text-indigo-600 hover:underline">
+                        <a href="{{ route('security.reports.index', ['client_id' => $client->id]) }}" class="text-brand-600 hover:underline">
                             {{ $reportCounts[$client->id] ?? 0 }} laporan
                         </a>
                     </td>

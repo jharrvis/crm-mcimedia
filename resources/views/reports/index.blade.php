@@ -38,11 +38,11 @@
             </thead>
             <tbody>
                 @foreach ($monthlyIncome as $row)
-                    <tr class="border-t border-slate-100 dark:border-slate-800 {{ $row['is_current'] ? 'bg-indigo-50 font-semibold dark:bg-indigo-950/40' : '' }}">
+                    <tr class="border-t border-slate-100 dark:border-slate-800 {{ $row['is_current'] ? 'bg-brand-50 font-semibold dark:bg-brand-950/40' : '' }}">
                         <td class="px-4 py-3">
                             {{ $row['label'] }}
                             @if ($row['is_current'])
-                                <span class="ml-1 rounded-full bg-indigo-600 px-2 py-0.5 text-[11px] font-bold text-white">bulan ini</span>
+                                <span class="ml-1 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">bulan ini</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">{{ rupiah($row['total']) }}</td>
@@ -75,7 +75,7 @@
                         @php $invoice = $row['invoice']; @endphp
                         <tr class="border-t border-slate-100 dark:border-slate-800 {{ $row['is_overdue'] ? 'bg-red-50 dark:bg-red-950/40' : '' }}">
                             <td class="px-4 py-3">
-                                <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-indigo-600 hover:underline">{{ $invoice->number }}</a>
+                                <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-brand-600 hover:underline">{{ $invoice->number }}</a>
                                 @if ($invoice->title)<p class="text-xs text-slate-500">{{ $invoice->title }}</p>@endif
                             </td>
                             <td class="px-4 py-3">{{ $invoice->client?->name ?? '—' }}</td>
@@ -117,7 +117,7 @@
                         <tr class="border-t border-slate-100 dark:border-slate-800">
                             <td class="px-4 py-3">
                                 @if ($summary->client)
-                                    <a href="{{ route('clients.show', $summary->client) }}" class="font-medium text-indigo-600 hover:underline">{{ $summary->client->name }}</a>
+                                    <a href="{{ route('clients.show', $summary->client) }}" class="font-medium text-brand-600 hover:underline">{{ $summary->client->name }}</a>
                                 @else
                                     —
                                 @endif

@@ -32,7 +32,7 @@
             <form method="POST" action="{{ route('invoices.send', $invoice) }}" class="inline">
                 @csrf
                 @method('PATCH')
-                <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tandai terkirim</button>
+                <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tandai terkirim</button>
             </form>
             <a href="{{ route('invoices.edit', $invoice) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Ubah</a>
 
@@ -64,7 +64,7 @@
             @if (filled($emailTarget))
                 <form method="POST" action="{{ route('invoices.send-email', $invoice) }}" class="inline">
                     @csrf
-                    <button class="rounded-lg border border-indigo-300 px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950">Kirim Email</button>
+                    <button class="rounded-lg border border-brand-300 px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 dark:border-brand-800 dark:hover:bg-brand-950">Kirim Email</button>
                 </form>
             @else
                 <button type="button" disabled title="Klien belum punya alamat email"
@@ -143,14 +143,14 @@
                 {{-- F4-11: badge invoice recurring + periode yang ditagih --}}
                 @if ($invoice->isRecurring())
                     <p class="mt-1 text-xs text-slate-500">
-                        <span class="rounded-full bg-indigo-100 px-2 py-0.5 font-semibold text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200">
+                        <span class="rounded-full bg-brand-100 px-2 py-0.5 font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-200">
                             Recurring · {{ $invoice->recurring_cycle?->label() ?? '—' }}
                         </span>
                         @if ($invoice->period_start)
                             <span class="ml-1">periode {{ tgl_id($invoice->period_start) }} – {{ tgl_id($invoice->period_end) }}</span>
                         @endif
                         @if ($invoice->recurringPlan)
-                            · <a href="{{ route('recurring-plans.show', $invoice->recurringPlan) }}" class="text-indigo-600 hover:underline">{{ $invoice->recurringPlan->title }}</a>
+                            · <a href="{{ route('recurring-plans.show', $invoice->recurringPlan) }}" class="text-brand-600 hover:underline">{{ $invoice->recurringPlan->title }}</a>
                         @else
                             · <span class="text-slate-400">(paket sudah dihapus)</span>
                         @endif
@@ -161,12 +161,12 @@
         </div>
 
         <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-            <div><dt class="text-slate-500">Klien</dt><dd class="font-medium"><a href="{{ route('clients.show', $invoice->client) }}" class="text-indigo-600 hover:underline">{{ $invoice->client?->name ?? '—' }}</a></dd></div>
+            <div><dt class="text-slate-500">Klien</dt><dd class="font-medium"><a href="{{ route('clients.show', $invoice->client) }}" class="text-brand-600 hover:underline">{{ $invoice->client?->name ?? '—' }}</a></dd></div>
             <div class="sm:col-span-2">
                 <dt class="text-slate-500">Layanan terkait ({{ $invoice->services->count() }})</dt>
                 <dd class="font-medium">
                     @forelse ($invoice->services as $service)
-                        <a href="{{ route('services.show', $service) }}" class="text-indigo-600 hover:underline">{{ $service->name }}</a>@if (! $loop->last), @endif
+                        <a href="{{ route('services.show', $service) }}" class="text-brand-600 hover:underline">{{ $service->name }}</a>@if (! $loop->last), @endif
                     @empty
                         —
                     @endforelse
@@ -229,7 +229,7 @@
                     @foreach ($invoice->terminInvoices as $termin)
                         <tr class="border-t border-slate-100 dark:border-slate-800">
                             <td class="px-4 py-3">
-                                <a href="{{ route('invoices.show', $termin) }}" class="font-medium text-indigo-600 hover:underline">{{ $termin->number }}</a>
+                                <a href="{{ route('invoices.show', $termin) }}" class="font-medium text-brand-600 hover:underline">{{ $termin->number }}</a>
                             </td>
                             <td class="px-4 py-3 text-center tabular-nums">{{ rtrim(rtrim(number_format((float) $termin->termin_percent, 2, '.', ''), '0'), '.') }}%</td>
                             <td class="px-4 py-3">
@@ -261,12 +261,12 @@
         <h2 class="mb-4 text-sm font-semibold uppercase text-slate-500">Timeline</h2>
         <ol class="space-y-3 text-sm">
             <li class="flex items-center gap-3">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">✓</span>
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">✓</span>
                 <span>Dibuat <span class="text-slate-500">({{ $invoice->created_at?->format('d/m/Y H:i') ?? '—' }})</span></span>
             </li>
             <li class="flex items-center gap-3">
                 @if ($invoice->sent_at)
-                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">✓</span>
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">✓</span>
                     <span>Dikirim <span class="text-slate-500">({{ $invoice->sent_at->format('d/m/Y H:i') }})</span></span>
                 @else
                     <span class="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-xs text-slate-400 dark:border-slate-600">·</span>
@@ -344,7 +344,7 @@
                     <input id="public-link" type="text" readonly value="{{ route('invoices.public.show', ['token' => $invoice->public_token]) }}"
                            class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2 text-xs dark:border-slate-700 dark:bg-slate-800">
                     <button type="button" id="copy-public-link"
-                            class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Salin tautan bayar</button>
+                            class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Salin tautan bayar</button>
                     <form method="POST" action="{{ route('invoices.payment-link.revoke', $invoice) }}" class="inline" onsubmit="return confirm('Cabut tautan pembayaran invoice {{ $invoice->number }}? Tautan lama tidak akan bisa diakses lagi.')">
                         @csrf
                         @method('DELETE')
@@ -355,7 +355,7 @@
                 <p class="mb-3 text-sm text-slate-500">Klien belum punya tautan pembayaran. Buat tautan baru bila diperlukan.</p>
                 <form method="POST" action="{{ route('invoices.payment-link.generate', $invoice) }}" class="inline">
                     @csrf
-                    <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Buat tautan bayar</button>
+                    <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Buat tautan bayar</button>
                 </form>
             @endif
         </div>

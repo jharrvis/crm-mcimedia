@@ -34,7 +34,7 @@
                     <dt class="text-xs uppercase text-slate-500">Klien</dt>
                     <dd>
                         @if ($task->client)
-                            <a href="{{ route('clients.show', $task->client) }}" class="text-indigo-600 hover:underline">{{ $task->client->name }}</a>
+                            <a href="{{ route('clients.show', $task->client) }}" class="text-brand-600 hover:underline">{{ $task->client->name }}</a>
                         @else
                             —
                         @endif
@@ -44,7 +44,7 @@
                     <dt class="text-xs uppercase text-slate-500">Project</dt>
                     <dd>
                         @if ($task->project)
-                            <a href="{{ route('projects.show', $task->project) }}" class="text-indigo-600 hover:underline">{{ $task->project->title }}</a>
+                            <a href="{{ route('projects.show', $task->project) }}" class="text-brand-600 hover:underline">{{ $task->project->title }}</a>
                         @else
                             —
                         @endif

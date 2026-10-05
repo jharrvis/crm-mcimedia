@@ -56,7 +56,7 @@
         <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 class="text-sm font-semibold">Rencana termin <span class="text-red-600">*</span></h2>
             <button type="button" id="add-term"
-                    class="rounded-lg border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:border-indigo-700 dark:hover:bg-indigo-950">
+                    class="rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 dark:border-brand-700 dark:hover:bg-brand-950">
                 + Tambah termin
             </button>
         </div>
@@ -120,7 +120,7 @@
         </p>
 
         <div class="mt-4 flex gap-2">
-            <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+            <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
                 Buat {{ count($rows) }} termin
             </button>
             <a href="{{ route('invoices.show', $invoice) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Batal</a>

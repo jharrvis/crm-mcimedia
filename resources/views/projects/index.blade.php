@@ -25,7 +25,7 @@
         @endif
     </form>
     <a href="{{ route('projects.create') }}"
-       class="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah project</a>
+       class="shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah project</a>
 </div>
 
 <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
@@ -40,10 +40,10 @@
                 @forelse ($projects as $project)
                     @php $progress = $project->progressPercent(); @endphp
                     <tr class="border-t border-slate-100 dark:border-slate-800">
-                        <td class="py-2 pr-4"><a href="{{ route('projects.show', $project) }}" class="font-medium text-indigo-600 hover:underline">{{ $project->title }}</a></td>
-                        <td class="py-2 pr-4"><a href="{{ route('clients.show', $project->client) }}" class="hover:text-indigo-600">{{ $project->client?->name ?? '—' }}</a></td>
+                        <td class="py-2 pr-4"><a href="{{ route('projects.show', $project) }}" class="font-medium text-brand-600 hover:underline">{{ $project->title }}</a></td>
+                        <td class="py-2 pr-4"><a href="{{ route('clients.show', $project->client) }}" class="hover:text-brand-600">{{ $project->client?->name ?? '—' }}</a></td>
                         <td class="py-2 pr-4">
-                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">{{ $project->status->label() }}</span>
+                            <span class="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300">{{ $project->status->label() }}</span>
                             @if ($project->isOverdue())
                                 <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">Overdue</span>
                             @endif
@@ -51,7 +51,7 @@
                         <td class="py-2 pr-4">
                             <div class="flex items-center gap-2">
                                 <div class="h-1.5 w-20 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-                                    <div class="h-full rounded-full {{ $progress === 100 ? 'bg-green-500' : 'bg-indigo-500' }}" style="width: {{ $progress }}%"></div>
+                                    <div class="h-full rounded-full {{ $progress === 100 ? 'bg-green-500' : 'bg-brand-500' }}" style="width: {{ $progress }}%"></div>
                                 </div>
                                 <span class="text-xs text-slate-500">{{ $progress }}%</span>
                                 <span class="text-xs text-slate-400">({{ $project->doneTasksCount() }}/{{ $project->tasksCount() }})</span>
@@ -60,7 +60,7 @@
                         <td class="py-2 pr-4 {{ $project->isOverdue() ? 'font-semibold text-red-600' : '' }}">{{ tgl_id($project->deadline) }}</td>
                         <td class="py-2 pr-4 text-right">{{ rupiah($project->value) }}</td>
                         <td class="whitespace-nowrap py-2">
-                            <a href="{{ route('projects.edit', $project) }}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
+                            <a href="{{ route('projects.edit', $project) }}" class="text-sm text-brand-600 hover:underline">Ubah</a>
                             <span class="text-slate-300"> · </span>
                             <form method="POST" action="{{ route('projects.destroy', $project) }}" class="inline" onsubmit="return confirm('Hapus project ini?')">
                                 @csrf @method('DELETE')

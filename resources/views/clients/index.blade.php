@@ -10,7 +10,7 @@
         <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Cari</button>
     </form>
     <a href="{{ route('clients.create') }}"
-       class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah klien</a>
+       class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah klien</a>
 </div>
 
 <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -28,7 +28,7 @@
             @forelse ($clients as $client)
                 <tr class="border-t border-slate-100 dark:border-slate-800">
                     <td class="px-4 py-3">
-                        <a href="{{ route('clients.show', $client) }}" class="font-medium text-indigo-600 hover:underline">{{ $client->name }}</a>
+                        <a href="{{ route('clients.show', $client) }}" class="font-medium text-brand-600 hover:underline">{{ $client->name }}</a>
                     </td>
                     <td class="px-4 py-3">{{ $client->contact_name ?? '—' }}</td>
                     <td class="px-4 py-3 text-slate-500">
@@ -43,7 +43,7 @@
                         @endif
                     </td>
                     <td class="px-4 py-3 text-right">
-                        <a href="{{ route('clients.edit', $client) }}" class="text-sm text-indigo-600 hover:underline">Ubah</a>
+                        <a href="{{ route('clients.edit', $client) }}" class="text-sm text-brand-600 hover:underline">Ubah</a>
                         <form method="POST" action="{{ route('clients.destroy', $client) }}" class="inline"
                               onsubmit="return confirm('Hapus klien {{ $client->name }} beserta layanannya?')">
                             @csrf

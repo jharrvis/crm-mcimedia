@@ -15,12 +15,15 @@ class SidebarNavigationTest extends TestCase
     /**
      * Ambil hanya blok <nav> sidebar dari halaman agar assertion tidak
      * tertabrak teks konten (mis. statistik "Project berjalan" di dashboard).
+     * Selector pakai aria-label, bukan kelas, supaya tetap stabil saat
+     * gaya sidebar berubah (t_d3c80e85).
      */
     private function sidebarHtml(string $path = '/'): string
     {
         $html = $this->get($path)->assertOk()->getContent();
-        $start = strpos($html, '<nav class="space-y-4');
+        $start = strpos($html, 'aria-label="Navigasi utama"');
         $this->assertNotFalse($start, 'Blok <nav> sidebar tidak ditemukan.');
+        $start = strrpos(substr($html, 0, $start), '<nav');
         $end = strpos($html, '</nav>', $start);
         $this->assertNotFalse($end, 'Penutup </nav> sidebar tidak ditemukan.');
 
@@ -88,12 +91,13 @@ class SidebarNavigationTest extends TestCase
             );
         }
 
-        // Enam label grup harus dirender.
+        // Grup dirender sebagai tombol collapsible; label grup ada di <span x-show>
+        // (item nav memakai <span> polos, jadi keduanya tak tertukar).
         foreach (['Utama', 'Klien dan Layanan', 'Keuangan', 'Project', 'Keamanan', 'Lainnya'] as $group) {
-            $this->assertStringContainsString(
-                '<p class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">'.$group.'</p>',
-                $nav,
-                "Label grup '$group' tidak dirender sebagai header grup."
+            $this->assertSame(
+                1,
+                substr_count($nav, '<span x-show="!sidebarCollapsed">'.$group.'</span>'),
+                "Label grup '$group' harus tampil tepat satu kali."
             );
         }
     }
@@ -111,7 +115,7 @@ class SidebarNavigationTest extends TestCase
         $nav = $this->sidebarHtml();
 
         $this->assertMatchesRegularExpression(
-            '/<a href="[^"]*reminders[^"]*"[\s\S]*?<span>Pengingat<\/span>[\s\S]*?rounded-full bg-red-500[^>]*>1<\/span>/',
+            '/<a href="[^"]*reminders[^"]*"[\s\S]*?<span>Pengingat<\/span>[\s\S]*?rounded-full bg-brand-100[^>]*>1<\/span>/',
             $nav,
             'Badge jumlah pengingat tidak tampil pada item "Pengingat".'
         );
@@ -123,7 +127,7 @@ class SidebarNavigationTest extends TestCase
 
         $nav = $this->sidebarHtml();
 
-        $this->assertStringNotContainsString('rounded-full bg-red-500', $nav);
+        $this->assertStringNotContainsString('bg-brand-100 px-2 py-0.5', $nav);
     }
 
     public function test_sidebar_highlights_only_the_active_section(): void
@@ -132,8 +136,8 @@ class SidebarNavigationTest extends TestCase
 
         $nav = $this->sidebarHtml('/clients');
 
-        $this->assertStringContainsString('bg-indigo-600', $this->anchorFor($nav, 'Klien'), 'Item aktif "Klien" tidak di-highlight.');
-        $this->assertStringNotContainsString('bg-indigo-600', $this->anchorFor($nav, 'Dashboard'), 'Item "Dashboard" seharusnya tidak aktif di /clients.');
-        $this->assertStringNotContainsString('bg-indigo-600', $this->anchorFor($nav, 'Layanan'), 'Item "Layanan" seharusnya tidak aktif di /clients.');
+        $this->assertStringContainsString('bg-brand-50 text-brand-700', $this->anchorFor($nav, 'Klien'), 'Item aktif "Klien" tidak di-highlight.');
+        $this->assertStringNotContainsString('bg-brand-50 text-brand-700', $this->anchorFor($nav, 'Dashboard'), 'Item "Dashboard" seharusnya tidak aktif di /clients.');
+        $this->assertStringNotContainsString('bg-brand-50 text-brand-700', $this->anchorFor($nav, 'Layanan'), 'Item "Layanan" seharusnya tidak aktif di /clients.');
     }
 }

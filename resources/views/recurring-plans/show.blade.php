@@ -22,7 +22,7 @@
 
     <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
         <div class="mb-4 flex flex-wrap gap-2">
-            <a href="{{ route('recurring-plans.edit', $plan) }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Ubah</a>
+            <a href="{{ route('recurring-plans.edit', $plan) }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Ubah</a>
 
             @if ($plan->active)
                 <form method="POST" action="{{ route('recurring-plans.generate-now', $plan) }}" class="inline"
@@ -61,14 +61,14 @@
             <div>
                 <dt class="text-slate-500">Klien</dt>
                 <dd class="font-medium">
-                    <a href="{{ route('clients.show', $plan->client) }}" class="text-indigo-600 hover:underline">{{ $plan->client?->name ?? '—' }}</a>
+                    <a href="{{ route('clients.show', $plan->client) }}" class="text-brand-600 hover:underline">{{ $plan->client?->name ?? '—' }}</a>
                 </dd>
             </div>
             <div>
                 <dt class="text-slate-500">Layanan</dt>
                 <dd class="font-medium">
                     @if ($plan->service)
-                        <a href="{{ route('services.show', $plan->service) }}" class="text-indigo-600 hover:underline">{{ $plan->service->name }}</a>
+                        <a href="{{ route('services.show', $plan->service) }}" class="text-brand-600 hover:underline">{{ $plan->service->name }}</a>
                     @else
                         —
                     @endif
@@ -172,7 +172,7 @@
                     @forelse ($invoices as $invoice)
                         <tr class="border-t border-slate-100 dark:border-slate-800">
                             <td class="px-3 py-2">
-                                <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-indigo-600 hover:underline">{{ $invoice->number }}</a>
+                                <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-brand-600 hover:underline">{{ $invoice->number }}</a>
                             </td>
                             <td class="px-3 py-2">{{ tgl_id($invoice->period_start) }} – {{ tgl_id($invoice->period_end) }}</td>
                             <td class="px-3 py-2">{{ tgl_id($invoice->issue_date) }}</td>

@@ -15,7 +15,10 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@alpinejs/collapse": "^3.17.4",
+        "alpinejs": "^3.17.4",
         "chart.js": "^4.4.0",
-        "chartjs-adapter-date-fns": "^3.0.0"
+        "chartjs-adapter-date-fns": "^3.0.0",
+        "lucide": "^1.52.0"
     }
 }

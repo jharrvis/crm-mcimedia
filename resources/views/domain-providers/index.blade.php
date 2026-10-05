@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('domain-providers.create') }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Tambah provider</a>
+    <a href="{{ route('domain-providers.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah provider</a>
     <span class="text-sm text-slate-500">Registry penyedia domain/hosting — kredensial tersimpan terenkripsi.</span>
 </div>
 
@@ -47,14 +47,14 @@
                     </td>
                     <td class="px-4 py-3 text-slate-500">{{ $provider->last_used_at?->format('d/m/Y H:i') ?? '—' }}</td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('domain-providers.domains', $provider) }}" class="text-indigo-600 hover:underline">Lihat domain</a>
+                        <a href="{{ route('domain-providers.domains', $provider) }}" class="text-brand-600 hover:underline">Lihat domain</a>
                         <span class="mx-1 text-slate-300">|</span>
-                        <a href="{{ route('domain-providers.edit', $provider) }}" class="text-indigo-600 hover:underline">Ubah</a>
+                        <a href="{{ route('domain-providers.edit', $provider) }}" class="text-brand-600 hover:underline">Ubah</a>
                         <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('domain-providers.toggle', $provider) }}" class="inline">
                             @csrf
                             @method('PATCH')
-                            <button class="text-indigo-600 hover:underline">{{ $provider->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
+                            <button class="text-brand-600 hover:underline">{{ $provider->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
                         </form>
                         <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('domain-providers.destroy', $provider) }}" class="inline" onsubmit="return confirm('Hapus provider ini?')">

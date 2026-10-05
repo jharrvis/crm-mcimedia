@@ -16,7 +16,7 @@
 @endphp
 
 <div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('invoices.create') }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Buat invoice</a>
+    <a href="{{ route('invoices.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Buat invoice</a>
 </div>
 
 <form method="GET" action="{{ route('invoices.index') }}" class="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
@@ -58,10 +58,10 @@
                 @endphp
                 <tr class="border-t border-slate-100 dark:border-slate-800 {{ $rowClass }}">
                     <td class="px-4 py-3">
-                        <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-indigo-600 hover:underline">{{ $invoice->number }}</a>
+                        <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-brand-600 hover:underline">{{ $invoice->number }}</a>
                         @if ($invoice->title)<p class="text-xs text-slate-500">{{ $invoice->title }}</p>@endif
                     </td>
-                    <td class="px-4 py-3"><a href="{{ route('clients.show', $invoice->client) }}" class="hover:text-indigo-600">{{ $invoice->client?->name ?? '—' }}</a></td>
+                    <td class="px-4 py-3"><a href="{{ route('clients.show', $invoice->client) }}" class="hover:text-brand-600">{{ $invoice->client?->name ?? '—' }}</a></td>
                     <td class="px-4 py-3">{{ tgl_id($invoice->issue_date) }}</td>
                     <td class="px-4 py-3">
                         {{ tgl_id($invoice->due_date) }}
@@ -74,9 +74,9 @@
                         <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $statusClasses[$invoice->status->value] }}">{{ $invoice->status->label() }}</span>
                     </td>
                     <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('invoices.show', $invoice) }}" class="text-indigo-600 hover:underline">Detail</a>
+                        <a href="{{ route('invoices.show', $invoice) }}" class="text-brand-600 hover:underline">Detail</a>
                         <span class="mx-1 text-slate-300">|</span>
-                        <a href="{{ route('invoices.pdf', $invoice) }}" class="text-indigo-600 hover:underline">PDF</a>
+                        <a href="{{ route('invoices.pdf', $invoice) }}" class="text-brand-600 hover:underline">PDF</a>
                         @if ($invoice->status === InvoiceStatus::Draft)
                             <span class="mx-1 text-slate-300">|</span>
                             <form method="POST" action="{{ route('invoices.destroy', $invoice) }}" class="inline" onsubmit="return confirm('Hapus invoice {{ $invoice->number }}? Tindakan ini tidak dapat dibatalkan.')">

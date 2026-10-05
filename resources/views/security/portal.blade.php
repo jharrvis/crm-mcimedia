@@ -32,7 +32,7 @@
                                 <form method="POST" action="{{ route('security.portal.email', ['token' => $client->security_portal_token, 'report' => $report]) }}" class="inline">
                                     @csrf
                                     <button type="submit"
-                                            class="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500">
+                                            class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-500">
                                         Kirim via Email
                                     </button>
                                 </form>
