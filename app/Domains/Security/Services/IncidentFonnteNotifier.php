@@ -105,15 +105,32 @@ class IncidentFonnteNotifier
     private function buildMajorMessage(SecurityIncident $incident): string
     {
         $domain = $this->extractDomain($incident->title);
-        $downTime = $incident->occurred_at->format('d/m/Y H:i:s');
+        $eventTime = $incident->occurred_at->format('d/m/Y H:i:s');
         $duration = $incident->occurred_at->diffForHumans(now(), true);
         $crmUrl = $this->getIncidentUrl($incident);
+        $isNetdata = str_contains(strtolower($incident->title), 'netdata');
+
+        if ($isNetdata) {
+            return implode("\n", [
+                "🔴 *INCIDENT MAJOR - ESCALATED*",
+                "",
+                "🖥️ Server: {$domain}",
+                "⚠️ Jenis: Alarm Netdata kritis",
+                "📋 Detail: {$incident->title}",
+                "Waktu mulai: {$eventTime}",
+                "Durasi: {$duration} (lebih dari 30 menit)",
+                "",
+                "🔗 Detail di CRM: {$crmUrl}",
+                "",
+                "ESKALASI TINGKAT TINGGI - Butuh intervensi langsung!",
+            ]);
+        }
 
         return implode("\n", [
             "🔴 *INCIDENT MAJOR - ESCALATED*",
             "",
-            "Website: {$domain}",
-            "Waktu DOWN: {$downTime}",
+            "🌐 Website: {$domain}",
+            "Waktu DOWN: {$eventTime}",
             "Durasi: {$duration} (lebih dari 30 menit)",
             "Status: IS_MAJOR = true",
             "",
