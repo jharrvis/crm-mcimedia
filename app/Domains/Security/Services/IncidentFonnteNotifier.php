@@ -259,6 +259,9 @@ class IncidentFonnteNotifier
         if (preg_match('/\[([^\]]+)\]/', $title, $matches)) {
             return $matches[1];
         }
+        if (preg_match('#https?://([^/\s]+)#i', $title, $m)) {
+            return $m[1];
+        }
         return 'unknown';
     }
 
