@@ -14,7 +14,10 @@ class RoleController extends Controller
 {
     public function index(): View
     {
-        $roles = Role::withCount('users')->orderByDesc('is_admin')->orderBy('label')->get();
+        // 25/halaman — konsisten dengan halaman pengguna di modul akses yang sama.
+        $roles = Role::withCount('users')->orderByDesc('is_admin')->orderBy('label')
+            ->paginate(25)
+            ->withQueryString();
 
         return view('roles.index', compact('roles'));
     }

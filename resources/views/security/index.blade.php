@@ -83,5 +83,9 @@
             @endforelse
         </tbody>
     </x-table>
+
+    @if ($clients->hasPages())
+        <div class="mt-4">{{ $clients->links() }}</div>
+    @endif
 </x-card>
 @endsection

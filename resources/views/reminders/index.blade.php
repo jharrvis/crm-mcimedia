@@ -10,7 +10,7 @@
 @if ($overdue->isNotEmpty())
     <x-card class="mb-6 border-red-200 dark:border-red-900">
         <x-slot:header>
-            <h2 class="font-bold text-red-700 dark:text-red-300">Sudah lewat jatuh tempo ({{ $overdue->count() }})</h2>
+            <h2 class="font-bold text-red-700 dark:text-red-300">Sudah lewat jatuh tempo ({{ $overdue->total() }})</h2>
         </x-slot:header>
         <x-table>
             <thead><tr>
@@ -36,12 +36,16 @@
                 @endforeach
             </tbody>
         </x-table>
+
+        @if ($overdue->hasPages())
+            <div class="mt-4">{{ $overdue->links() }}</div>
+        @endif
     </x-card>
 @endif
 
 <x-card>
     <x-slot:header>
-        <h2 class="font-bold text-amber-700 dark:text-amber-300">Jatuh tempo ≤ {{ $days }} hari ({{ $expiring->count() }})</h2>
+        <h2 class="font-bold text-amber-700 dark:text-amber-300">Jatuh tempo ≤ {{ $days }} hari ({{ $expiring->total() }})</h2>
     </x-slot:header>
     @if ($expiring->isEmpty())
         <x-empty-state title="Tidak ada layanan yang jatuh tempo" icon="bell"
@@ -71,6 +75,10 @@
                 @endforeach
             </tbody>
         </x-table>
+
+        @if ($expiring->hasPages())
+            <div class="mt-4">{{ $expiring->links() }}</div>
+        @endif
     @endif
 </x-card>
 @endsection

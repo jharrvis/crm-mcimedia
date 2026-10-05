@@ -18,6 +18,8 @@ class SecurityDashboardController extends Controller
 {
     public function index(): View
     {
+        // Agregat dihitung untuk SELURUH klien di level DB (bukan per halaman)
+        // supaya angka ringkasan tetap global walau tabel dipaginasi.
         // Insiden terbuka per klien per severity: [client_id => [severity => total]].
         $openByClient = [];
         SecurityIncident::query()
@@ -41,7 +43,9 @@ class SecurityDashboardController extends Controller
             ->pluck('total', 'client_id');
 
         return view('security.index', [
-            'clients' => Client::orderBy('name')->get(),
+            'clients' => Client::orderBy('name')
+                ->paginate(15)
+                ->withQueryString(),
             'severities' => IncidentSeverity::cases(),
             'openByClient' => $openByClient,
             'actionsThisMonth' => $actionsThisMonth,

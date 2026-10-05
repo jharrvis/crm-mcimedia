@@ -13,9 +13,11 @@ class ProductCategoryController extends Controller
 {
     public function index(): View
     {
+        // 20/halaman — konsisten dengan halaman produk di modul katalog yang sama.
         $categories = ProductCategory::withCount('products')
             ->orderBy('sort_order')->orderBy('name')
-            ->get();
+            ->paginate(20)
+            ->withQueryString();
 
         return view('product-categories.index', compact('categories'));
     }

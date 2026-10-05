@@ -22,7 +22,10 @@ class AchievementReportController extends Controller
     {
         return view('projects.reports.index', [
             'project' => $project,
-            'reports' => $project->achievementReports()->with('author')->get(),
+            'reports' => $project->achievementReports()->with('author')
+                ->latest()
+                ->paginate(15)
+                ->withQueryString(),
             'periods' => ReportPeriod::cases(),
         ]);
     }
