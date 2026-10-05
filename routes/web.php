@@ -44,6 +44,11 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::get('pay/{token}', [PublicInvoiceController::class, 'show'])->name('invoices.public.show');
     Route::get('pay/{token}/pdf', [PublicInvoiceController::class, 'pdf'])->name('invoices.public.pdf');
     Route::post('pay/{token}/payments', [PublicInvoiceController::class, 'storePayment'])->name('invoices.public.payments.store');
+    // Pembayaran online Midtrans Snap (t_d4bd0b03): Snap token dibuat server,
+    // dipanggil lewat fetch() dari halaman /pay/{token} (butuh CSRF token).
+    Route::post('pay/{token}/snap-token', [PublicInvoiceController::class, 'createSnapToken'])
+        ->middleware('throttle:10,1')
+        ->name('invoices.public.snap-token');
 });
 
 // Halaman laporan keamanan publik (magic link F3-3) — tanpa login, rate-limited.

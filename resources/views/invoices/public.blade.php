@@ -104,6 +104,24 @@
     </div>
 
     @unless ($isPaid)
+        {{-- Pembayaran online (e-wallet/QRIS/VA, t_d4bd0b03) — visible hanya
+              bila Midtrans dikonfigurasi (env), selalu sesudah instruksi
+              transfer bank supaya fallback transfer tetap ada. --}}
+        @if ($midtransEnabled ?? false)
+            <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+                <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Bayar online</h2>
+                <p class="mb-4 text-sm text-slate-500">
+                    Bayar {{ rupiah($invoice->total) }} via QRIS / e-wallet / Virtual Account.
+                    Pembayaran terverifikasi otomatis — invoice langsung ditandai lunas.
+                </p>
+                <button id="snap-pay-btn" type="button"
+                        class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                    Bayar online (QRIS / E-wallet / VA)
+                </button>
+                <p id="snap-pay-error" class="mt-3 hidden rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700"></p>
+            </div>
+        @endif
+
         <!-- Instruksi transfer -->
         <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
             <h2 class="mb-3 text-sm font-semibold uppercase text-slate-500">Instruksi transfer</h2>
@@ -177,3 +195,66 @@
     @endunless
 </div>
 @endsection
+
+@if (($midtransEnabled ?? false) && ! $isPaid)
+    @section('scripts')
+        {{-- snap.js dimuat dari CDN Midtrans; client key wajib di atribut --}}
+        <script src="{{ config('crm.midtrans.script_url') }}" data-client-key="{{ config('crm.midtrans.client_key') }}" defer></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const btn = document.getElementById('snap-pay-btn');
+                if (! btn) return;
+
+                const errorBox = document.getElementById('snap-pay-error');
+                const snapTokenUrl = @json(route('invoices.public.snap-token', ['token' => $invoice->public_token]));
+
+                const showError = (message) => {
+                    if (! errorBox) return;
+                    errorBox.textContent = message;
+                    errorBox.classList.remove('hidden');
+                };
+
+                btn.addEventListener('click', async function () {
+                    btn.disabled = true;
+                    btn.textContent = 'Memuat pembayaran…';
+                    errorBox?.classList.add('hidden');
+
+                    try {
+                        const response = await fetch(snapTokenUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? @json(csrf_token()),
+                            },
+                            body: JSON.stringify({}),
+                        });
+
+                        const data = await response.json().catch(() => ({}));
+
+                        if (! response.ok) {
+                            throw new Error(data.message || 'Gagal membuat transaksi pembayaran.');
+                        }
+
+                        if (typeof window.snap === 'undefined') {
+                            throw new Error('Modul pembayaran Midtrans gagal dimuat. Coba muat ulang halaman.');
+                        }
+
+                        window.snap.embed(data.snap_token, {
+                            key: data.client_key,
+                            onClose: function () {
+                                window.location.reload();
+                            },
+                        });
+                    } catch (error) {
+                        showError(error.message || 'Terjadi kesalahan saat memuat pembayaran.');
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = 'Bayar online (QRIS / E-wallet / VA)';
+                    }
+                });
+            });
+        </script>
+    @endsection
+@endif

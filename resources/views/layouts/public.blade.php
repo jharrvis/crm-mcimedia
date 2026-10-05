@@ -36,5 +36,7 @@
             Halaman invoice resmi — {{ config('crm.business.name') }}
         </p>
     </div>
+
+    @yield('scripts')
 </body>
 </html>

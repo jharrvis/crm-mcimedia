@@ -4,8 +4,10 @@ namespace App\Domains\Invoicing\Http\Controllers;
 
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Models\Invoice;
+use App\Domains\Invoicing\Services\MidtransSnap;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -50,6 +52,39 @@ class PublicInvoiceController extends Controller
             'invoice' => $invoice,
             'business' => config('crm.business'),
             'isTerminParent' => ! $invoice->isCollectible(),
+            'midtransEnabled' => MidtransSnap::isEnabled(),
+        ]);
+    }
+
+    /** POST /pay/{token}/snap-token — minta Snap token untuk pembayaran online. */
+    public function createSnapToken(string $token): JsonResponse
+    {
+        $invoice = $this->findInvoice($token);
+
+        if (! MidtransSnap::isEnabled()) {
+            return response()->json(['message' => 'Pembayaran online belum dikonfigurasi.'], 503);
+        }
+
+        if (! $invoice->isCollectible()) {
+            return response()->json(['message' => 'Invoice ini adalah invoice kontrak yang sudah dipecah menjadi termin. Bayar invoice termin-nya.'], 422);
+        }
+
+        if ($invoice->isTerminal()) {
+            return response()->json(['message' => 'Invoice ini sudah lunas atau dibatalkan.'], 422);
+        }
+
+        try {
+            $payment = MidtransSnap::createTransaction($invoice);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => $e->getMessage() ?: 'Gagal membuat transaksi pembayaran.'], 502);
+        }
+
+        return response()->json([
+            'snap_token' => $payment->snap_token,
+            'client_key' => config('crm.midtrans.client_key'),
+            'finish_redirect_url' => route('invoices.public.show', ['token' => $invoice->public_token]),
         ]);
     }
 

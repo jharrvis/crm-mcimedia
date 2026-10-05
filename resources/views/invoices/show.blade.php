@@ -380,7 +380,10 @@
                     <tr class="border-t border-slate-100 dark:border-slate-800">
                         <td class="px-4 py-3">{{ $payment->paid_at?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td class="px-4 py-3">{{ $payment->sender_name ?? '—' }}</td>
-                        <td class="px-4 py-3">{{ $methodLabels[$payment->method] ?? $payment->method }}@if ($payment->note)<p class="text-xs text-slate-500">{{ $payment->note }}</p>@endif</td>
+                        <td class="px-4 py-3">{{ $methodLabels[$payment->method] ?? $payment->method }}
+                            @if ($payment->note)<p class="text-xs text-slate-500">{{ $payment->note }}</p>@endif
+                            @if ($payment->isGateway())<p class="text-xs text-indigo-600 dark:text-indigo-400">Gateway: {{ $payment->upstream_order_id }}</p>@endif
+                        </td>
                         <td class="px-4 py-3">
                             @php
                                 $paymentStatus = match ($payment->status) {

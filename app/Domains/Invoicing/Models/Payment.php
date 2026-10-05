@@ -13,6 +13,9 @@ class Payment extends Model
 
     protected $fillable = [
         'invoice_id', 'amount', 'method', 'status', 'paid_at', 'confirmed_by', 'note', 'sender_name',
+        'upstream_order_id', 'snap_token',
+        'upstream_transaction_status', 'upstream_transaction_id',
+        'upstream_payment_type', 'upstream_raw_response',
     ];
 
     /**
@@ -29,7 +32,20 @@ class Payment extends Model
         return [
             'amount' => 'integer',
             'paid_at' => 'datetime',
+            'upstream_raw_response' => 'array',
         ];
+    }
+
+    /** Pembayaran dibuat oleh Midtrans Snap (bukan konfirmasi transfer manual). */
+    public function isGateway(): bool
+    {
+        return filled($this->upstream_order_id);
+    }
+
+    /** Snap token reusable untuk payment pending (dipakai popup `snap.js`). */
+    public function snapToken(): ?string
+    {
+        return filled($this->snap_token) ? (string) $this->snap_token : null;
     }
 
     public function invoice(): BelongsTo

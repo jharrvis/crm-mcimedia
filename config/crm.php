@@ -80,6 +80,46 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Midtrans Snap (pembayaran online invoice)
+    |--------------------------------------------------------------------------
+    |
+    | Integrasi Midtrans Snap (Snap token) untuk pembayaran invoice publik
+    | (`/pay/{token}`). Semua kredensial 100% dari environment — jangan
+    | pernah menulis key asli ke repo:
+    |
+    |   MIDTRANS_SERVER_KEY — server key (dipakai untuk signature
+    |     SHA512(order_id + status_code + gross_amount + server_key) di
+    |     webhook & autentikasi request ke API Midtrans).
+    |   MIDTRANS_CLIENT_KEY — client key (dipakai oleh script Snap di
+    |     sisi browser untuk membuka popup pembayaran).
+    |   MIDTRANS_IS_PRODUCTION / MIDTRANS_SNAP_IS_PRODUCTION — false
+    |     (default) memakai sandbox; true production.
+    |
+    | enabled=false (default) menonaktifkan Midtrans tanpa menghapus
+    | kode; halaman publik tetap memakai instruksi transfer bank.
+    |
+    */
+    'midtrans' => [
+        'enabled' => env('MIDTRANS_ENABLED', false),
+        'server_key' => env('MIDTRANS_SERVER_KEY', ''),
+        'client_key' => env('MIDTRANS_CLIENT_KEY', ''),
+        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+        'snap_base_url' => env(
+            'MIDTRANS_SNAP_BASE_URL',
+            env('MIDTRANS_IS_PRODUCTION', false)
+                ? 'https://app.midtrans.com/snap/v1/transactions'
+                : 'https://app.sandbox.midtrans.com/snap/v1/transactions'
+        ),
+        'script_url' => env(
+            'MIDTRANS_SNAP_SCRIPT_URL',
+            env('MIDTRANS_IS_PRODUCTION', false)
+                ? 'https://app.midtrans.com/snap/snap.js'
+                : 'https://app.sandbox.midtrans.com/snap/snap.js'
+        ),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Sinkronisasi HestiaCP (F3-1)
     |--------------------------------------------------------------------------
     |

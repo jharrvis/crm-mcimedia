@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Invoicing\Http\Controllers\MidtransWebhookController;
 use App\Domains\Security\Http\Controllers\SecurityEventController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,3 +52,19 @@ Route::middleware('security.api')->prefix('security')->name('api.security.')->gr
             ->name('status');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Webhook notifikasi pembayaran Midtrans Snap (t_d4bd0b03)
+|--------------------------------------------------------------------------
+|
+| Dipanggil server Midtrans tanpa sesi/cookie — route API (tanpa CSRF,
+| tanpa session) + throttle. Keamanan: verifikasi signature_key
+| (SHA512 order_id+status_code+gross_amount+server_key) di controller.
+| Diarahkan lewat dashboard Midtrans (Settings > Configuration >
+| Finish/Finish URL + Notification URL).
+|
+*/
+Route::post('midtrans/notification', MidtransWebhookController::class)
+    ->middleware('throttle:60,1')
+    ->name('midtrans.notification');
