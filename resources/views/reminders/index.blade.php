@@ -3,57 +3,70 @@
 @section('title', 'Pengingat Jatuh Tempo')
 
 @section('content')
-<p class="mb-4 text-sm text-slate-500">Layanan aktif dengan tanggal berakhir ≤ {{ $days }} hari ke depan, plus yang sudah lewat. Pengingat harian juga berjalan via scheduler (<code>crm:services-expiring</code>).</p>
+<x-page-header title="Pengingat Jatuh Tempo"
+               subtitle="Layanan aktif dengan tanggal berakhir ≤ {{ $days }} hari ke depan, plus yang sudah lewat. Pengingat harian juga berjalan via scheduler (crm:services-expiring)."
+               icon="bell" />
 
 @if ($overdue->isNotEmpty())
-    <div class="mb-6 rounded-xl border border-red-200 bg-white p-5 dark:border-red-900 dark:bg-slate-900">
-        <h2 class="mb-3 font-bold text-red-700 dark:text-red-300">Sudah lewat jatuh tempo ({{ $overdue->count() }})</h2>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead><tr class="text-left text-xs uppercase text-slate-500">
-                    <th class="py-2 pr-4">Klien</th><th class="py-2 pr-4">Layanan</th><th class="py-2 pr-4">Jenis</th><th class="py-2 pr-4">Berakhir</th><th class="py-2 pr-4">Terlambat</th><th class="py-2 text-right">Harga</th>
-                </tr></thead>
-                <tbody>
-                    @foreach ($overdue as $s)
-                        <tr class="border-t border-slate-100 dark:border-slate-800">
-                            <td class="py-2 pr-4"><a href="{{ route('clients.show', $s->client) }}" class="hover:text-brand-600">{{ $s->client?->name ?? '—' }}</a></td>
-                            <td class="py-2 pr-4"><a href="{{ route('services.show', $s) }}" class="font-medium text-brand-600 hover:underline">{{ $s->name }}</a></td>
-                            <td class="py-2 pr-4">{{ $s->type->label() }}</td>
-                            <td class="py-2 pr-4">{{ tgl_id($s->end_date) }}</td>
-                            <td class="py-2 pr-4 font-semibold text-red-600">{{ abs($s->daysUntilEnd()) }} hari</td>
-                            <td class="py-2 text-right">{{ rupiah($s->price) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
+    <x-card class="mb-6 border-red-200 dark:border-red-900">
+        <x-slot:header>
+            <h2 class="font-bold text-red-700 dark:text-red-300">Sudah lewat jatuh tempo ({{ $overdue->count() }})</h2>
+        </x-slot:header>
+        <x-table>
+            <thead><tr>
+                <th>Klien</th>
+                <th>Layanan</th>
+                <th>Jenis</th>
+                <th>Berakhir</th>
+                <th>Terlambat</th>
+                <th class="text-right">Harga</th>
+            </tr></thead>
+            <tbody>
+                @foreach ($overdue as $s)
+                    <tr>
+                        <td><a href="{{ route('clients.show', $s->client) }}" class="hover:text-brand-600">{{ $s->client?->name ?? '—' }}</a></td>
+                        <td><a href="{{ route('services.show', $s) }}" class="font-semibold text-brand-600 hover:underline">{{ $s->name }}</a></td>
+                        <td>{{ $s->type->label() }}</td>
+                        <td>{{ tgl_id($s->end_date) }}</td>
+                        <td class="font-semibold text-red-600">{{ abs($s->daysUntilEnd()) }} hari</td>
+                        <td class="text-right">{{ rupiah($s->price) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </x-table>
+    </x-card>
 @endif
 
-<div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-    <h2 class="mb-3 font-bold text-amber-700 dark:text-amber-300">Jatuh tempo ≤ {{ $days }} hari ({{ $expiring->count() }})</h2>
+<x-card>
+    <x-slot:header>
+        <h2 class="font-bold text-amber-700 dark:text-amber-300">Jatuh tempo ≤ {{ $days }} hari ({{ $expiring->count() }})</h2>
+    </x-slot:header>
     @if ($expiring->isEmpty())
-        <p class="text-sm text-slate-500">Tidak ada layanan yang jatuh tempo dalam {{ $days }} hari.</p>
+        <x-empty-state title="Tidak ada layanan yang jatuh tempo" icon="bell"
+                       :description="'Tidak ada layanan yang jatuh tempo dalam ' . $days . ' hari.'" />
     @else
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead><tr class="text-left text-xs uppercase text-slate-500">
-                    <th class="py-2 pr-4">Klien</th><th class="py-2 pr-4">Layanan</th><th class="py-2 pr-4">Jenis</th><th class="py-2 pr-4">Berakhir</th><th class="py-2 pr-4">Sisa</th><th class="py-2 text-right">Harga</th>
-                </tr></thead>
-                <tbody>
-                    @foreach ($expiring as $s)
-                        <tr class="border-t border-slate-100 dark:border-slate-800">
-                            <td class="py-2 pr-4"><a href="{{ route('clients.show', $s->client) }}" class="hover:text-brand-600">{{ $s->client?->name ?? '—' }}</a></td>
-                            <td class="py-2 pr-4"><a href="{{ route('services.show', $s) }}" class="font-medium text-brand-600 hover:underline">{{ $s->name }}</a></td>
-                            <td class="py-2 pr-4">{{ $s->type->label() }}</td>
-                            <td class="py-2 pr-4">{{ tgl_id($s->end_date) }}</td>
-                            <td class="py-2 pr-4 font-semibold text-amber-600">{{ $s->daysUntilEnd() }} hari</td>
-                            <td class="py-2 text-right">{{ rupiah($s->price) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+        <x-table>
+            <thead><tr>
+                <th>Klien</th>
+                <th>Layanan</th>
+                <th>Jenis</th>
+                <th>Berakhir</th>
+                <th>Sisa</th>
+                <th class="text-right">Harga</th>
+            </tr></thead>
+            <tbody>
+                @foreach ($expiring as $s)
+                    <tr>
+                        <td><a href="{{ route('clients.show', $s->client) }}" class="hover:text-brand-600">{{ $s->client?->name ?? '—' }}</a></td>
+                        <td><a href="{{ route('services.show', $s) }}" class="font-semibold text-brand-600 hover:underline">{{ $s->name }}</a></td>
+                        <td>{{ $s->type->label() }}</td>
+                        <td>{{ tgl_id($s->end_date) }}</td>
+                        <td class="font-semibold text-amber-600">{{ $s->daysUntilEnd() }} hari</td>
+                        <td class="text-right">{{ rupiah($s->price) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </x-table>
     @endif
-</div>
+</x-card>
 @endsection
