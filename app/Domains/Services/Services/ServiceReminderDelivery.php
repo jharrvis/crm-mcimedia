@@ -4,10 +4,12 @@ namespace App\Domains\Services\Services;
 
 use App\Domains\Invoicing\Services\InvoiceDelivery;
 use App\Domains\Services\Enums\ServiceReminderKind;
+use App\Domains\Services\Mail\ServiceReminderMailable;
 use App\Domains\Services\Models\Service;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Pengiriman reminder WhatsApp perpanjangan layanan (t_cc560a11) lewat
@@ -22,10 +24,53 @@ class ServiceReminderDelivery
 {
     public const CHANNEL_WHATSAPP = 'whatsapp';
 
-    /** @return array<int, string> */
+    public const CHANNEL_EMAIL = 'email';
+
+    /**
+     * Channel yang dijalankan scheduler harian: WhatsApp saja. Email hanya
+     * lewat tombol manual halaman Pengingat (t_6f78ca1d) supaya perilaku
+     * batch `crm:send-service-reminders` tidak berubah.
+     *
+     * @return array<int, string>
+     */
     public static function channels(): array
     {
         return [self::CHANNEL_WHATSAPP];
+    }
+
+    /**
+     * Kirim reminder layanan via email (tombol manual halaman Pengingat).
+     * True bila benar-benar terkirim; false bila dilewati/gagal — tanpa
+     * exception dan tanpa perubahan data.
+     */
+    public function sendEmail(Service $service, ServiceReminderKind $kind): bool
+    {
+        $email = $service->client?->email;
+
+        if (blank($email)) {
+            Log::warning('Reminder email layanan dilewati: klien tidak punya alamat email.', [
+                'service' => $service->name,
+                'kind' => $kind->value,
+            ]);
+
+            return false;
+        }
+
+        try {
+            Mail::to($email)->send(new ServiceReminderMailable($service, $kind));
+        } catch (\Throwable $e) {
+            // SMTP/gagal kirim: jangan lempar exception ke request admin —
+            // cukup balik error lewat flash message.
+            Log::warning('Reminder email layanan gagal dikirim.', [
+                'service' => $service->name,
+                'kind' => $kind->value,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

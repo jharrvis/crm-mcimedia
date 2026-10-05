@@ -15,15 +15,19 @@ enum ServiceReminderKind: string
     case HMinus3 = 'H-3';
     case HMinus1 = 'H-1';
     case Overdue = 'overdue';
+    // Kirim manual dari halaman Pengingat (t_6f78ca1d): sisa hari tidak persis
+    // 7/3/1 dan belum lewat jatuh tempo, sehingga tidak ada kind terjadwal yang
+    // cocok. Tidak pernah dihasilkan scheduler.
+    case Manual = 'manual';
 
-    /** Sisa hari menuju berakhir; null untuk kind overdue. */
+    /** Sisa hari menuju berakhir; null untuk kind overdue/manual. */
     public function daysBeforeEnd(): ?int
     {
         return match ($this) {
             self::HMinus7 => 7,
             self::HMinus3 => 3,
             self::HMinus1 => 1,
-            self::Overdue => null,
+            self::Overdue, self::Manual => null,
         };
     }
 
@@ -31,6 +35,7 @@ enum ServiceReminderKind: string
     {
         return match ($this) {
             self::Overdue => 'Lewat jatuh tempo',
+            self::Manual => 'Manual',
             default => $this->value,
         };
     }
