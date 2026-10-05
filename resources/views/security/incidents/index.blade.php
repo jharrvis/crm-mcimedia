@@ -4,86 +4,62 @@
 
 @section('content')
 @php
-    $inputClass = 'rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800';
+    // collect() karena controller mengirim ::cases() (array), bukan Collection.
+    $clientOptions = ['' => 'Semua klien'] + collect($clients)->mapWithKeys(fn ($c) => [$c->id => $c->name])->all();
+    $severityOptions = ['all' => 'Semua'] + collect($severities)->mapWithKeys(fn ($s) => [$s->value => $s->label()])->all();
+    $statusOptions = ['all' => 'Semua'] + collect($statuses)->mapWithKeys(fn ($s) => [$s->value => $s->label()])->all();
 @endphp
 
-<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-    <form method="GET" action="{{ route('security.incidents.index') }}" class="flex flex-wrap items-end gap-2" id="incidents-filter-form">
-        <div>
-            <label class="mb-1 block text-xs font-medium text-slate-500">Klien</label>
-            <select name="client_id" class="{{ $inputClass }}">
-                <option value="">Semua klien</option>
-                @foreach ($clients as $c)
-                    <option value="{{ $c->id }}" @selected((string) request('client_id') === (string) $c->id)>{{ $c->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="mb-1 block text-xs font-medium text-slate-500">Keparahan</label>
-            <select name="severity" class="{{ $inputClass }}">
-                <option value="all">Semua</option>
-                @foreach ($severities as $s)
-                    <option value="{{ $s->value }}" @selected(request('severity') === $s->value)>{{ $s->label() }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="mb-1 block text-xs font-medium text-slate-500">Status</label>
-            <select name="status" class="{{ $inputClass }}">
-                <option value="all">Semua</option>
-                @foreach ($statuses as $s)
-                    <option value="{{ $s->value }}" @selected(request('status') === $s->value)>{{ $s->label() }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="mb-1 block text-xs font-medium text-slate-500">Cari judul</label>
-            <input name="q" value="{{ request('q') }}" class="{{ $inputClass }}">
-        </div>
-        <button type="submit" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Filter</button>
-        <button type="button" id="incidents-refresh-btn" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800" title="Refresh manual">Refresh</button>
-    </form>
-    <div class="flex gap-2">
-        <a href="{{ route('security.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Dashboard</a>
-        <a href="{{ route('security.incidents.create', request('client_id') ? ['client_id' => request('client_id')] : []) }}"
-           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Catat insiden</a>
-    </div>
-</div>
+<x-page-header title="Insiden Keamanan" icon="shield-alert"
+               subtitle="Temuan otomatis & manual per klien. Daftar diperbarui otomatis tiap 20 detik.">
+    <x-btn :href="route('security.index')" variant="outline" icon="layout-dashboard">Dashboard</x-btn>
+    <x-btn :href="route('security.incidents.create', request('client_id') ? ['client_id' => request('client_id')] : [])" icon="plus">Catat insiden</x-btn>
+</x-page-header>
 
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 relative">
-    <table class="w-full text-sm" id="incidents-table">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">Waktu</th>
-                <th class="px-4 py-3">Klien</th>
-                <th class="px-4 py-3">Keparahan</th>
-                <th class="px-4 py-3">Sumber</th>
-                <th class="px-4 py-3">Judul</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
-            </tr>
-        </thead>
+<x-card class="mb-4">
+    <form method="GET" action="{{ route('security.incidents.index') }}" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5" id="incidents-filter-form">
+        <x-input name="client_id" type="select" :options="$clientOptions" :value="request('client_id')" placeholder="" />
+        <x-input name="severity" type="select" :options="$severityOptions" :value="request('severity', 'all')" />
+        <x-input name="status" type="select" :options="$statusOptions" :value="request('status', 'all')" />
+        <x-input name="q" :value="request('q')" placeholder="Cari judul…" />
+        <div class="flex items-center gap-2">
+            <x-btn type="submit" variant="dark" icon="search">Filter</x-btn>
+            <x-btn type="button" id="incidents-refresh-btn" variant="outline" icon="refresh-cw" title="Refresh manual">Refresh</x-btn>
+        </div>
+    </form>
+</x-card>
+
+<x-card>
+    <x-table id="incidents-table">
+        <thead><tr>
+            <th>Waktu</th>
+            <th>Klien</th>
+            <th>Keparahan</th>
+            <th>Sumber</th>
+            <th>Judul</th>
+            <th>Status</th>
+            <th class="text-right">Aksi</th>
+        </tr></thead>
         <tbody id="incidents-tbody"
-            data-api-url="{{ route('security.incidents.api') }}"
-            data-client-id="{{ request('client_id', '') }}"
-            data-severity="{{ request('severity', 'all') }}"
-            data-status="{{ request('status', 'all') }}"
-            data-q="{{ request('q', '') }}">
+              data-api-url="{{ route('security.incidents.api') }}"
+              data-client-id="{{ request('client_id', '') }}"
+              data-severity="{{ request('severity', 'all') }}"
+              data-status="{{ request('status', 'all') }}"
+              data-q="{{ request('q', '') }}">
             @include('security.incidents._table_rows')
         </tbody>
-    </table>
-    
-    <!-- Subtle new data indicator -->
-    <div id="incidents-new-indicator" class="hidden absolute top-2 right-2 z-10 bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-3 py-1 rounded-full text-xs font-medium shadow-lg transition-opacity duration-300">
+    </x-table>
+
+    {{-- Indikator data baru (JS di bawah) --}}
+    <div id="incidents-new-indicator" class="pointer-events-none sticky bottom-4 ml-auto mr-4 hidden w-fit bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800 shadow-lg dark:bg-emerald-900 dark:text-emerald-200">
         <span class="flex items-center gap-1">
-            <span class="animate-pulse w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></span>
             Data baru tersedia
         </span>
     </div>
-</div>
+</x-card>
 
 <div class="mt-4" id="incidents-pagination">{{ $incidents->links() }}</div>
-
 @endsection
 
 @push('scripts')
@@ -105,7 +81,7 @@
     let pollInterval = null;
     const POLL_INTERVAL_MS = 20000; // 20 detik
 
-    // Build query string from current filter form values
+    // Query string dari nilai filter saat ini.
     function buildFilterParams() {
         const formData = new FormData(filterForm);
         const params = new URLSearchParams();
@@ -117,7 +93,6 @@
         return params.toString();
     }
 
-    // Fetch and update table
     async function fetchIncidents(showIndicator = false) {
         if (isPolling) return;
         isPolling = true;
@@ -136,15 +111,12 @@
 
             const data = await response.json();
 
-            // Update table rows
             tbody.innerHTML = renderRows(data.data);
 
-            // Update pagination
             if (pagination && data.current_page && data.last_page) {
                 pagination.innerHTML = renderPagination(data);
             }
 
-            // Show subtle indicator if new data arrived
             if (showIndicator && data.total > lastTotal) {
                 showNewIndicator();
             }
@@ -157,28 +129,30 @@
         }
     }
 
+    // Sel di-style oleh .ds-table (lihat app.css), jadi tidak perlu kelas padding.
     function renderRows(incidents) {
         if (!incidents || incidents.length === 0) {
-            return '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada insiden.</td></tr>';
+            return '<tr><td colspan="7" class="py-10 text-center text-slate-400">Belum ada insiden.</td></tr>';
         }
 
         return incidents.map(incident => `
-            <tr class="border-t border-slate-100 dark:border-slate-800">
-                <td class="px-4 py-3 text-slate-500">${incident.occurred_at ? new Date(incident.occurred_at).toLocaleString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '—'}</td>
-                <td class="px-4 py-3">${incident.client?.name ?? '—'}</td>
-                <td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-xs font-medium ${incident.severity?.badgeClass ?? ''}">${incident.severity?.label ?? incident.severity}</span></td>
-                <td class="px-4 py-3">${incident.source?.label ?? incident.source}</td>
-                <td class="px-4 py-3">
-                    <span class="font-medium">${incident.title}</span>
-                    ${incident.description ? `<p class="mt-1 max-w-md text-xs text-slate-500">${incident.description.substring(0, 120)}${incident.description.length > 120 ? '...' : ''}</p>` : ''}
+            <tr>
+                <td class="text-slate-400">${incident.occurred_at ? new Date(incident.occurred_at).toLocaleString('id-ID', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'}) : '—'}</td>
+                <td>${incident.client?.name ?? '—'}</td>
+                <td><span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${incident.severity?.badgeClass ?? ''}">${incident.severity?.label ?? incident.severity}</span></td>
+                <td>${incident.source?.label ?? incident.source}</td>
+                <td>
+                    <span class="font-semibold">${incident.title}</span>
+                    ${incident.description ? `<p class="mt-1 max-w-md text-xs text-slate-400">${incident.description.substring(0, 120)}${incident.description.length > 120 ? '...' : ''}</p>` : ''}
                 </td>
-                <td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-xs font-medium ${incident.status?.badgeClass ?? ''}">${incident.status?.label ?? incident.status}</span></td>
-                <td class="px-4 py-3 text-right whitespace-nowrap">
-                    <a href="${incident.edit_url ?? '/security/incidents/' + incident.id + '/edit'}" class="text-sm text-brand-600 hover:underline">Ubah</a>
+                <td><span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold ${incident.status?.badgeClass ?? ''}">${incident.status?.label ?? incident.status}</span></td>
+                <td class="whitespace-nowrap text-right">
+                    <a href="${incident.edit_url ?? '/security/incidents/' + incident.id + '/edit'}" class="text-sm font-semibold text-brand-600 hover:underline">Ubah</a>
+                    <span class="mx-1 text-slate-300">|</span>
                     <form method="POST" action="${incident.destroy_url ?? '/security/incidents/' + incident.id}" class="inline" onsubmit="return confirm('Hapus insiden ini?')">
                         <input type="hidden" name="_token" value="${document.querySelector('meta[name=csrf-token]')?.content ?? ''}">
                         <input type="hidden" name="_method" value="DELETE">
-                        <button class="ml-2 text-sm text-red-600 hover:underline">Hapus</button>
+                        <button class="text-sm font-semibold text-rose-600 hover:underline">Hapus</button>
                     </form>
                 </td>
             </tr>
@@ -186,14 +160,13 @@
     }
 
     function renderPagination(data) {
-        // Simple pagination render - in practice, you might want to reuse Laravel's pagination view
         if (data.last_page <= 1) return '';
         let html = '<nav aria-label="Pagination" class="flex justify-center"><ul class="flex items-center gap-1">';
         for (let i = 1; i <= data.last_page; i++) {
             if (i === data.current_page) {
-                html += `<li><span class="px-3 py-1 text-sm font-medium bg-brand-600 text-white rounded">${i}</span></li>`;
+                html += `<li><span class="rounded bg-brand-600 px-3 py-1 text-sm font-medium text-white">${i}</span></li>`;
             } else {
-                html += `<li><a href="?page=${i}${buildFilterParams() ? '&' + buildFilterParams() : ''}" class="px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded">${i}</a></li>`;
+                html += `<li><a href="?page=${i}${buildFilterParams() ? '&' + buildFilterParams() : ''}" class="rounded px-3 py-1 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">${i}</a></li>`;
             }
         }
         html += '</ul></nav>';
@@ -202,17 +175,11 @@
 
     function showNewIndicator() {
         newIndicator.classList.remove('hidden');
-        newIndicator.style.opacity = '1';
-        setTimeout(() => {
-            newIndicator.style.opacity = '0';
-            setTimeout(() => newIndicator.classList.add('hidden'), 300);
-        }, 3000);
+        setTimeout(() => newIndicator.classList.add('hidden'), 3000);
     }
 
-    // Manual refresh button
     refreshBtn.addEventListener('click', () => fetchIncidents(true));
 
-    // Auto-poll
     function startPolling() {
         if (pollInterval) clearInterval(pollInterval);
         pollInterval = setInterval(() => fetchIncidents(false), POLL_INTERVAL_MS);
@@ -223,7 +190,7 @@
         pollInterval = null;
     }
 
-    // Pause polling when tab is hidden, resume when visible
+    // Jeda polling saat tab disembunyikan, lanjut saat tampil lagi.
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             stopPolling();
@@ -232,10 +199,8 @@
         }
     });
 
-    // Start polling
     startPolling();
 
-    // Also re-fetch when filter form is submitted (after browser navigates back)
     window.addEventListener('pageshow', (event) => {
         if (event.persisted) {
             fetchIncidents(true);

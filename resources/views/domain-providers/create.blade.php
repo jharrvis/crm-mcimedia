@@ -3,7 +3,7 @@
 @section('title', 'Tambah Provider Domain')
 
 @section('content')
-<h1 class="mb-4 text-lg font-semibold">Tambah provider domain/hosting</h1>
+<x-page-header title="Tambah provider domain/hosting" back="{{ route('domain-providers.index') }}" backLabel="Kembali ke daftar" icon="globe" />
 
 @include('domain-providers._form', [
     'action' => route('domain-providers.store'),

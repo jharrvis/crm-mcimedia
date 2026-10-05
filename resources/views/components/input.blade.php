@@ -27,7 +27,7 @@
     @endif
 
     @if ($type === 'textarea')
-        <textarea name="{{ $name }}" id="{{ $id }}" rows="{{ $attributes->get('rows', 3) }}" {{ $attributes->except('rows')->merge(['class' => $baseClass]) }}>{{ $current }}</textarea>
+        <textarea name="{{ $name }}" id="{{ $id }}" rows="{{ $attributes->get('rows', 3) }}" @if ($required) required @endif {{ $attributes->except('rows')->merge(['class' => $baseClass]) }}>{{ $current }}</textarea>
     @elseif ($type === 'select')
         <select name="{{ $name }}" id="{{ $id }}" @if ($required) required @endif {{ $attributes->merge(['class' => $baseClass]) }}>
             @if ($placeholder !== null)
@@ -58,7 +58,7 @@
         <input type="{{ $type }}" name="{{ $name }}" id="{{ $id }}" {{ $attributes->merge(['class' => 'rounded border-slate-300 text-brand-600 focus:ring-brand-500']) }} />
     @else
         <input type="{{ $type }}" name="{{ $name }}" id="{{ $id }}"
-               value="{{ $current }}" {{ $attributes->merge(['class' => $baseClass]) }} />
+               value="{{ $current }}" @if ($required) required @endif {{ $attributes->merge(['class' => $baseClass]) }} />
     @endif
 
     @if ($hint)

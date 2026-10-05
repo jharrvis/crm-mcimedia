@@ -18,64 +18,56 @@
     ];
 @endphp
 
-<div class="mb-4 flex flex-wrap items-center gap-2">
-    <h2 class="text-xl font-bold">Monitoring Server</h2>
-    <span class="ml-auto text-sm text-slate-500" id="last-updated">Memuat...</span>
-</div>
+<x-page-header title="Monitoring Server" icon="activity"
+               subtitle="Grafik utilisasi server real-time dari Netdata (sg2, YIARI, PA Salatiga). Data diambil server-side via tailnet, tidak ada akses Netdata dari browser client. Auto-refresh tiap 30 detik.">
+    <span class="text-sm text-slate-400" id="last-updated">Memuat...</span>
+</x-page-header>
 
-<p class="mb-4 text-sm text-slate-500">
-    Grafik utilisasi server real-time dari Netdata (sg2, YIARI, PA Salatiga).
-    Data diambil server-side via tailnet, tidak ada akses Netdata dari browser client.
-    Auto-refresh tiap 30 detik.
-</p>
-
-<!-- Status Server -->
-<div class="mb-6 overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">Server</th>
-                <th class="px-4 py-3">Host</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Last Check</th>
-            </tr>
-        </thead>
+{{-- Status Server --}}
+<x-card class="mb-6">
+    <x-table>
+        <thead><tr>
+            <th>Server</th>
+            <th>Host</th>
+            <th>Status</th>
+            <th>Last Check</th>
+        </tr></thead>
         <tbody id="server-status-table">
             @foreach ($servers as $key => $server)
-                <tr class="border-t border-slate-100 dark:border-slate-800" data-server="{{ $key }}">
-                    <td class="px-4 py-3 font-medium">{{ $server['name'] }}</td>
-                    <td class="px-4 py-3 font-mono text-xs">{{ $server['host'] }}:{{ $server['port'] }}</td>
-                    <td class="px-4 py-3">
-                        <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400" id="status-{{ $key }}">
+                <tr data-server="{{ $key }}">
+                    <td class="font-semibold">{{ $server['name'] }}</td>
+                    <td class="font-mono text-xs">{{ $server['host'] }}:{{ $server['port'] }}</td>
+                    <td>
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-300" id="status-{{ $key }}">
                             <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>
                             Memeriksa...
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-slate-500" id="last-check-{{ $key }}">-</td>
+                    <td class="text-slate-400" id="last-check-{{ $key }}">-</td>
                 </tr>
             @endforeach
         </tbody>
-    </table>
-</div>
+    </x-table>
+</x-card>
 
-<!-- Grafik Metrik -->
+{{-- Grafik Metrik --}}
 <div class="grid gap-6 md:grid-cols-2">
     @foreach (['cpu', 'ram', 'disk', 'network'] as $metric)
-        <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <div class="mb-3 flex items-center justify-between">
+        <x-card>
+            <x-slot:header>
                 <h3 class="font-semibold text-slate-800 dark:text-slate-200">{{ $metricLabels[$metric] }}</h3>
-                <select class="metric-period-select rounded-lg border border-slate-300 px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800" data-metric="{{ $metric }}">
+                <select class="metric-period-select ml-auto rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 focus:border-brand-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200" data-metric="{{ $metric }}">
                     <option value="3600">1 Jam</option>
                     <option value="7200" selected>2 Jam</option>
                     <option value="21600">6 Jam</option>
                     <option value="86400">24 Jam</option>
                 </select>
-            </div>
-            <div class="h-64" style="position: relative; height: 256px;">
+            </x-slot:header>
+            <div style="position: relative; height: 256px;">
                 <canvas id="chart-{{ $metric }}"></canvas>
             </div>
             <div class="mt-3 flex flex-wrap gap-2" id="legend-{{ $metric }}"></div>
-        </div>
+        </x-card>
     @endforeach
 </div>
 @endsection

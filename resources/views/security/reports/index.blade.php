@@ -3,79 +3,80 @@
 @section('title', 'Laporan Keamanan')
 
 @section('content')
-@php $inputClass = 'rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800'; @endphp
+<x-page-header title="Laporan Keamanan" icon="file-text"
+               subtitle="Berkas laporan PDF per periode, dikirim ke klien atau diakses via portal.">
+    <x-btn :href="route('security.index')" variant="outline" icon="layout-dashboard">Dashboard</x-btn>
+    <x-btn :href="route('security.reports.create', request('client_id') ? ['client_id' => request('client_id')] : [])" icon="plus">Unggah laporan</x-btn>
+</x-page-header>
 
-<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-    <form method="GET" action="{{ route('security.reports.index') }}" class="flex items-end gap-2">
-        <div>
-            <label class="mb-1 block text-xs font-medium text-slate-500">Klien</label>
-            <select name="client_id" class="{{ $inputClass }}">
-                <option value="">Semua klien</option>
-                @foreach ($clients as $c)
-                    <option value="{{ $c->id }}" @selected((string) request('client_id') === (string) $c->id)>{{ $c->name }}</option>
-                @endforeach
-            </select>
+<x-card class="mb-4">
+    <form method="GET" action="{{ route('security.reports.index') }}" class="flex flex-wrap items-end gap-3">
+        <div class="w-64">
+            <x-input name="client_id" label="Klien" type="select"
+                     :options="['' => 'Semua klien'] + collect($clients)->mapWithKeys(fn ($c) => [$c->id => $c->name])->all()"
+                     :value="request('client_id')" />
         </div>
-        <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Filter</button>
+        <x-btn type="submit" variant="dark" icon="search">Filter</x-btn>
     </form>
-    <div class="flex gap-2">
-        <a href="{{ route('security.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Dashboard</a>
-        <a href="{{ route('security.reports.create', request('client_id') ? ['client_id' => request('client_id')] : []) }}"
-           class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Unggah laporan</a>
-    </div>
-</div>
+</x-card>
 
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">Periode</th>
-                <th class="px-4 py-3">Klien</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Terkirim</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
-            </tr>
-        </thead>
+<x-card>
+    <x-table>
+        <thead><tr>
+            <th>Periode</th>
+            <th>Klien</th>
+            <th>Status</th>
+            <th>Terkirim</th>
+            <th class="text-right">Aksi</th>
+        </tr></thead>
         <tbody>
             @forelse ($reports as $report)
-                <tr class="border-t border-slate-100 dark:border-slate-800">
-                    <td class="px-4 py-3 font-medium">{{ $report->period }}</td>
-                    <td class="px-4 py-3">{{ $report->client?->name ?? '—' }}</td>
-                    <td class="px-4 py-3">
-                        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $report->status->badgeClass() }}">{{ $report->status->label() }}</span>
+                <tr>
+                    <td class="font-semibold">{{ $report->period }}</td>
+                    <td>{{ $report->client?->name ?? '—' }}</td>
+                    <td>
+                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold {{ $report->status->badgeClass() }}">{{ $report->status->label() }}</span>
                     </td>
-                    <td class="px-4 py-3 text-slate-500">{{ $report->sent_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                    <td class="text-slate-400">{{ $report->sent_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td class="whitespace-nowrap text-right">
                         @if ($report->hasFile())
-                            <a href="{{ route('security.reports.download', $report) }}" class="text-sm text-brand-600 hover:underline">Unduh</a>
+                            <a href="{{ route('security.reports.download', $report) }}" class="text-sm font-semibold text-brand-600 hover:underline">Unduh</a>
+                            <span class="mx-1 text-slate-300">|</span>
                             <form method="POST" action="{{ route('security.reports.send-to-client', $report) }}" class="inline"
                                   onsubmit="return confirm('Kirim laporan periode {{ $report->period }} ke email kontak klien?')">
                                 @csrf
                                 @method('PATCH')
-                                <button class="ml-2 text-sm text-green-700 hover:underline dark:text-green-400">Kirim ke Klien</button>
+                                <button class="text-sm font-semibold text-emerald-600 hover:underline">Kirim ke Klien</button>
                             </form>
                         @endif
                         @if ($report->status === \App\Domains\Security\Enums\ReportStatus::Draft)
+                            <span class="mx-1 text-slate-300">|</span>
                             <form method="POST" action="{{ route('security.reports.send', $report) }}" class="inline">
                                 @csrf
                                 @method('PATCH')
-                                <button class="ml-2 text-sm text-green-700 hover:underline dark:text-green-400">Tandai terkirim</button>
+                                <button class="text-sm font-semibold text-emerald-600 hover:underline">Tandai terkirim</button>
                             </form>
                         @endif
+                        <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('security.reports.destroy', $report) }}" class="inline"
                               onsubmit="return confirm('Hapus laporan periode {{ $report->period }}?')">
                             @csrf
                             @method('DELETE')
-                            <button class="ml-2 text-sm text-red-600 hover:underline">Hapus</button>
+                            <button class="text-sm font-semibold text-rose-600 hover:underline">Hapus</button>
                         </form>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Belum ada laporan.</td></tr>
+                <tr><td colspan="5">
+                    <x-empty-state title="Belum ada laporan" icon="file-text"
+                                   description="Unggah laporan PDF per periode untuk dikirim ke klien atau ditampilkan di portal." />
+                </td></tr>
             @endforelse
         </tbody>
-    </table>
-</div>
+    </x-table>
 
-<div class="mt-4">{{ $reports->links() }}</div>
+    @if ($reports->hasPages())
+        <div class="mt-4">{{ $reports->links() }}</div>
+    @endif
+</x-card>
 @endsection

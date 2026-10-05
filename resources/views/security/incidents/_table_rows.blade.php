@@ -1,26 +1,31 @@
 @forelse ($incidents as $incident)
-    <tr class="border-t border-slate-100 dark:border-slate-800">
-        <td class="px-4 py-3 text-slate-500">{{ $incident->occurred_at?->format('d/m/Y H:i') ?? '—' }}</td>
-        <td class="px-4 py-3">{{ $incident->client?->name ?? '—' }}</td>
-        <td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $incident->severity->badgeClass() }}">{{ $incident->severity->label() }}</span></td>
-        <td class="px-4 py-3">{{ $incident->source->label() }}</td>
-        <td class="px-4 py-3">
-            <span class="font-medium">{{ $incident->title }}</span>
+    <tr>
+        <td class="text-slate-400">{{ $incident->occurred_at?->format('d/m/Y H:i') ?? '—' }}</td>
+        <td>{{ $incident->client?->name ?? '—' }}</td>
+        <td>
+            <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold {{ $incident->severity->badgeClass() }}">{{ $incident->severity->label() }}</span>
+        </td>
+        <td>{{ $incident->source->label() }}</td>
+        <td>
+            <span class="font-semibold">{{ $incident->title }}</span>
             @if ($incident->description)
-                <p class="mt-1 max-w-md text-xs text-slate-500">{{ \Illuminate\Support\Str::limit($incident->description, 120) }}</p>
+                <p class="mt-1 max-w-md text-xs text-slate-400">{{ \Illuminate\Support\Str::limit($incident->description, 120) }}</p>
             @endif
         </td>
-        <td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $incident->status->badgeClass() }}">{{ $incident->status->label() }}</span></td>
-        <td class="px-4 py-3 text-right whitespace-nowrap">
-            <a href="{{ route('security.incidents.edit', $incident) }}" class="text-sm text-brand-600 hover:underline">Ubah</a>
+        <td>
+            <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold {{ $incident->status->badgeClass() }}">{{ $incident->status->label() }}</span>
+        </td>
+        <td class="whitespace-nowrap text-right">
+            <a href="{{ route('security.incidents.edit', $incident) }}" class="text-sm font-semibold text-brand-600 hover:underline">Ubah</a>
+            <span class="mx-1 text-slate-300">|</span>
             <form method="POST" action="{{ route('security.incidents.destroy', $incident) }}" class="inline"
                   onsubmit="return confirm('Hapus insiden ini?')">
                 @csrf
                 @method('DELETE')
-                <button class="ml-2 text-sm text-red-600 hover:underline">Hapus</button>
+                <button class="text-sm font-semibold text-rose-600 hover:underline">Hapus</button>
             </form>
         </td>
     </tr>
 @empty
-    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada insiden.</td></tr>
+    <tr><td colspan="7" class="py-10 text-center text-slate-400">Belum ada insiden.</td></tr>
 @endforelse
