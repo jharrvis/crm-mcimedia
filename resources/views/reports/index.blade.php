@@ -5,7 +5,7 @@
 @section('content')
 @php
     $totalIncome = array_sum(array_column($monthlyIncome, 'total'));
-    $totalOutstanding = $clientSummaries->sum('outstanding_amount');
+    $totalOutstanding = $grandTotals['outstanding_amount'];
 @endphp
 
 <x-page-header title="Laporan" icon="file-text"
@@ -13,7 +13,7 @@
 
 <div class="grid gap-4 sm:grid-cols-3">
     <x-stat-card label="Pemasukan 12 bulan" :value="rupiah($totalIncome)" icon="receipt-text" />
-    <x-stat-card label="Invoice belum lunas" :value="$unpaidInvoices->count() . ' tagihan'" icon="inbox" />
+    <x-stat-card label="Invoice belum lunas" :value="$unpaidTotal . ' tagihan'" icon="inbox" />
     <x-stat-card label="Total piutang" :value="rupiah($totalOutstanding)" icon="receipt-text" />
 </div>
 
@@ -81,6 +81,10 @@
                 @endforeach
             </tbody>
         </x-table>
+
+        @if ($unpaidInvoices->hasPages())
+            <div class="mt-4">{{ $unpaidInvoices->links() }}</div>
+        @endif
     @endif
 </x-card>
 
@@ -116,14 +120,20 @@
                 @endforeach
             </tbody>
             <tfoot>
+                {{-- Total GLOBAL: agregat seluruh invoice, bukan penjumlahan baris
+                     per halaman (tetap akurat walau tabel dipaginasi). --}}
                 <tr class="border-t font-semibold">
                     <td>Total</td>
-                    <td class="text-right">{{ rupiah($clientSummaries->sum('total_amount')) }}</td>
-                    <td class="text-right">{{ rupiah($clientSummaries->sum('paid_amount')) }}</td>
-                    <td class="text-right">{{ rupiah($totalOutstanding) }}</td>
+                    <td class="text-right">{{ rupiah($grandTotals['total_amount']) }}</td>
+                    <td class="text-right">{{ rupiah($grandTotals['paid_amount']) }}</td>
+                    <td class="text-right">{{ rupiah($grandTotals['outstanding_amount']) }}</td>
                 </tr>
             </tfoot>
         </x-table>
+
+        @if ($clientSummaries->hasPages())
+            <div class="mt-4">{{ $clientSummaries->links() }}</div>
+        @endif
     @endif
 </x-card>
 @endsection

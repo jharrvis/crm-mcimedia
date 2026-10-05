@@ -135,6 +135,10 @@
             @endforelse
         </tbody>
     </x-table>
+
+    @if ($servers->hasPages())
+        <div class="mt-4">{{ $servers->links() }}</div>
+    @endif
 </x-card>
 
 <p class="mt-4 text-xs text-slate-400">

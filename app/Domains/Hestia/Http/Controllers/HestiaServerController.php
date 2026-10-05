@@ -30,7 +30,8 @@ class HestiaServerController extends Controller
             'servers' => HestiaServer::query()
                 ->withCount(['accounts', 'syncLogs'])
                 ->orderBy('name')
-                ->get(),
+                ->paginate(25)
+                ->withQueryString(),
             'environmentEnabled' => (bool) config('crm.hestia.enabled', false),
             'environmentConfigured' => $this->environmentConfigured(),
         ]);

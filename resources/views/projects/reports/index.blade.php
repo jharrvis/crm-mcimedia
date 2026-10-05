@@ -39,7 +39,7 @@
 
     <x-card class="lg:col-span-2">
         <x-slot:header>
-            <h2 class="font-bold">Riwayat laporan ({{ $reports->count() }})</h2>
+            <h2 class="font-bold">Riwayat laporan ({{ $reports->total() }})</h2>
         </x-slot:header>
 
         @if ($reports->isEmpty())
@@ -79,6 +79,10 @@
                     @endforeach
                 </tbody>
             </x-table>
+
+            @if ($reports->hasPages())
+                <div class="mt-4">{{ $reports->links() }}</div>
+            @endif
         @endif
     </x-card>
 </div>

@@ -29,6 +29,9 @@ class ReportController
             'monthlyIncome' => $this->monthlyIncome(),
             'unpaidInvoices' => $this->unpaidInvoices(),
             'clientSummaries' => $this->clientSummaries(),
+            // Total global (bukan per halaman) untuk stat card & tfoot.
+            'grandTotals' => $this->grandTotals(),
+            'unpaidTotal' => $this->unpaidTotal(),
         ]);
     }
 
@@ -82,28 +85,41 @@ class ReportController
     {
         $today = Carbon::today();
 
-        return Invoice::query()
+        $paginator = Invoice::query()
             ->unpaid()
             ->withoutTerminParent()
             ->with('client:id,name')
             ->orderBy('due_date')
             ->orderBy('id')
-            ->get()
-            ->map(function (Invoice $invoice) use ($today) {
-                $isOverdue = $invoice->status === InvoiceStatus::Overdue
-                    || ($invoice->status === InvoiceStatus::Sent && $invoice->due_date->isBefore($today));
+            ->paginate(15, ['*'], 'unpaid_page')
+            ->withQueryString();
 
-                // Umur keterlambatan hanya dihitung bila jatuh tempo sudah lewat.
-                $daysLate = $invoice->due_date->isBefore($today)
-                    ? (int) abs($today->diffInDays($invoice->due_date, false))
-                    : 0;
+        $paginator->getCollection()->transform(function (Invoice $invoice) use ($today) {
+            $isOverdue = $invoice->status === InvoiceStatus::Overdue
+                || ($invoice->status === InvoiceStatus::Sent && $invoice->due_date->isBefore($today));
 
-                return [
-                    'invoice' => $invoice,
-                    'is_overdue' => $isOverdue,
-                    'days_late' => $daysLate,
-                ];
-            });
+            // Umur keterlambatan hanya dihitung bila jatuh tempo sudah lewat.
+            $daysLate = $invoice->due_date->isBefore($today)
+                ? (int) abs($today->diffInDays($invoice->due_date, false))
+                : 0;
+
+            return [
+                'invoice' => $invoice,
+                'is_overdue' => $isOverdue,
+                'days_late' => $daysLate,
+            ];
+        });
+
+        return $paginator;
+    }
+
+    /** Jumlah global invoice belum lunas (stat card — bukan per halaman). */
+    private function unpaidTotal(): int
+    {
+        return (int) Invoice::query()
+            ->unpaid()
+            ->withoutTerminParent()
+            ->count();
     }
 
     /**
@@ -114,27 +130,52 @@ class ReportController
      * Invoice induk termin (F4-10) dikecualikan karena nilainya sudah tercermin
      * di invoice termin — menghitungnya akan membuat total per klien dobel.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, Invoice>
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, Invoice>
      */
     private function clientSummaries()
+    {
+        return Invoice::query()
+            ->where('status', '!=', InvoiceStatus::Cancelled->value)
+            ->withoutTerminParent()
+            ->groupBy('client_id')
+            ->selectRaw('client_id,'.$this->summarySums())
+            ->with('client:id,name')
+            ->orderByDesc('outstanding_amount')
+            ->paginate(15, ['*'], 'summaries_page')
+            ->withQueryString();
+    }
+
+    /**
+     * Total GLOBAL per kolom ringkasan — agregat tunggal atas SELURUH baris
+     * (bukan penjumlahan baris per halaman) supaya tfoot & stat card tetap
+     * akurat berapa pun jumlah halamannya.
+     *
+     * @return array{total_amount: int, paid_amount: int, outstanding_amount: int}
+     */
+    private function grandTotals(): array
+    {
+        $row = Invoice::query()
+            ->where('status', '!=', InvoiceStatus::Cancelled->value)
+            ->withoutTerminParent()
+            ->selectRaw($this->summarySums())
+            ->first();
+
+        return [
+            'total_amount' => (int) ($row->total_amount ?? 0),
+            'paid_amount' => (int) ($row->paid_amount ?? 0),
+            'outstanding_amount' => (int) ($row->outstanding_amount ?? 0),
+        ];
+    }
+
+    /** Ekspresi agregat SUM untuk ringkasan (tanpa kolom group-by). */
+    private function summarySums(): string
     {
         $paid = InvoiceStatus::Paid->value;
         $sent = InvoiceStatus::Sent->value;
         $overdue = InvoiceStatus::Overdue->value;
-        $cancelled = InvoiceStatus::Cancelled->value;
 
-        return Invoice::query()
-            ->where('status', '!=', $cancelled)
-            ->withoutTerminParent()
-            ->groupBy('client_id')
-            ->selectRaw(
-                'client_id,'
-                .' SUM(total) as total_amount,'
-                ." SUM(CASE WHEN status = '{$paid}' THEN total ELSE 0 END) as paid_amount,"
-                ." SUM(CASE WHEN status IN ('{$sent}', '{$overdue}') THEN total ELSE 0 END) as outstanding_amount"
-            )
-            ->with('client:id,name')
-            ->orderByDesc('outstanding_amount')
-            ->get();
+        return 'SUM(total) as total_amount,'
+            ."SUM(CASE WHEN status = '{$paid}' THEN total ELSE 0 END) as paid_amount,"
+            ."SUM(CASE WHEN status IN ('{$sent}', '{$overdue}') THEN total ELSE 0 END) as outstanding_amount";
     }
 }

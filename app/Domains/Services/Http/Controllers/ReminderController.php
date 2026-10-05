@@ -27,8 +27,14 @@ class ReminderController extends Controller
 
         return view('reminders.index', [
             'days' => $days,
-            'overdue' => Service::overdue()->with('client')->orderBy('end_date')->get(),
-            'expiring' => Service::expiringSoon($days)->with('client')->orderBy('end_date')->get(),
+            // Paginasi terpisah per tabel (query param 'overdue_page' & 'page'),
+            // denganQueryString() mempertahankan filter lain di URL.
+            'overdue' => Service::overdue()->with('client')->orderBy('end_date')
+                ->paginate(15, ['*'], 'overdue_page')
+                ->withQueryString(),
+            'expiring' => Service::expiringSoon($days)->with('client')->orderBy('end_date')
+                ->paginate(15)
+                ->withQueryString(),
         ]);
     }
 

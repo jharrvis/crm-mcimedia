@@ -61,5 +61,9 @@
             @endforelse
         </tbody>
     </x-table>
+
+    @if ($roles->hasPages())
+        <div class="mt-4">{{ $roles->links() }}</div>
+    @endif
 </x-card>
 @endsection

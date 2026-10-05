@@ -165,9 +165,22 @@ class DomainProviderController extends Controller
             $error = $e->getMessage();
         }
 
+        // Bangun LengthAwarePaginator manual: driver mengembalikan array penuh,
+        // jadi potong di sini. Query string dijaga agar link keep filter.
+        $perPage = 25;
+        $page = (int) request()->input('page', 1);
+        $page = $page > 0 ? $page : 1;
+        $itemsPaged = new \Illuminate\Pagination\LengthAwarePaginator(
+            array_slice($items, ($page - 1) * $perPage, $perPage),
+            count($items),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
+
         return view('domain-providers.domains', [
             'provider' => $domainProvider,
-            'items' => $items,
+            'items' => $itemsPaged,
             'error' => $error,
             'supportsAutoRenew' => $domainProvider->driver === NameSiloDomainProviderDriver::key(),
             'clients' => Client::query()->orderBy('name')->get(),
