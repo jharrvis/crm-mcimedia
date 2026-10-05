@@ -149,6 +149,8 @@
                 </div>
             @endif
 
+            @include('invoices._midtrans_pay')
+
             <form method="POST" action="{{ route('invoices.public.payments.store', ['token' => $invoice->public_token]) }}" class="grid gap-3 sm:grid-cols-2">
                 @csrf
                 <div>

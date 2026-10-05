@@ -20,7 +20,7 @@ class WpScanSite extends Model
 {
     protected $fillable = [
         'client_id', 'hestia_account_id', 'domain', 'url', 'status',
-        'wp_version', 'last_scan_at', 'last_finding_count', 'last_error',
+        'wp_version', 'last_scan_at', 'last_finding_count', 'last_error', 'last_integrity_check_at',
     ];
 
     protected function casts(): array
@@ -28,6 +28,7 @@ class WpScanSite extends Model
         return [
             'status' => WpScanSiteStatus::class,
             'last_scan_at' => 'datetime',
+        'last_integrity_check_at' => 'datetime',
             'last_finding_count' => 'integer',
         ];
     }

@@ -51,3 +51,8 @@ Route::middleware('security.api')->prefix('security')->name('api.security.')->gr
             ->name('status');
     });
 });
+
+// Midtrans webhook (tanpa CSRF, verifikasi signature)
+Route::post('midtrans/notification', \App\Domains\Invoicing\Http\Controllers\MidtransWebhookController::class)
+    ->middleware('throttle:60,1')
+    ->name('api.midtrans.notification');

@@ -53,7 +53,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:disk-quota-alerts')->dailyAt('07:00');
         // WPScan otomatis situs WordPress klien (t_2e555b0b). Dipindai harian
         // sebelum jam kerja; butuh data hestia:sync (06:30) yang sudah berjalan.
-        $schedule->command('crm:wpscan')->dailyAt('08:00')->withoutOverlapping();
+        $schedule->command('crm:wpscan')->weeklyOn(0, '02:00')->withoutOverlapping();
+        $schedule->command('crm:file-integrity')->dailyAt('03:00')->withoutOverlapping(); // 10 situs/hari bergiliran
     })
     ->withCommands([
         EscalateSecurityIncidentsCommand::class,

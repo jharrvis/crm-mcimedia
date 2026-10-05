@@ -131,4 +131,25 @@ class PublicInvoiceController extends Controller
         return redirect()->route('invoices.public.show', $token)
             ->with('success', 'Terima kasih! Konfirmasi transfer Anda sudah dikirim dan akan diverifikasi oleh admin.');
     }
+    /** POST /pay/{token}/midtrans/token — buat Snap token untuk pembayaran online. */
+    public function midtransToken(string $token): \Illuminate\Http\JsonResponse
+    {
+        $invoice = $this->findInvoice($token);
+
+        if (! $invoice->isCollectible()) {
+            return response()->json(['message' => 'Invoice ini tidak dapat dibayar online.'], 422);
+        }
+
+        if ($invoice->isTerminal()) {
+            return response()->json(['message' => 'Invoice ini sudah lunas atau dibatalkan.'], 422);
+        }
+
+        try {
+            $snapToken = app(\App\Domains\Invoicing\Services\MidtransService::class)->createSnapToken($invoice);
+
+            return response()->json(['snap_token' => $snapToken]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
 }
