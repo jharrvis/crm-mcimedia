@@ -5,6 +5,7 @@ use App\Domains\Invoicing\Console\Commands\GenerateRecurringInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand;
 use App\Domains\Projects\Console\Commands\GenerateAchievementReportsCommand;
+use App\Domains\Security\Console\Commands\WpScanCommand;
 use App\Domains\Hestia\Console\Commands\DiskQuotaAlertsCommand;
 use App\Domains\Hestia\Console\Commands\HestiaSyncCommand;
 use App\Domains\Services\Console\Commands\ServicesExpiringCommand;
@@ -45,6 +46,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Alert kuota disk website (t_afef420a): 80% warning, 90% kritis.
         // Dijalankan setelah hestia:sync supaya angka pemakaian masih segar.
         $schedule->command('crm:disk-quota-alerts')->dailyAt('07:00');
+        // WPScan otomatis situs WordPress klien (t_2e555b0b). Dipindai harian
+        // sebelum jam kerja; butuh data hestia:sync (06:30) yang sudah berjalan.
+        $schedule->command('crm:wpscan')->dailyAt('08:00')->withoutOverlapping();
     })
     ->withCommands([
         EscalateSecurityIncidentsCommand::class,
@@ -55,6 +59,7 @@ return Application::configure(basePath: dirname(__DIR__))
         HestiaSyncCommand::class,
         DiskQuotaAlertsCommand::class,
         GenerateAchievementReportsCommand::class,
+        WpScanCommand::class,
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //

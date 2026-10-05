@@ -212,6 +212,40 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | WPScan otomatis untuk situs WordPress (t_2e555b0b)
+    |--------------------------------------------------------------------------
+    |
+    | Command `crm:wpscan` (jadwal harian 05:00, sebelum ingest monitoring lain)
+    | menemukan akun Hestia aktif yang terpetakan ke klien, mem-probe domainnya
+    | untuk memastikan WordPress, lalu menjalankan WPScan CLI dan mencatat
+    | temuan sebagai insiden keamanan (source=wpscan, external_id idempoten
+    | `wpscan:{site_id}:{fingerprint}`).
+    |
+    | Keamanan:
+    |  - scan hanya flag read-only WPScan (tanpa enumerasi user/brute force);
+    |  - api_token HANYA dari environment (WPSCAN_API_TOKEN) — tanpa token,
+    |    database kerentanan WPScan tidak dipakai dan deteksi tetap berjalan
+    |    terbatas; jangan pernah commit token ke repo;
+    |  - binary di-run dari server CRM terhadap situs klien sendiri.
+    |
+    | binary    : path/eksekutabel wpscan (default `wpscan` di PATH).
+    | api_token : token API wpscan.com (lihat https://wpscan.com/api) untuk
+    |             database kerentanan terkini. Kosong = tanpa DB.
+    | timeout   : batas detik per proses scan (default 300).
+    | probe_timeout : batas detik probe deteksi WordPress (default 10).
+    | verify_ssl: verifikasi SSL saat probe deteksi (default true; set false
+    |             hanya bila banyak klien memakai sertifikat self-signed).
+    */
+    'wpscan' => [
+        'binary' => env('WPSCAN_BINARY', 'wpscan'),
+        'api_token' => env('WPSCAN_API_TOKEN', ''),
+        'timeout' => env('WPSCAN_TIMEOUT', 300),
+        'probe_timeout' => env('WPSCAN_PROBE_TIMEOUT', 10),
+        'verify_ssl' => env('WPSCAN_VERIFY_SSL', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Alert kuota disk website (t_afef420a)
     |--------------------------------------------------------------------------
     |

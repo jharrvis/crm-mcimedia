@@ -5,6 +5,7 @@ namespace App\Domains\Security\Services;
 use App\Domains\Hestia\Enums\DiskAlertLevel;
 use App\Domains\Hestia\Models\HestiaAccount;
 use App\Domains\Security\Models\SecurityIncident;
+use App\Domains\Security\Models\WpScanSite;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
@@ -81,6 +82,40 @@ class IncidentFonnteNotifier
         ]);
 
         $this->sendIfEnabled($incident, 'disk_quota_'.$level->value, $message);
+    }
+
+    /**
+     * Kirim notifikasi WA untuk temuan WPScan baru (t_2e555b0b).
+     *
+     * @param  array<string, mixed>  $finding  temuan ternormalisasi dari WpScanResultParser
+     */
+    public function notifyWpScanFinding(SecurityIncident $incident, WpScanSite $site, array $finding): void
+    {
+        $emoji = $finding['severity']->weight() >= 4 ? '🚨' : '⚠️';
+        $crmUrl = $this->getIncidentUrl($incident);
+
+        $lines = [
+            "{$emoji} *TEMUAN WPSCAN — {$site->domain}*",
+            '',
+            "🌐 Website: {$site->domain}",
+            "📦 Komponen: {$finding['title']}",
+            "🔎 Severity: {$finding['severity']->label()}",
+        ];
+
+        if (filled($finding['component_version'])) {
+            $lines[] = "Versi: {$finding['component_version']}";
+        }
+
+        $lines = array_merge($lines, [
+            '',
+            "🔗 Detail di CRM: {$crmUrl}",
+            '',
+            'Perbarui komponen terdampak atau terapkan mitigasi segera.',
+        ]);
+
+        $message = implode("\n", $lines);
+
+        $this->sendIfEnabled($incident, 'wpscan_'.$finding['fingerprint'], $message);
     }
 
     /**
