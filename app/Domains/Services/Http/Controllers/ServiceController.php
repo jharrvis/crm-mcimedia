@@ -2,6 +2,7 @@
 
 namespace App\Domains\Services\Http\Controllers;
 
+use App\Domains\Catalog\Models\Product;
 use App\Domains\Clients\Models\Client;
 use App\Domains\Services\Enums\ServiceCycle;
 use App\Domains\Services\Enums\ServiceStatus;
@@ -39,6 +40,7 @@ class ServiceController extends Controller
     {
         return view('services.create', [
             'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'products' => Product::active()->get(['id', 'sku', 'name', 'sales_price']),
             'types' => ServiceType::cases(),
             'cycles' => ServiceCycle::cases(),
             'statuses' => ServiceStatus::cases(),
@@ -64,7 +66,7 @@ class ServiceController extends Controller
 
     public function show(Service $service)
     {
-        $service->load(['client', 'parent', 'children']);
+        $service->load(['client', 'parent', 'children', 'product']);
 
         return view('services.show', compact('service'));
     }
@@ -74,6 +76,7 @@ class ServiceController extends Controller
         return view('services.edit', [
             'service' => $service,
             'clients' => Client::orderBy('name')->get(['id', 'name']),
+            'products' => Product::active()->get(['id', 'sku', 'name', 'sales_price']),
             'types' => ServiceType::cases(),
             'cycles' => ServiceCycle::cases(),
             'statuses' => ServiceStatus::cases(),

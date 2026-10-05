@@ -2,9 +2,11 @@
 
 namespace Tests\Feature\Invoicing;
 
+use App\Domains\Clients\Models\Client;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Models\Invoice;
 use Database\Factories\InvoiceFactory;
+use Database\Factories\ProductFactory;
 use Database\Factories\ServiceFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -135,6 +137,121 @@ class GenerateRenewalInvoicesCommandTest extends TestCase
 
         $numbers = Invoice::orderBy('id')->pluck('number')->all();
         $this->assertSame(["INV-{$month}-0001", "INV-{$month}-0002"], $numbers);
+    }
+
+    public function test_uses_catalog_product_price_when_service_is_linked(): void
+    {
+        $product = ProductFactory::new()->create(['sales_price' => 999000]);
+        $service = ServiceFactory::new()->create([
+            'status' => 'active',
+            'price' => 111000, // snapshot basi — harus diabaikan
+            'product_id' => $product->id,
+            'end_date' => now()->addDays(10)->toDateString(),
+        ]);
+
+        $this->artisan('crm:generate-renewal-invoices')->assertSuccessful();
+
+        $invoice = Invoice::firstOrFail();
+        $this->assertSame(999000, $invoice->total);
+        $this->assertSame(999000, $invoice->items->first()->unit_price);
+    }
+
+    public function test_falls_back_to_service_price_when_no_product(): void
+    {
+        ServiceFactory::new()->create([
+            'status' => 'active',
+            'price' => 450000,
+            'product_id' => null,
+            'end_date' => now()->addDays(10)->toDateString(),
+        ]);
+
+        $this->artisan('crm:generate-renewal-invoices')->assertSuccessful();
+
+        $this->assertSame(450000, Invoice::firstOrFail()->total);
+    }
+
+    public function test_groups_services_sharing_the_same_domain_root_into_one_invoice(): void
+    {
+        $client = Client::factory()->create();
+        $root = ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'contoh.com',
+            'reference' => 'contoh.com',
+            'type' => 'domain',
+            'parent_id' => null,
+            'end_date' => now()->addDays(8)->toDateString(),
+        ]);
+        $sub = ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'www.contoh.com',
+            'reference' => 'www.contoh.com',
+            'type' => 'domain',
+            'parent_id' => $root->id,
+            'end_date' => now()->addDays(12)->toDateString(),
+        ]);
+
+        $this->artisan('crm:generate-renewal-invoices')->assertSuccessful();
+
+        $this->assertSame(1, Invoice::count());
+        $invoice = Invoice::firstOrFail();
+        $this->assertEqualsCanonicalizing(
+            [$root->id, $sub->id],
+            $invoice->services->pluck('id')->all()
+        );
+        $this->assertCount(2, $invoice->items);
+        $this->assertSame(
+            $root->end_date->toDateString(),
+            $invoice->due_date->toDateString()
+        );
+    }
+
+    public function test_same_host_across_types_shares_one_invoice(): void
+    {
+        $client = Client::factory()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'contoh.com',
+            'reference' => 'contoh.com',
+            'type' => 'domain',
+            'parent_id' => null,
+            'end_date' => now()->addDays(6)->toDateString(),
+        ]);
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'name' => 'Hosting contoh.com',
+            'reference' => 'contoh.com',
+            'type' => 'hosting',
+            'parent_id' => null,
+            'end_date' => now()->addDays(6)->toDateString(),
+        ]);
+
+        $this->artisan('crm:generate-renewal-invoices')->assertSuccessful();
+
+        $this->assertSame(1, Invoice::count());
+        $this->assertSame(2, Invoice::firstOrFail()->services->count());
+    }
+
+    public function test_www_prefix_does_not_split_a_domain_group(): void
+    {
+        $client = Client::factory()->create();
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'reference' => 'www.contoh.com',
+            'type' => 'domain',
+            'parent_id' => null,
+            'end_date' => now()->addDays(6)->toDateString(),
+        ]);
+        ServiceFactory::new()->create([
+            'client_id' => $client->id,
+            'reference' => 'contoh.com',
+            'type' => 'hosting',
+            'parent_id' => null,
+            'end_date' => now()->addDays(6)->toDateString(),
+        ]);
+
+        $this->artisan('crm:generate-renewal-invoices')->assertSuccessful();
+
+        $this->assertSame(1, Invoice::count());
     }
 
     public function test_command_is_scheduled_daily(): void

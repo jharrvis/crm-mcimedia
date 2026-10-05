@@ -19,6 +19,7 @@ class ServiceRequest extends FormRequest
     {
         return [
             'client_id' => ['required', 'exists:clients,id'],
+            'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'parent_id' => [
                 'nullable',
                 Rule::exists('services', 'id')->where(function ($query) {

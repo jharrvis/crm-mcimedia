@@ -43,7 +43,7 @@
                     @endif
                 </dd>
             </div>
-            <div><dt class="text-xs uppercase text-slate-400">Harga</dt><dd class="font-semibold">{{ rupiah($service->price) }}</dd></div>
+            <div><dt class="text-xs uppercase text-slate-400">Harga</dt><dd class="font-semibold">{{ rupiah($service->price) }}@if ($service->product)<span class="text-xs font-normal text-slate-400"> (katalog: {{ $service->product->name }} — {{ rupiah($service->product->sales_price) }})</span>@endif</dd></div>
             <div><dt class="text-xs uppercase text-slate-400">Siklus</dt><dd class="font-semibold">{{ $service->cycle->label() }}</dd></div>
             <div><dt class="text-xs uppercase text-slate-400">Status</dt>
                 <dd><x-badge :variant="$service->status->value === 'active' ? 'success' : 'slate'" :dot="true">{{ $service->status->label() }}</x-badge></dd>
