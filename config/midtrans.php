@@ -1,0 +1,25 @@
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Midtrans Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Server Key dan Client Key didapat dari dashboard Midtrans
+    | (https://dashboard.midtrans.com). Set MIDTRANS_IS_PRODUCTION=true
+    | untuk production, false untuk sandbox.
+    |
+    */
+    'server_key' => env('MIDTRANS_SERVER_KEY', ''),
+    'client_key' => env('MIDTRANS_CLIENT_KEY', ''),
+    'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+
+    'snap_url' => env('MIDTRANS_IS_PRODUCTION', false)
+        ? 'https://app.midtrans.com/snap/snap.js'
+        : 'https://app.sandbox.midtrans.com/snap/snap.js',
+
+    'api_base' => env('MIDTRANS_IS_PRODUCTION', false)
+        ? 'https://app.midtrans.com'
+        : 'https://app.sandbox.midtrans.com',
+];
