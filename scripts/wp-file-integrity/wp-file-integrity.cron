@@ -1,0 +1,6 @@
+# /etc/cron.d/wp-file-integrity — file integrity monitoring WordPress via wp-cli
+# Tiap 15 menit. Log mandiri di /var/log/wp-file-integrity.log; file ini hanya
+# jaring pengaman bila script crash sebelum menulis log.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+*/15 * * * * root /usr/local/bin/wp-file-integrity.sh >> /var/log/wp-file-integrity-cron.log 2>&1

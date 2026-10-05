@@ -1,0 +1,51 @@
+2026-10-05 14:01:03 === run start (v1.0.0 pid 3279312 mode=run sites=1) ===
+2026-10-05 14:01:08 e2e-real: baseline watchlist dibangun (1 file)
+2026-10-05 14:01:08 e2e-real: bersih
+2026-10-05 14:01:08 === run done: findings=0 events=0 mode=run delivery_failed=0 ===
+2026-10-05 14:01:10 === run start (v1.0.0 pid 3279467 mode=run sites=1) ===
+2026-10-05 14:01:13 ALERT e2e-real: 2 temuan (fp=dfa375a06583, severity=high)
+2026-10-05 14:01:13 OK events: 1 record → HTTP 200 (created=1 dup=0 errors=0)
+2026-10-05 14:01:13 events: 1 chunk terkirim, 0 chunk gagal (total 1 record)
+2026-10-05 14:01:13 === run done: findings=2 events=1 mode=run delivery_failed=0 ===
+2026-10-05 14:01:13 === run start (v1.0.0 pid 3279649 mode=run sites=1) ===
+2026-10-05 14:01:16 e2e-real: 2 temuan, fingerprint sama dengan last-sent (dfa375a06583) — dedup lokal, tidak POST ulang
+2026-10-05 14:01:16 === run done: findings=2 events=0 mode=run delivery_failed=0 ===
+2026-10-05 14:01:17 === run start (v1.0.0 pid 3279778 mode=run sites=1) ===
+2026-10-05 14:01:20 ALERT e2e-real: 3 temuan (fp=c19c6a94bf85, severity=critical)
+2026-10-05 14:01:20 OK events: 1 record → HTTP 200 (created=1 dup=0 errors=0)
+2026-10-05 14:01:20 events: 1 chunk terkirim, 0 chunk gagal (total 1 record)
+2026-10-05 14:01:20 === run done: findings=3 events=1 mode=run delivery_failed=0 ===
+2026-10-05 14:01:20 === run start (v1.0.0 pid 3279957 mode=rebuild-baseline sites=1) ===
+2026-10-05 14:01:20 e2e-real: baseline watchlist disetujui ulang (1 file)
+2026-10-05 14:01:20 === run start (v1.0.0 pid 3279996 mode=run sites=1) ===
+2026-10-05 14:01:23 ALERT e2e-real: 2 temuan (fp=dfa375a06583, severity=high)
+2026-10-05 14:01:23 OK events: 1 record → HTTP 200 (created=1 dup=0 errors=0)
+2026-10-05 14:01:23 events: 1 chunk terkirim, 0 chunk gagal (total 1 record)
+2026-10-05 14:01:23 === run done: findings=2 events=1 mode=run delivery_failed=0 ===
+2026-10-05 14:01:23 === run start (v1.0.0 pid 3280178 mode=run sites=1) ===
+2026-10-05 14:01:26 ALERT e2e-real: 3 temuan (fp=55f845490bda, severity=high)
+2026-10-05 14:01:27 OK events: 1 record → HTTP 200 (created=1 dup=0 errors=0)
+2026-10-05 14:01:27 events: 1 chunk terkirim, 0 chunk gagal (total 1 record)
+2026-10-05 14:01:27 === run done: findings=3 events=1 mode=run delivery_failed=0 ===
+2026-10-05 14:01:30 === run start (v1.0.0 pid 3280398 mode=run sites=1) ===
+2026-10-05 14:01:35 e2e-real: bersih (temuan sebelumnya sudah pulih)
+2026-10-05 14:01:35 === run done: findings=0 events=0 mode=run delivery_failed=0 ===
+2026-10-05 14:01:35 === run start (v1.0.0 pid 3280516 mode=verify-site sites=1) ===
+2026-10-05 14:01:41 STATUS OK: {"status": "ok", "service": "crm-security-api", "time": "2026-10-05T00:00:00+08:00", "counts": {"incidents_total": 0, "incidents_open": 0, "reports_total": 0}}
+2026-10-05 14:01:41 === run start (v1.0.0 pid 3280633 mode=dry-run sites=1) ===
+2026-10-05 14:01:43 ALERT e2e-real: 2 temuan (fp=dfa375a06583, severity=high)
+2026-10-05 14:01:43 DRY_RUN events: 1 record siap kirim (POST dilewati)
+{"external_id":"fim-e2e-real-dfa375a06583e18395015fe20d8904c0","client_id":77,"occurred_at":"2026-10-05T14:01:43+0800","severity":"high","source":"file-integrity","title":"Integritas file WordPress: 2 temuan di e2e-real","description":"File integrity monitoring (wp-cli verify-checksums + watchlist sha256) menemukan 2 temuan di situs \"e2e-real\" — core: 1, plugin: 0, watchlist: 0, error sistem: 1.\n  [core/high] wp-includes/version.php — Checksum tidak cocok\n  [error/high] plugins — wp plugin verify-checksums gagal (rc=255): \n\nTindak lanjut: periksa file tersebut di server; bila perubahan sah (update/edit resmi), jalankan 'wp-file-integrity.sh --rebuild-baseline e2e-real'."}
+2026-10-05 14:01:43 === run done: findings=2 events=1 mode=dry-run delivery_failed=0 ===
+2026-10-05 14:01:43 === run start (v1.0.0 pid 3280769 mode=run sites=1) ===
+2026-10-05 14:01:46 ALERT e2e-real: 2 temuan (fp=dfa375a06583, severity=high)
+2026-10-05 14:01:50 ERROR events: HTTP 500 — record disimpan di outbox utk retry
+2026-10-05 14:01:50 events: 1 chunk gagal → outbox (1 baris menunggu retry)
+2026-10-05 14:01:50 events: 0 chunk terkirim, 1 chunk gagal (total 1 record)
+2026-10-05 14:01:50 === run done: findings=2 events=1 mode=run delivery_failed=1 ===
+2026-10-05 14:01:50 === run start (v1.0.0 pid 3280953 mode=run sites=1) ===
+2026-10-05 14:01:53 ALERT e2e-real: 2 temuan (fp=dfa375a06583, severity=high)
+2026-10-05 14:01:53 events: outbox berisi 1 baris — ikut dikirim
+2026-10-05 14:01:53 OK events: 2 record → HTTP 200 (created=2 dup=0 errors=0)
+2026-10-05 14:01:53 events: 1 chunk terkirim, 0 chunk gagal (total 2 record)
+2026-10-05 14:01:53 === run done: findings=2 events=1 mode=run delivery_failed=0 ===

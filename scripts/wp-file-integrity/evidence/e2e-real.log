@@ -1,0 +1,69 @@
+
+=== [1] A. Baseline run (WordPress bersih) ===
+rc=0 out=[] posts=0
+{"wp-config.php":"96e2ed5a3e1779a8cad2e2f887c97bf0e8cf45e953b50a8791bd24fbfd500d65"}
+OK: run bersih tidak POST (baseline dibangun)
+
+=== [2] B. wp core verify-checksums baseline (bukti nyata) ===
+Success: WordPress installation verifies against checksums.
+
+=== [3] C. Tamper file CORE nyata (wp-includes/version.php) ===
+rc=0 posts=1
+{"external_id":"fim-e2e-real-dfa375a06583e18395015fe20d8904c0","client_id":77,"severity":"high","source":"file-integrity","title":"Integritas file WordPress: 2 temuan di e2e-real"}
+  [core/high] wp-includes/version.php — Checksum tidak cocok
+
+=== [4] D. Idempotensi: run ulang temuan identik → TIDAK POST ===
+rc=0 posts=1 (sebelumnya 1)
+
+=== [5] E. Tamper watchlist wp-config.php (PHP valid: sisipkan define sebelum marker) ===
+74:define( 'FIM_TEST_MARK', 1 );
+75:define( 'FIM_TEST_MARK', 1 );
+76:define( 'FIM_TEST_MARK', 1 );
+97:define( 'FIM_TEST_MARK', 1 );
+98:define( 'FIM_TEST_MARK', 1 );
+99:define( 'FIM_TEST_MARK', 1 );
+No syntax errors detected in /home/ubuntu/.hermes/profiles/developer/cache/scratch/fim-e2e3/wp/wp-config.php
+rc=0 posts=2
+{"severity":"critical","external_id":"fim-e2e-real-c19c6a94bf8564b2aa9289e2d905eef7"}
+  [watch/critical] wp-config.php — Isi berubah (sha256 berbeda)
+
+=== [6] F. --rebuild-baseline menyetujui perubahan watchlist ===
+OK: baseline e2e-real dibangun ulang (1 file)
+rc=0
+OK: baseline = hash terkini
+
+=== [7] G. Temuan tersisa (core) → event BARU severity high ===
+rc=0 posts=3 (sebelumnya 2)
+{"severity":"high","external_id":"fim-e2e-real-dfa375a06583e18395015fe20d8904c0"}
+sebutan wp-config di deskripsi: 0
+
+=== [8] H. File EXTRA di core (backdoor) terdeteksi ===
+rc=0 posts=4 (sebelumnya 3)
+  [core/high] wp-includes/class-wp-backdoor.php — File tidak seharusnya ada
+
+=== [9] I. Heil core + hapus backdoor → bersih, tidak POST ===
+Success: WordPress installation verifies against checksums.
+rc=0 posts=4 (sebelumnya 4)
+last-fingerprint: clean
+
+=== [10] J. --verify-site / --status / --list-sites ===
+Situs: e2e-real (/home/ubuntu/.hermes/profiles/developer/cache/scratch/fim-e2e3/wp)
+  Bersih — tidak ada temuan.
+rc=0
+OK: {"status": "ok", "service": "crm-security-api", "time": "2026-10-05T00:00:00+08:00", "counts": {"incidents_total": 0, "incidents_open": 0, "reports_total": 0}}
+rc=0
+label	client_id	path
+e2e-real	77	/home/ubuntu/.hermes/profiles/developer/cache/scratch/fim-e2e3/wp
+rc=0
+
+=== [11] K. --dry-run: deteksi tanpa POST & tanpa tulis state ===
+rc=0
+OK: dry-run tidak POST
+OK: dry-run tidak ubah state
+
+=== [12] L. Outbox retry: CRM 500 → exit 1, outbox terisi; pulih → terkirim ===
+rc=1 (harus 1) outbox=1 baris
+rc=0 (harus 0) posts=5 (sebelumnya 4)
+outbox setelah sukses: 0 baris
+
+E2E SELESAI. Total POST diterima mock CRM: 5

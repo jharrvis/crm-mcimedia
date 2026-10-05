@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# fake-wp — stub wp-cli untuk test rig. Perilaku dikendalikan env:
+#   FAKE_CORE_MODE    clean | tamper | missing | extra | fail
+#   FAKE_PLUGIN_MODE  clean | tamper | failjson | noplugins
+case "${1:-}" in
+    core)
+        case "${2:-}" in
+            verify-checksums)
+                case "${FAKE_CORE_MODE:-clean}" in
+                    clean)
+                        echo "Success: WordPress installation verifies against checksums."
+                        exit 0 ;;
+                    tamper)
+                        echo "Warning: File doesn't verify against checksum: wp-includes/version.php" >&2
+                        echo "Error: WordPress installation doesn't verify against checksums." >&2
+                        exit 1 ;;
+                    missing)
+                        echo "Warning: File doesn't exist: wp-login.php" >&2
+                        echo "Error: WordPress installation doesn't verify against checksums." >&2
+                        exit 1 ;;
+                    extra)
+                        echo "Warning: File should not exist: wp-includes/class-wp-backdoor.php" >&2
+                        echo "Error: WordPress installation doesn't verify against checksums." >&2
+                        exit 1 ;;
+                    fail)
+                        echo "Error: This does not seem to be a WordPress install." >&2
+                        exit 1 ;;
+                esac ;;
+            *) exit 1 ;;
+        esac ;;
+    plugin)
+        case "${2:-}" in
+            verify-checksums)
+                case "${FAKE_PLUGIN_MODE:-clean}" in
+                    clean)
+                        echo "Success: Verified 1 of 1 plugins."
+                        exit 0 ;;
+                    tamper)
+                        echo '[{"plugin_name":"akismet","file":"akismet.php","message":"Checksum does not match"}]'
+                        echo "Error: No plugins verified (1 failed)." >&2
+                        exit 1 ;;
+                    failjson)
+                        echo "Error: No plugins verified (1 failed)." >&2
+                        exit 1 ;;
+                    noplugins)
+                        echo "Success: Plugin already verified."
+                        exit 0 ;;
+                esac ;;
+            *) exit 1 ;;
+        esac ;;
+    --version)
+        echo "WP-CLI 2.12.0 (fake)"
+        exit 0 ;;
+    *)
+        echo "fake-wp: unsupported: $*" >&2
+        exit 1 ;;
+esac

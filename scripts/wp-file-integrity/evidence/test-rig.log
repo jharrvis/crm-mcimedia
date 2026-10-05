@@ -1,0 +1,111 @@
+
+== 1. Dasar: versi, argumen, validasi config ==
+  [PASS] --version exit 0 (rc=0)
+  [PASS] versi tercetak
+  [PASS] argumen tidak dikenal → 64 (rc=64)
+  [PASS] token kosong → 3 (rc=3)
+  [PASS] label duplikat → 5 (rc=5)
+  [PASS] SITES_FILE hilang → 5 (rc=5)
+  [PASS] SITES_FILE bukan JSON → 5 (rc=5)
+
+== 2. --status health check ==
+  [PASS] --status exit 0 (rc=0)
+  [PASS] status OK
+  [PASS] --status saat CRM down → rc=1
+
+== 3. Run pertama: situs bersih → baseline dibangun, tanpa POST ==
+  [PASS] run bersih exit 0 (rc=0)
+  [PASS] tidak ada POST saat bersih
+  [PASS] baseline watchlist dibangun
+  [PASS] baseline memuat wp-config.php
+  [PASS] --verify-site exit 0 (rc=0)
+  [PASS] verify-site bersih
+
+== 4. Core tamper → 1 event file-integrity (severity high) ==
+  [PASS] run tamper exit 0 (rc=0)
+  [PASS] 1 POST terkirim
+  [PASS] source=file-integrity
+  [PASS] severity=high (core)
+  [PASS] client_id dari config
+  [PASS] external_id deterministik
+  [PASS] judul menyebut situs
+  [PASS] deskripsi menyebut file
+  [PASS] auth Bearer
+  [PASS] payload wrapper events[]
+  [PASS] fingerprint tersimpan
+  [PASS] path endpoint benar
+
+== 5. Idempotensi lokal: run ulang temuan sama → tidak POST ulang ==
+  [PASS] run ulang exit 0 (rc=0)
+  [PASS] tidak ada POST ulang (dedup fingerprint)
+
+== 6. --dry-run: deteksi tanpa POST & tanpa tulis state ==
+  [PASS] dry-run exit 0 (rc=0)
+  [PASS] dry-run tidak POST
+  [PASS] dry-run tidak mengubah state
+
+== 7. Watchlist tamper → severity critical (maks), fingerprint baru ==
+  [PASS] run watch-tamper exit 0 (rc=0)
+  [PASS] POST baru (fingerprint berubah)
+  [PASS] severity=critical (watchlist > core)
+  [PASS] deskripsi menyebut wp-config
+
+== 8. --rebuild-baseline: setujui ulang watchlist ==
+  [PASS] rebuild-baseline exit 0 (rc=0)
+  [PASS] baseline watchlist = hash terkini
+  [PASS] temuan core masih → event baru (tanpa watch)
+  [PASS] severity turun ke high (watch hilang)
+  [PASS] wp-config.php tak lagi disebut
+
+== 9. Pulih → bersih; tamper lagi → alert lagi ==
+  [PASS] run pulih exit 0 (rc=0)
+  [PASS] tidak ada POST saat pulih
+  [PASS] fingerprint direset ke clean
+  [PASS] tamper baru → alert baru lagi
+  [PASS] file hilang disebut
+
+== 10. Outbox retry: CRM 500 → outbox + exit 1; pulih → terkirim ==
+  [PASS] CRM 500 → exit 1 (rc=1)
+  [PASS] outbox berisi record gagal
+  [PASS] retry run exit 0 (rc=0)
+  [PASS] outbox + event terkirim ulang
+  [PASS] outbox kosong setelah sukses
+
+== 11. Respons 200 bukan JSON kontrak → outbox ==
+  [PASS] 200-nonJSON → exit 1 (rc=1)
+  [PASS] payload masuk outbox
+  [PASS] flush outbox setelah mock pulih (rc=0)
+
+== 12. HTTP 422 → tidak di-retry (tidak masuk outbox) ==
+  [PASS] 422 → exit 0 (payload ditolak permanen) (rc=0)
+  [PASS] 422 tidak masuk outbox
+
+== 13. plugin verify gagal tanpa JSON → temuan error (high) ==
+  [PASS] error wp-cli → event terkirim
+  [PASS] severity error = high
+  [PASS] deskripsi memuat pesan gagal
+
+== 14. Direktori situs hilang → temuan error ==
+  [PASS] run situs hilang exit 0 (rc=0)
+  [PASS] error direktori
+
+== 15. Tanpa client_id → temuan tidak terkirim (warn) ==
+  [PASS] tanpa client_id exit 0 (rc=0)
+  [PASS] tidak ada POST tanpa client_id
+  [PASS] warn tercatat di log
+
+== 16. --list-sites ==
+  [PASS] --list-sites exit 0 (rc=0)
+  [PASS] label tampil
+  [PASS] client_id tampil
+
+== 17. --verify-site menampilkan temuan tanpa POST ==
+  [PASS] --verify-site exit 0 (rc=0)
+  [PASS] temuan ditampilkan
+  [PASS] verify-site tidak POST
+
+===============================================
+HASIL: 71 PASS, 0 FAIL (total 71)
+SEMUA LULUS
+
+TEST_ROOT disimpan: /home/ubuntu/.hermes/profiles/developer/cache/scratch/fim-rig.f4HfvT

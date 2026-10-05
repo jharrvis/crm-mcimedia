@@ -1,0 +1,4 @@
+tests/.e2e-scratch/
+tests/__pycache__/
+*.pyc
+!evidence/*.log

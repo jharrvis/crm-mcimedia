@@ -1,0 +1,18 @@
+[
+  {
+    "label": "example.com",
+    "path": "/home/example/web/example.com/public_html",
+    "user": "example",
+    "client_id": 3
+  },
+  {
+    "label": "blog.example.com",
+    "path": "/home/example/web/blog.example.com/public_html",
+    "user": "example",
+    "watch": [
+      "wp-config.php",
+      "wp-content/mu-plugins/*.php",
+      "wp-content/uploads/custom.php"
+    ]
+  }
+]

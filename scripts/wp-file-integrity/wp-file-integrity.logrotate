@@ -1,0 +1,9 @@
+/var/log/wp-file-integrity.log /var/log/wp-file-integrity-cron.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 640 root root
+}

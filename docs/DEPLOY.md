@@ -383,6 +383,37 @@ temuan `high`/`critical`.
    `active`/`non_wordpress`); tidak ada UI untuk tabel ini — status `disabled`
    dipakai untuk mematikan satu target secara manual lewat SQL.
 
+## File Integrity Monitoring WordPress (t_a94a2d2c)
+
+Paket `scripts/wp-file-integrity/` memantau integritas file situs WordPress di
+server hosting **memakai wp-cli, read-only** (bukan agent daemon):
+
+- `wp core verify-checksums` → file core berubah/hilang/ekstra vs checksum
+  resmi wordpress.org (severity **high**);
+- `wp plugin verify-checksums --all` → plugin terdaftar berubah (severity
+  **medium**);
+- watchlist sha256 vs baseline lokal → default `wp-config.php`,
+  `wp-content/mu-plugins/*.php`, `wp-content/db.php`,
+  `wp-content/object-cache.php` (severity **critical**; approval perubahan sah:
+  `wp-file-integrity.sh --rebuild-baseline <label>`).
+
+Temuan dikirim **maksimal 1 event agregat per situs per run** ke
+`POST /api/security/events` (`source=file-integrity`, Bearer
+`SECURITY_API_TOKEN`, kontrak `SecurityEventIngest`), idempoten dua lapis:
+`external_id` deterministik `fim-<label>-<sha256>` + state lokal. Pengiriman
+gagal masuk outbox dan dicoba lagi run berikutnya; HTTP 422 tidak di-retry.
+
+Instalasi di server hosting (sg2 dll) adalah **langkah operator** — pola sama
+dengan paket feed `sg2-crm-security-feed`. Langkah lengkap, konfigurasi
+(`/etc/wp-file-integrity.env`, `/etc/wp-file-integrity/sites.json`, keduanya
+`600`), dan verifikasi ada di `scripts/wp-file-integrity/README.md`; status
+deploy sg2: kanban `t_a0ae5dd5` (hard gate akses `sg2-ssh museops`).
+
+Verifikasi: `bash scripts/wp-file-integrity/tests/test-rig.sh` (rig 71/71
+assertion, stub wp-cli + mock CRM) dan `tests/e2e-real.sh` (e2e nyata
+WordPress + wp-cli + MariaDB, 12/12 langkah) — bukti log di
+`scripts/wp-file-integrity/evidence/`.
+
 ## Redeploy (update versi)
 
 1. Lokal: WAJIB `npm run build` tepat sebelum packaging (jangan pakai
