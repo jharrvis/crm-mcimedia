@@ -516,10 +516,12 @@ class HestiaQuotaTest extends TestCase
     /** Baca angka pada kartu ringkasan dari HTML yang sudah dirender. */
     private function summaryCardValue(string $html, string $label): ?int
     {
+        // Markup DS: label = <p>, nilai = <div> (x-stat-card). Bentuk <p> lama
+        // tetap dikenali untuk kompatibilitas bila ada kartu stat non-DS.
         $this->assertSame(
             1,
             preg_match(
-                '/'.preg_quote($label, '/').'<\/p>\s*<p class="[^"]*">([^<]*)</',
+                '/'.preg_quote($label, '/').'<\/p>\s*<(?:p|div) class="[^"]*">([^<]*)</',
                 $html,
                 $matches
             ),

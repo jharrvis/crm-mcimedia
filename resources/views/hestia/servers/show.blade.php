@@ -4,72 +4,60 @@
 
 @section('content')
 @php
-    $inputClass = 'rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800';
-    $badge = fn (string $classes, string $text) => '<span class="rounded-full px-2 py-0.5 text-xs font-medium '.$classes.'">'.e($text).'</span>';
+    $accountStatusVariant = fn ($account) => $account->status->value === 'active' ? 'success' : 'slate';
 @endphp
 
-<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-    <a href="{{ route('hestia.servers.index') }}" class="text-sm text-brand-600 hover:underline">&larr; Kembali ke daftar server</a>
-    <div class="flex items-center gap-2">
-        {{-- Sinkron bertahap via AJAX (t_dcccffd9) — fallback tanpa JavaScript
-             tetap memakai form POST lama. --}}
-        <button type="button"
-                data-hestia-sync
-                data-sync-start-url="{{ route('hestia.servers.sync.start', $server) }}"
-                data-sync-batch-url="{{ route('hestia.servers.sync.batch', $server) }}"
-                data-sync-server="{{ $server->name }}"
-                class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">
-            Sinkronkan server ini
-        </button>
-        <noscript>
-            <form method="POST" action="{{ route('hestia.servers.sync', $server) }}">
-                @csrf
-                <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-                    Sinkronkan server ini
-                </button>
-            </form>
-        </noscript>
-        <form method="POST" action="{{ route('hestia.servers.test', $server) }}">
+<x-page-header :title="$server->name" icon="server"
+               back="{{ route('hestia.servers.index') }}" backLabel="Kembali ke daftar server">
+    <button type="button"
+            data-hestia-sync
+            data-sync-start-url="{{ route('hestia.servers.sync.start', $server) }}"
+            data-sync-batch-url="{{ route('hestia.servers.sync.batch', $server) }}"
+            data-sync-server="{{ $server->name }}"
+            class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-blue-500/20 transition hover:bg-brand-700 disabled:pointer-events-none disabled:opacity-50">
+        <i data-lucide="refresh-cw" class="h-4 w-4 shrink-0"></i>
+        Sinkronkan server ini
+    </button>
+    <noscript>
+        <form method="POST" action="{{ route('hestia.servers.sync', $server) }}">
             @csrf
-            <button class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200">
-                Uji koneksi
-            </button>
+            <x-btn type="submit" icon="refresh-cw">Sinkronkan server ini</x-btn>
         </form>
-        <a href="{{ route('hestia.servers.edit', $server) }}"
-           class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200">
-            Ubah
-        </a>
-    </div>
-</div>
+    </noscript>
+    <form method="POST" action="{{ route('hestia.servers.test', $server) }}">
+        @csrf
+        <x-btn type="submit" variant="outline" icon="eye">Uji koneksi</x-btn>
+    </form>
+    <x-btn :href="route('hestia.servers.edit', $server)" variant="dark">Ubah</x-btn>
+</x-page-header>
 
-{{-- Progres sinkronisasi bertahap (AJAX, t_dcccffd9) --}}
 @include('hestia.servers._sync_progress')
 
 {{-- Ringkasan --}}
-<div class="mb-6 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-    <div class="mb-4 flex items-center gap-3">
-        <h1 class="text-lg font-bold">{{ $server->name }}</h1>
+<x-card class="mb-6">
+    <x-slot:header>
+        <h2 class="font-bold">{{ $server->name }}</h2>
         @if ($server->is_active)
-            {!! $badge('bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200', 'aktif') !!}
+            <x-badge variant="success" :dot="true">aktif</x-badge>
         @else
-            {!! $badge('bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300', 'nonaktif') !!}
+            <x-badge variant="slate">nonaktif</x-badge>
         @endif
         @if ($server->last_sync_status === \App\Domains\Hestia\Models\HestiaServer::STATUS_FAILED)
-            {!! $badge('bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200', 'sync terakhir gagal') !!}
+            <x-badge variant="danger">sync terakhir gagal</x-badge>
         @endif
-    </div>
+    </x-slot:header>
 
     <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div>
-            <dt class="text-xs uppercase text-slate-500">Kode</dt>
+            <dt class="text-xs uppercase text-slate-400">Kode</dt>
             <dd><code>{{ $server->code }}</code></dd>
         </div>
         <div>
-            <dt class="text-xs uppercase text-slate-500">Endpoint</dt>
+            <dt class="text-xs uppercase text-slate-400">Endpoint</dt>
             <dd>{{ $server->scheme }}://{{ $server->host }}:{{ $server->port }}</dd>
         </div>
         <div>
-            <dt class="text-xs uppercase text-slate-500">Endpoint Netdata</dt>
+            <dt class="text-xs uppercase text-slate-400">Endpoint Netdata</dt>
             <dd>
                 @if ($server->netdata_host)
                     http://{{ $server->netdata_host }}:{{ $server->netdata_port ?? 19999 }}
@@ -79,11 +67,11 @@
             </dd>
         </div>
         <div>
-            <dt class="text-xs uppercase text-slate-500">SSL</dt>
+            <dt class="text-xs uppercase text-slate-400">SSL</dt>
             <dd>{{ $server->verify_ssl ? 'Diverifikasi' : 'Tidak diverifikasi' }}</dd>
         </div>
         <div>
-            <dt class="text-xs uppercase text-slate-500">Kredensial</dt>
+            <dt class="text-xs uppercase text-slate-400">Kredensial</dt>
             <dd>
                 @if ($server->isConfigured())
                     Terisi ({{ array_key_exists('access_key', $server->credentialBag()) ? 'access/secret key' : 'user/password' }})
@@ -93,104 +81,106 @@
             </dd>
         </div>
         <div>
-            <dt class="text-xs uppercase text-slate-500">Sync terakhir</dt>
+            <dt class="text-xs uppercase text-slate-400">Sync terakhir</dt>
             <dd>{{ $server->last_sync_at?->format('d/m/Y H:i') ?? '—' }}</dd>
         </div>
         <div>
-            <dt class="text-xs uppercase text-slate-500">Percobaan terakhir</dt>
+            <dt class="text-xs uppercase text-slate-400">Percobaan terakhir</dt>
             <dd>{{ $server->last_synced_at?->format('d/m/Y H:i') ?? '—' }}</dd>
         </div>
         @if ($server->notes)
             <div class="sm:col-span-2 lg:col-span-3">
-                <dt class="text-xs uppercase text-slate-500">Catatan</dt>
+                <dt class="text-xs uppercase text-slate-400">Catatan</dt>
                 <dd>{{ $server->notes }}</dd>
             </div>
         @endif
         @if ($server->last_sync_message)
             <div class="sm:col-span-2 lg:col-span-3">
-                <dt class="text-xs uppercase text-slate-500">Pesan sync terakhir</dt>
-                <dd class="text-slate-600">{{ $server->last_sync_message }}</dd>
+                <dt class="text-xs uppercase text-slate-400">Pesan sync terakhir</dt>
+                <dd class="text-slate-400">{{ $server->last_sync_message }}</dd>
             </div>
         @endif
     </dl>
-</div>
+</x-card>
 
 {{-- Akun milik server ini --}}
-<h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+<h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
     Akun dari {{ $server->name }} ({{ $accounts->total() }})
 </h2>
-<div class="mb-6 overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">Domain</th>
-                <th class="px-4 py-3">Akun Hestia</th>
-                <th class="px-4 py-3">Klien</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Terakhir dilihat</th>
-            </tr>
-        </thead>
+<x-card class="mb-6">
+    <x-table>
+        <thead><tr>
+            <th>Domain</th>
+            <th>Akun Hestia</th>
+            <th>Klien</th>
+            <th>Status</th>
+            <th>Terakhir dilihat</th>
+        </tr></thead>
         <tbody>
             @forelse ($accounts as $account)
-                <tr class="border-t border-slate-100 dark:border-slate-800">
-                    <td class="px-4 py-3 font-medium">{{ $account->domain }}</td>
-                    <td class="px-4 py-3">{{ $account->hestia_user }}</td>
-                    <td class="px-4 py-3">
+                <tr>
+                    <td class="font-medium">{{ $account->domain }}</td>
+                    <td>{{ $account->hestia_user }}</td>
+                    <td>
                         @if ($account->client)
                             <a href="{{ route('clients.show', $account->client) }}" class="text-brand-600 hover:underline">{{ $account->client->name }}</a>
                         @else
-                            <span class="text-slate-500">belum dipetakan</span>
+                            <span class="text-slate-400">belum dipetakan</span>
                         @endif
                     </td>
-                    <td class="px-4 py-3">
-                        {!! $account->status->value === 'active'
-                            ? $badge('bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200', $account->status->label())
-                            : $badge('bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300', $account->status->label()) !!}
-                    </td>
-                    <td class="px-4 py-3 text-slate-500">{{ $account->last_seen_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td><x-badge :variant="$accountStatusVariant($account)">{{ $account->status->label() }}</x-badge></td>
+                    <td class="text-slate-400">{{ $account->last_seen_at?->format('d/m/Y H:i') ?? '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Belum ada akun tersinkron dari server ini.</td></tr>
+                <tr><td colspan="5">
+                    <x-empty-state title="Belum ada akun tersinkron" icon="server"
+                                   description="Belum ada akun tersinkron dari server ini." />
+                </td></tr>
             @endforelse
         </tbody>
-    </table>
-</div>
-<div class="mb-6">{{ $accounts->links() }}</div>
+    </x-table>
+    @if ($accounts->hasPages())
+        <div class="mb-6 mt-4">{{ $accounts->links() }}</div>
+    @endif
+</x-card>
 
 {{-- Riwayat --}}
-<h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Riwayat sinkronisasi server ini</h2>
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">Waktu</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Ditarik</th>
-                <th class="px-4 py-3">Baru</th>
-                <th class="px-4 py-3">Diperbarui</th>
-                <th class="px-4 py-3">Nonaktif</th>
-                <th class="px-4 py-3">Pesan</th>
-            </tr>
-        </thead>
+<h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Riwayat sinkronisasi server ini</h2>
+<x-card>
+    <x-table>
+        <thead><tr>
+            <th>Waktu</th>
+            <th>Status</th>
+            <th>Ditarik</th>
+            <th>Baru</th>
+            <th>Diperbarui</th>
+            <th>Nonaktif</th>
+            <th>Pesan</th>
+        </tr></thead>
         <tbody>
             @forelse ($logs as $log)
-                <tr class="border-t border-slate-100 dark:border-slate-800">
-                    <td class="px-4 py-3 text-slate-500">{{ ($log->finished_at ?? $log->started_at)?->format('d/m/Y H:i') ?? '—' }}</td>
-                    <td class="px-4 py-3">
-                        {!! $log->isSuccess()
-                            ? $badge('bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200', 'Sukses')
-                            : $badge('bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200', ucfirst($log->status)) !!}
+                <tr>
+                    <td class="text-slate-400">{{ ($log->finished_at ?? $log->started_at)?->format('d/m/Y H:i') ?? '—' }}</td>
+                    <td>
+                        @if ($log->isSuccess())
+                            <x-badge variant="success">Sukses</x-badge>
+                        @else
+                            <x-badge variant="danger">{{ ucfirst($log->status) }}</x-badge>
+                        @endif
                     </td>
-                    <td class="px-4 py-3">{{ $log->pulled }}</td>
-                    <td class="px-4 py-3">{{ $log->created }}</td>
-                    <td class="px-4 py-3">{{ $log->updated }}</td>
-                    <td class="px-4 py-3">{{ $log->deactivated }}</td>
-                    <td class="px-4 py-3 text-slate-500">{{ $log->message ?? '—' }}</td>
+                    <td>{{ $log->pulled }}</td>
+                    <td>{{ $log->created }}</td>
+                    <td>{{ $log->updated }}</td>
+                    <td>{{ $log->deactivated }}</td>
+                    <td class="text-slate-400">{{ $log->message ?? '—' }}</td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada riwayat sinkronisasi untuk server ini.</td></tr>
+                <tr><td colspan="7">
+                    <x-empty-state title="Belum ada riwayat" icon="history"
+                                   description="Belum ada riwayat sinkronisasi untuk server ini." />
+                </td></tr>
             @endforelse
         </tbody>
-    </table>
-</div>
+    </x-table>
+</x-card>
 @endsection
