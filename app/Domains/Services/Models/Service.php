@@ -2,6 +2,7 @@
 
 namespace App\Domains\Services\Models;
 
+use App\Domains\Catalog\Models\Product;
 use App\Domains\Clients\Models\Client;
 use App\Domains\Core\Traits\LogsActivity;
 use App\Domains\Invoicing\Models\Invoice;
@@ -22,13 +23,14 @@ class Service extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'client_id', 'parent_id', 'type', 'name', 'reference', 'start_date', 'end_date',
+        'client_id', 'parent_id', 'product_id', 'type', 'name', 'reference', 'start_date', 'end_date',
         'price', 'cycle', 'status', 'reminder_enabled', 'notes',
     ];
 
     protected function casts(): array
     {
         return [
+            'product_id' => 'integer',
             'type' => ServiceType::class,
             'cycle' => ServiceCycle::class,
             'status' => ServiceStatus::class,
@@ -48,6 +50,12 @@ class Service extends Model
     public function parent(): BelongsTo
     {
         return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /** Produk katalog yang mendasari layanan ini (harga perpanjangan). */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 
     /** Subdomain/layanan anak yang dikelompokkan di bawah layanan ini (F4-9). */
@@ -115,6 +123,38 @@ class Service extends Model
     public function isChild(): bool
     {
         return $this->parent_id !== null;
+    }
+
+    /**
+     * Domain induk tingkat teratas (rantai parent diikuti sampai habis).
+     * Dipakai mengelompokkan layanan se-domain ke satu invoice perpanjangan.
+     */
+    public function domainRoot(): Service
+    {
+        $service = $this;
+        $depth = 0;
+
+        while ($service->parent_id !== null && $depth < 50) {
+            $parent = $service->relationLoaded('parent') ? $service->parent : $service->parent()->first();
+
+            if ($parent === null) {
+                break;
+            }
+
+            $service = $parent;
+            $depth++;
+        }
+
+        return $service;
+    }
+
+    /**
+     * Harga perpanjangan: dari katalog produk (sumber kebenaran harga saat
+     * ini) bila layanan punya produk; fallback ke snapshot `price` di layanan.
+     */
+    public function renewalUnitPrice(): int
+    {
+        return (int) ($this->product?->sales_price ?? $this->price ?? 0);
     }
 
     /**
