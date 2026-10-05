@@ -420,7 +420,8 @@ Sudah dipasang via Hestia cron (user mcimedia, setiap menit):
 ```
 
 Menjalankan `crm:services-expiring` harian pukul 08:00 (daftar layanan
-jatuh tempo ≤ 30 hari; kanal WA/email menyusul fase 2).
+jatuh tempo ≤ 30 hari untuk admin) dan `crm:send-service-reminders` pukul
+08:15 (reminder WA H-7/H-3/H-1/overdue ke klien).
 
 Jadwal harian yang aktif di `bootstrap/app.php`:
 
@@ -432,6 +433,7 @@ Jadwal harian yang aktif di `bootstrap/app.php`:
 | 07:30 | `crm:generate-renewal-invoices` | Draf invoice perpanjangan layanan yang segera berakhir |
 | 08:00 | `crm:wpscan` | WPScan otomatis situs WordPress (t_2e555b0b, `withoutOverlapping`) |
 | 08:00 | `crm:services-expiring` | Daftar layanan jatuh tempo ≤ 30 hari |
+| 08:15 | `crm:send-service-reminders` | Reminder WA perpanjangan layanan (t_cc560a11: H-7/H-3/H-1 + overdue, 08:15, `withoutOverlapping`) |
 | 08:30 | `crm:send-overdue-reminders` | Pengingat invoice lewat jatuh tempo (H+1/H+7/H+14) |
 
 Urutannya penting: `crm:generate-recurring-invoices` (07:00) dijalankan

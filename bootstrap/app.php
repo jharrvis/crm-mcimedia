@@ -8,6 +8,7 @@ use App\Domains\Projects\Console\Commands\GenerateAchievementReportsCommand;
 use App\Domains\Security\Console\Commands\WpScanCommand;
 use App\Domains\Hestia\Console\Commands\DiskQuotaAlertsCommand;
 use App\Domains\Hestia\Console\Commands\HestiaSyncCommand;
+use App\Domains\Services\Console\Commands\SendServiceRemindersCommand;
 use App\Domains\Services\Console\Commands\ServicesExpiringCommand;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -35,6 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Pengingat jatuh tempo layanan, setiap hari pukul 08:00.
         $schedule->command('crm:services-expiring')->dailyAt('08:00');
+        // Reminder WA perpanjangan layanan H-7/H-3/H-1/overdue (t_cc560a11):
+        // dijalankan setelah draf invoice perpanjangan (07:30) & daftar
+        // jatuh tempo (08:00), sebelum pengingat invoice (08:30).
+        $schedule->command('crm:send-service-reminders')->dailyAt('08:15')->withoutOverlapping();
         // Invoice recurring per siklus (F4-11), sebelum pengingat jatuh tempo.
         $schedule->command('crm:generate-recurring-invoices')->dailyAt('07:00');
         // Draf invoice perpanjangan untuk layanan yang segera berakhir, setiap hari pukul 07:30.
@@ -56,6 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
         GenerateRenewalInvoicesCommand::class,
         GenerateRecurringInvoicesCommand::class,
         SendOverdueRemindersCommand::class,
+        SendServiceRemindersCommand::class,
         HestiaSyncCommand::class,
         DiskQuotaAlertsCommand::class,
         GenerateAchievementReportsCommand::class,
