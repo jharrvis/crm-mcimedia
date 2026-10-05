@@ -1,5 +1,4 @@
 @php
-    $inputClass = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800';
     $typeValue = old('type', $service?->type?->value);
     $cycleValue = old('cycle', $service?->cycle?->value ?? 'yearly');
     $statusValue = old('status', $service?->status?->value ?? 'active');
@@ -7,97 +6,43 @@
     // terisi (tebakan otomatis) tetap terpilih kecuali admin memilih lain.
     $parentCandidates = $parentCandidates ?? collect();
     $parentValue = old('parent_id', $service?->parent_id ?? ($suggestedParentId ?? null));
+    $clientOptions = $clients->mapWithKeys(fn ($c) => [$c->id => $c->name])->all();
+    $typeOptions = collect($types)->mapWithKeys(fn ($t) => [$t->value => $t->label()])->all();
+    $cycleOptions = collect($cycles)->mapWithKeys(fn ($c) => [$c->value => $c->label()])->all();
+    $statusOptions = collect($statuses)->mapWithKeys(fn ($s) => [$s->value => $s->label()])->all();
+    // data-client dipakai script di bawah untuk menyaring kandidat sesuai klien terpilih.
+    $parentList = $parentCandidates->map(fn ($p) => [
+        'value' => $p->id,
+        'label' => $p->name . ($p->reference ? " ({$p->reference})" : ''),
+        'attrs' => ['data-client' => $p->client_id],
+    ])->values()->all();
+    // array_merge, bukan `+`: union memakai key dan menabrak key 0 placeholder.
+    $parentOptions = array_merge([['value' => '', 'label' => '— Bukan subdomain —']], $parentList);
 @endphp
 
 <div class="grid gap-4 sm:grid-cols-2">
-    <div>
-        <label class="mb-1 block text-sm font-medium">Klien <span class="text-red-600">*</span></label>
-        <select name="client_id" required class="{{ $inputClass }}">
-            <option value="">— Pilih klien —</option>
-            @foreach ($clients as $c)
-                <option value="{{ $c->id }}" @selected(old('client_id', $service?->client_id) == $c->id)>{{ $c->name }}</option>
-            @endforeach
-        </select>
-        @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Jenis <span class="text-red-600">*</span></label>
-        <select name="type" required class="{{ $inputClass }}">
-            @foreach ($types as $t)
-                <option value="{{ $t->value }}" @selected($typeValue === $t->value)>{{ $t->label() }}</option>
-            @endforeach
-        </select>
-        @error('type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
+    <x-input name="client_id" label="Klien" type="select" :required="true" :options="$clientOptions" :value="old('client_id', $service?->client_id)" placeholder="" />
+    <x-input name="type" label="Jenis" type="select" :required="true" :options="$typeOptions" :value="$typeValue" />
     <div class="sm:col-span-2">
-        <label class="mb-1 block text-sm font-medium">Nama layanan <span class="text-red-600">*</span></label>
-        <input name="name" required value="{{ old('name', $service?->name) }}" placeholder="mis. Hosting Bisnis" class="{{ $inputClass }}">
-        @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        <x-input name="name" label="Nama layanan" :required="true" :value="$service?->name" placeholder="mis. Hosting Bisnis" />
     </div>
     <div class="sm:col-span-2" data-parent-field>
-        <label class="mb-1 block text-sm font-medium">Domain induk (subdomain)</label>
-        <select name="parent_id" id="service-parent" class="{{ $inputClass }}">
-            <option value="">— Bukan subdomain —</option>
-            @foreach ($parentCandidates as $parent)
-                <option value="{{ $parent->id }}" data-client="{{ $parent->client_id }}" @selected((string) $parentValue === (string) $parent->id)>
-                    {{ $parent->name }}@if ($parent->reference) ({{ $parent->reference }})@endif
-                </option>
-            @endforeach
-        </select>
-        <p class="mt-1 text-xs text-slate-500">
-            Pilih domain induk bila layanan ini subdomain, agar tampil terkelompok di bawah domain induknya.
-            Hanya untuk jenis <strong>Domain</strong> dan harus milik klien yang sama.
-        </p>
-        @error('parent_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        <x-input name="parent_id" label="Domain induk (subdomain)" type="select" :options="$parentOptions" :value="(string) $parentValue" inputId="service-parent" hint="Pilih domain induk bila layanan ini subdomain, agar tampil terkelompok di bawah domain induknya. Hanya untuk jenis Domain dan harus milik klien yang sama." />
     </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Domain / server terkait</label>
-        <input name="reference" value="{{ old('reference', $service?->reference) }}" placeholder="mis. contoh.com" class="{{ $inputClass }}">
-        @error('reference')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Harga (IDR)</label>
-        <input name="price" type="number" min="0" step="1" value="{{ old('price', $service?->price ?? 0) }}" class="{{ $inputClass }}">
-        @error('price')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Tanggal mulai</label>
-        <input name="start_date" type="date" value="{{ old('start_date', $service?->start_date?->format('Y-m-d')) }}" class="{{ $inputClass }}">
-        @error('start_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Tanggal berakhir</label>
-        <input name="end_date" type="date" value="{{ old('end_date', $service?->end_date?->format('Y-m-d')) }}" class="{{ $inputClass }}">
-        @error('end_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Siklus <span class="text-red-600">*</span></label>
-        <select name="cycle" required class="{{ $inputClass }}">
-            @foreach ($cycles as $c)
-                <option value="{{ $c->value }}" @selected($cycleValue === $c->value)>{{ $c->label() }}</option>
-            @endforeach
-        </select>
-        @error('cycle')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">Status <span class="text-red-600">*</span></label>
-        <select name="status" required class="{{ $inputClass }}">
-            @foreach ($statuses as $s)
-                <option value="{{ $s->value }}" @selected($statusValue === $s->value)>{{ $s->label() }}</option>
-            @endforeach
-        </select>
-        @error('status')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
+    <x-input name="reference" label="Domain / server terkait" :value="$service?->reference" placeholder="mis. contoh.com" />
+    <x-input name="price" label="Harga (IDR)" type="number" :value="old('price', $service?->price ?? 0)" min="0" step="1" />
+    <x-input name="start_date" label="Tanggal mulai" type="date" :value="old('start_date', $service?->start_date?->format('Y-m-d'))" />
+    <x-input name="end_date" label="Tanggal berakhir" type="date" :value="old('end_date', $service?->end_date?->format('Y-m-d'))" />
+    <x-input name="cycle" label="Siklus" type="select" :required="true" :options="$cycleOptions" :value="$cycleValue" />
+    <x-input name="status" label="Status" type="select" :required="true" :options="$statusOptions" :value="$statusValue" />
     <div class="sm:col-span-2">
-        <label class="flex items-center gap-2 text-sm">
-            <input name="reminder_enabled" type="checkbox" value="1" class="rounded" @checked(old('reminder_enabled', $service?->reminder_enabled ?? true))>
+        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input name="reminder_enabled" type="checkbox" value="1" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500" @checked(old('reminder_enabled', $service?->reminder_enabled ?? true))>
             Pengingat jatuh tempo otomatis aktif
         </label>
     </div>
     <div class="sm:col-span-2">
-        <label class="mb-1 block text-sm font-medium">Catatan</label>
-        <textarea name="notes" rows="3" class="{{ $inputClass }}">{{ old('notes', $service?->notes) }}</textarea>
-        @error('notes')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        <x-input name="notes" label="Catatan" type="textarea" rows="3" :value="$service?->notes" />
     </div>
 </div>
 

@@ -3,46 +3,48 @@
 @section('title', 'Layanan')
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('services.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah layanan</a>
-</div>
+<x-page-header title="Layanan" subtitle="Hosting, domain, dan maintenance yang sedang dikelola MCI Media.">
+    <x-btn :href="route('services.create')" icon="plus">Tambah layanan</x-btn>
+</x-page-header>
 
-<form method="GET" action="{{ route('services.index') }}" class="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-5 dark:border-slate-800 dark:bg-slate-900">
-    <input name="q" value="{{ request('q') }}" placeholder="Cari nama / referensi…" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-    <select name="client_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="">Semua klien</option>
-        @foreach ($clients as $c)
-            <option value="{{ $c->id }}" @selected(request('client_id') == $c->id)>{{ $c->name }}</option>
-        @endforeach
-    </select>
-    <select name="type" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="">Semua jenis</option>
-        @foreach ($types as $t)
-            <option value="{{ $t->value }}" @selected(request('type') === $t->value)>{{ $t->label() }}</option>
-        @endforeach
-    </select>
-    <select name="status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="all" @selected(request('status', 'active') === 'all')>Semua status</option>
-        @foreach ($statuses as $s)
-            <option value="{{ $s->value }}" @selected(request('status', 'active') === $s->value)>{{ $s->label() }}</option>
-        @endforeach
-    </select>
-    <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700">Filter</button>
-</form>
+<x-card>
+    <form method="GET" action="{{ route('services.index') }}" class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <input name="q" value="{{ request('q') }}" placeholder="Cari nama / referensi…"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900">
+        <select name="client_id"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <option value="">Semua klien</option>
+            @foreach ($clients as $c)
+                <option value="{{ $c->id }}" @selected(request('client_id') == $c->id)>{{ $c->name }}</option>
+            @endforeach
+        </select>
+        <select name="type"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <option value="">Semua jenis</option>
+            @foreach ($types as $t)
+                <option value="{{ $t->value }}" @selected(request('type') === $t->value)>{{ $t->label() }}</option>
+            @endforeach
+        </select>
+        <select name="status"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <option value="all" @selected(request('status', 'active') === 'all')>Semua status</option>
+            @foreach ($statuses as $s)
+                <option value="{{ $s->value }}" @selected(request('status', 'active') === $s->value)>{{ $s->label() }}</option>
+            @endforeach
+        </select>
+        <x-btn type="submit" variant="dark" icon="search">Filter</x-btn>
+    </form>
 
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">Klien</th>
-                <th class="px-4 py-3">Layanan</th>
-                <th class="px-4 py-3">Jenis</th>
-                <th class="px-4 py-3">Berakhir</th>
-                <th class="px-4 py-3 text-right">Harga</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
-            </tr>
-        </thead>
+    <x-table>
+        <thead><tr>
+            <th>Klien</th>
+            <th>Layanan</th>
+            <th>Jenis</th>
+            <th>Berakhir</th>
+            <th class="text-right">Harga</th>
+            <th>Status</th>
+            <th class="text-right">Aksi</th>
+        </tr></thead>
         <tbody>
             @forelse ($services as $service)
                 @php
@@ -64,50 +66,62 @@
                         default => '',
                     };
                 @endphp
-                <tr class="border-t border-slate-100 dark:border-slate-800 {{ $rowClass }}">
-                    <td class="px-4 py-3">
+                <tr class="{{ $rowClass }}">
+                    <td>
                         <a href="{{ route('clients.show', $service->client) }}" class="hover:text-brand-600">{{ $service->client?->name ?? '—' }}</a>
                     </td>
-                    <td class="px-4 py-3 {{ $isSub ? 'pl-10' : '' }}">
+                    <td @class(['pl-8' => $isSub])>
                         @if ($isSub)
                             <span class="mr-1 text-slate-400" aria-hidden="true">↳</span>
                         @endif
-                        <a href="{{ route('services.show', $service) }}" class="font-medium text-brand-600 hover:underline">{{ $service->name }}</a>
-                        @if ($service->reference)<p class="text-xs text-slate-500">{{ $service->reference }}</p>@endif
+                        <a href="{{ route('services.show', $service) }}" class="font-semibold text-slate-900 hover:text-brand-600 dark:text-white">{{ $service->name }}</a>
+                        @if ($service->reference)<p class="text-xs text-slate-400">{{ $service->reference }}</p>@endif
                         @if ($service->parent)
                             <p class="text-xs text-slate-400">Subdomain dari <a href="{{ route('services.show', $service->parent) }}" class="hover:underline">{{ $service->parent->name }}</a></p>
                         @endif
                     </td>
-                    <td class="px-4 py-3">{{ $service->type->label() }}</td>
-                    <td class="px-4 py-3">
+                    <td>{{ $service->type->label() }}</td>
+                    <td>
                         {{ tgl_id($service->end_date) }}
                         @if ($overdue)
-                            <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900 dark:text-red-200">{{ abs($days) }} hari lewat</span>
+                            <x-badge variant="danger" :dot="true" class="ml-1">{{ abs($days) }} hari lewat</x-badge>
                         @elseif ($expiring)
-                            <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-200">{{ $days }} hari</span>
+                            <x-badge variant="warning" :dot="true" class="ml-1">{{ $days }} hari</x-badge>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-right">{{ rupiah($service->price) }}</td>
-                    <td class="px-4 py-3">
-                        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $service->status->value === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }}">{{ $service->status->label() }}</span>
+                    <td class="text-right">{{ rupiah($service->price) }}</td>
+                    <td>
+                        <x-badge :variant="$service->status->value === 'active' ? 'success' : 'slate'" :dot="true">
+                            {{ $service->status->label() }}
+                        </x-badge>
                     </td>
-                    <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('services.show', $service) }}" class="text-brand-600 hover:underline">Detail</a>
+                    <td class="whitespace-nowrap text-right">
+                        <a href="{{ route('services.show', $service) }}" class="text-sm font-semibold text-brand-600 hover:underline">Detail</a>
                         <span class="mx-1 text-slate-300">|</span>
-                        <a href="{{ route('services.edit', $service) }}" class="text-brand-600 hover:underline">Ubah</a>
+                        <a href="{{ route('services.edit', $service) }}" class="text-sm font-semibold text-brand-600 hover:underline">Ubah</a>
                         <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('services.destroy', $service) }}" class="inline" onsubmit="return confirm('Hapus layanan ini?')">
                             @csrf
                             @method('DELETE')
-                            <button class="text-red-600 hover:underline">Hapus</button>
+                            <button type="submit" class="text-sm font-semibold text-rose-600 hover:underline">Hapus</button>
                         </form>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada layanan.</td></tr>
+                <tr><td colspan="7">
+                    <x-empty-state title="Belum ada layanan" icon="wrench"
+                                   description="Belum ada layanan yang cocok dengan filter.">
+                        <x-slot:action>
+                            <x-btn :href="route('services.create')" icon="plus">Tambah layanan</x-btn>
+                        </x-slot:action>
+                    </x-empty-state>
+                </td></tr>
             @endforelse
         </tbody>
-    </table>
-</div>
-<div class="mt-4">{{ $services->links() }}</div>
+    </x-table>
+
+    @if ($services->hasPages())
+        <div class="mt-4">{{ $services->links() }}</div>
+    @endif
+</x-card>
 @endsection

@@ -1,37 +1,11 @@
-@php $input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800'; @endphp
-<div>
-    <label class="mb-1 block text-sm font-medium">Nama usaha <span class="text-red-600">*</span></label>
-    <input name="name" value="{{ old('name', $client?->name) }}" required class="{{ $input }}">
-    @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-</div>
-<div>
-    <label class="mb-1 block text-sm font-medium">Nama kontak utama</label>
-    <input name="contact_name" value="{{ old('contact_name', $client?->contact_name) }}" class="{{ $input }}">
-    @error('contact_name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-</div>
-<div class="grid gap-4 sm:grid-cols-2">
-    <div>
-        <label class="mb-1 block text-sm font-medium">Email</label>
-        <input name="email" type="email" value="{{ old('email', $client?->email) }}" class="{{ $input }}">
-        @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-    <div>
-        <label class="mb-1 block text-sm font-medium">WhatsApp</label>
-        <input name="whatsapp" value="{{ old('whatsapp', $client?->whatsapp) }}" placeholder="628…" class="{{ $input }}">
-        @error('whatsapp')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
-</div>
-<div>
-    <label class="mb-1 block text-sm font-medium">Alamat</label>
-    <textarea name="address" rows="2" class="{{ $input }}">{{ old('address', $client?->address) }}</textarea>
-    @error('address')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-</div>
-<div>
-    <label class="mb-1 block text-sm font-medium">Catatan</label>
-    <textarea name="notes" rows="3" class="{{ $input }}">{{ old('notes', $client?->notes) }}</textarea>
-    @error('notes')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-</div>
-<label class="flex items-center gap-2 text-sm">
-    <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $client?->is_active ?? true)) class="rounded">
+<x-input name="name" label="Nama usaha" :required="true" :value="$client?->name" />
+<x-input name="contact_name" label="Nama kontak utama" :value="$client?->contact_name" />
+<x-input name="email" label="Email" type="email" :value="$client?->email" />
+<x-input name="whatsapp" label="WhatsApp" :value="$client?->whatsapp" placeholder="628…" />
+<x-input name="address" label="Alamat" type="textarea" rows="2" :value="$client?->address" />
+<x-input name="notes" label="Catatan" type="textarea" rows="3" :value="$client?->notes" />
+<label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+    <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $client?->is_active ?? true))
+           class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
     Klien aktif
 </label>

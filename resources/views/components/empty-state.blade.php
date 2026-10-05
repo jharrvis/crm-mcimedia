@@ -1,6 +1,7 @@
 @props([
     'icon' => 'inbox',
     'title' => 'Belum ada data',
+    'description' => null,
     'cta' => null,
 ])
 
@@ -9,8 +10,8 @@
         <i data-lucide="{{ $icon }}" class="h-6 w-6"></i>
     </div>
     <p class="mt-3 text-sm font-semibold text-slate-900 dark:text-white">{{ $title }}</p>
-    @if ($slot->isNotEmpty())
-        <p class="mx-auto mt-1 max-w-sm text-sm text-slate-400">{{ $slot }}</p>
+    @if ($description || $slot->isNotEmpty())
+        <p class="mx-auto mt-1 max-w-sm text-sm text-slate-400">{{ $description ?? $slot }}</p>
     @endif
     @isset($action)
         <div class="mt-4">{{ $action }}</div>

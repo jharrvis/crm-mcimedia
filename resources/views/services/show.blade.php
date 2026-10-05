@@ -3,80 +3,86 @@
 @section('title', $service->name)
 
 @section('content')
-<div class="max-w-3xl rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-    <div class="mb-4 flex flex-wrap gap-2">
-        <a href="{{ route('services.edit', $service) }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Ubah</a>
-        <form method="POST" action="{{ route('services.destroy', $service) }}" onsubmit="return confirm('Hapus layanan ini?')">
-            @csrf
-            @method('DELETE')
-            <button class="rounded-lg border border-red-300 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950">Hapus</button>
-        </form>
-        <a href="{{ route('services.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Kembali</a>
-    </div>
+<x-page-header :title="$service->name" back="{{ route('services.index') }}" backLabel="Kembali ke daftar" icon="wrench">
+    <x-btn :href="route('services.edit', $service)" icon="wrench">Ubah</x-btn>
+    <form method="POST" action="{{ route('services.destroy', $service) }}" onsubmit="return confirm('Hapus layanan ini?')">
+        @csrf
+        @method('DELETE')
+        <x-btn type="submit" variant="danger">Hapus</x-btn>
+    </form>
+</x-page-header>
 
-    <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-        <div><dt class="text-slate-500">Klien</dt><dd class="font-medium"><a href="{{ route('clients.show', $service->client) }}" class="text-brand-600 hover:underline">{{ $service->client?->name ?? '—' }}</a></dd></div>
-        <div><dt class="text-slate-500">Jenis</dt><dd class="font-medium">{{ $service->type->label() }}</dd></div>
-        <div><dt class="text-slate-500">Nama layanan</dt><dd class="font-medium">{{ $service->name }}</dd></div>
-        <div>
-            <dt class="text-slate-500">Domain induk</dt>
-            <dd class="font-medium">
-                @if ($service->parent)
-                    <a href="{{ route('services.show', $service->parent) }}" class="text-brand-600 hover:underline">{{ $service->parent->name }}</a>
-                    <span class="text-xs text-slate-500">(subdomain)</span>
-                @else
-                    —
-                @endif
-            </dd>
-        </div>
-        <div><dt class="text-slate-500">Domain / server terkait</dt><dd class="font-medium">{{ $service->reference ?? '—' }}</dd></div>
-        <div><dt class="text-slate-500">Tanggal mulai</dt><dd class="font-medium">{{ tgl_id($service->start_date) }}</dd></div>
-        <div>
-            <dt class="text-slate-500">Tanggal berakhir</dt>
-            <dd class="font-medium">
-                {{ tgl_id($service->end_date) }}
-                @php $days = $service->daysUntilEnd(); @endphp
-                @if ($service->isOverdue())
-                    <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900 dark:text-red-200">{{ abs($days) }} hari lewat</span>
-                @elseif ($days !== null && $days <= 30)
-                    <span class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900 dark:text-amber-200">sisa {{ $days }} hari</span>
-                @endif
-            </dd>
-        </div>
-        <div><dt class="text-slate-500">Harga</dt><dd class="font-medium">{{ rupiah($service->price) }}</dd></div>
-        <div><dt class="text-slate-500">Siklus</dt><dd class="font-medium">{{ $service->cycle->label() }}</dd></div>
-        <div><dt class="text-slate-500">Status</dt><dd class="font-medium">{{ $service->status->label() }}</dd></div>
-        <div><dt class="text-slate-500">Pengingat otomatis</dt><dd class="font-medium">{{ $service->reminder_enabled ? 'Aktif' : 'Nonaktif' }}</dd></div>
-        <div class="sm:col-span-2"><dt class="text-slate-500">Catatan</dt><dd class="font-medium whitespace-pre-line">{{ $service->notes ?? '—' }}</dd></div>
-    </dl>
+<div class="max-w-3xl">
+    <x-card>
+        <dl class="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+            <div><dt class="text-xs uppercase text-slate-400">Klien</dt><dd class="font-semibold"><a href="{{ route('clients.show', $service->client) }}" class="text-brand-600 hover:underline">{{ $service->client?->name ?? '—' }}</a></dd></div>
+            <div><dt class="text-xs uppercase text-slate-400">Jenis</dt><dd class="font-semibold">{{ $service->type->label() }}</dd></div>
+            <div><dt class="text-xs uppercase text-slate-400">Nama layanan</dt><dd class="font-semibold">{{ $service->name }}</dd></div>
+            <div>
+                <dt class="text-xs uppercase text-slate-400">Domain induk</dt>
+                <dd class="font-semibold">
+                    @if ($service->parent)
+                        <a href="{{ route('services.show', $service->parent) }}" class="text-brand-600 hover:underline">{{ $service->parent->name }}</a>
+                        <span class="text-xs font-normal text-slate-400">(subdomain)</span>
+                    @else
+                        —
+                    @endif
+                </dd>
+            </div>
+            <div><dt class="text-xs uppercase text-slate-400">Domain / server terkait</dt><dd class="font-semibold">{{ $service->reference ?? '—' }}</dd></div>
+            <div><dt class="text-xs uppercase text-slate-400">Tanggal mulai</dt><dd class="font-semibold">{{ tgl_id($service->start_date) }}</dd></div>
+            <div>
+                <dt class="text-xs uppercase text-slate-400">Tanggal berakhir</dt>
+                <dd class="font-semibold">
+                    {{ tgl_id($service->end_date) }}
+                    @php $days = $service->daysUntilEnd(); @endphp
+                    @if ($service->isOverdue())
+                        <x-badge variant="danger" :dot="true" class="ml-1">{{ abs($days) }} hari lewat</x-badge>
+                    @elseif ($days !== null && $days <= 30)
+                        <x-badge variant="warning" :dot="true" class="ml-1">sisa {{ $days }} hari</x-badge>
+                    @endif
+                </dd>
+            </div>
+            <div><dt class="text-xs uppercase text-slate-400">Harga</dt><dd class="font-semibold">{{ rupiah($service->price) }}</dd></div>
+            <div><dt class="text-xs uppercase text-slate-400">Siklus</dt><dd class="font-semibold">{{ $service->cycle->label() }}</dd></div>
+            <div><dt class="text-xs uppercase text-slate-400">Status</dt>
+                <dd><x-badge :variant="$service->status->value === 'active' ? 'success' : 'slate'" :dot="true">{{ $service->status->label() }}</x-badge></dd>
+            </div>
+            <div><dt class="text-xs uppercase text-slate-400">Pengingat otomatis</dt>
+                <dd><x-badge :variant="$service->reminder_enabled ? 'success' : 'slate'" :dot="true">{{ $service->reminder_enabled ? 'Aktif' : 'Nonaktif' }}</x-badge></dd>
+            </div>
+            <div class="sm:col-span-2"><dt class="text-xs uppercase text-slate-400">Catatan</dt><dd class="font-medium whitespace-pre-line">{{ $service->notes ?? '—' }}</dd></div>
+        </dl>
+    </x-card>
 </div>
 
 @if ($service->children->isNotEmpty())
-    <div class="mt-4 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-        <h2 class="mb-3 font-bold">Subdomain ({{ $service->children->count() }})</h2>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead><tr class="text-left text-xs uppercase text-slate-500">
-                    <th class="py-2 pr-4">Subdomain</th><th class="py-2 pr-4">Referensi</th><th class="py-2 pr-4">Berakhir</th><th class="py-2 pr-4">Status</th><th class="py-2 text-right">Harga</th>
-                </tr></thead>
-                <tbody>
-                    @foreach ($service->children as $child)
-                        <tr class="border-t border-slate-100 dark:border-slate-800">
-                            <td class="py-2 pr-4">
-                                <span class="mr-1 text-slate-400" aria-hidden="true">↳</span>
-                                <a href="{{ route('services.show', $child) }}" class="font-medium text-brand-600 hover:underline">{{ $child->name }}</a>
-                            </td>
-                            <td class="py-2 pr-4 text-slate-500">{{ $child->reference ?? '—' }}</td>
-                            <td class="py-2 pr-4">{{ tgl_id($child->end_date) }}</td>
-                            <td class="py-2 pr-4">
-                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $child->status->value === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }}">{{ $child->status->label() }}</span>
-                            </td>
-                            <td class="py-2 text-right">{{ rupiah($child->price) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
+<x-card class="mt-6">
+    <x-slot:header>
+        <h2 class="font-bold">Subdomain ({{ $service->children->count() }})</h2>
+    </x-slot:header>
+
+    <x-table>
+        <thead><tr>
+            <th>Subdomain</th><th>Referensi</th><th>Berakhir</th><th>Status</th><th class="text-right">Harga</th>
+        </tr></thead>
+        <tbody>
+            @foreach ($service->children as $child)
+                <tr>
+                    <td>
+                        <span class="mr-1 text-slate-400" aria-hidden="true">↳</span>
+                        <a href="{{ route('services.show', $child) }}" class="font-semibold text-slate-900 hover:text-brand-600 dark:text-white">{{ $child->name }}</a>
+                    </td>
+                    <td class="text-slate-500">{{ $child->reference ?? '—' }}</td>
+                    <td>{{ tgl_id($child->end_date) }}</td>
+                    <td>
+                        <x-badge :variant="$child->status->value === 'active' ? 'success' : 'slate'" :dot="true">{{ $child->status->label() }}</x-badge>
+                    </td>
+                    <td class="text-right">{{ rupiah($child->price) }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </x-table>
+</x-card>
 @endif
 @endsection

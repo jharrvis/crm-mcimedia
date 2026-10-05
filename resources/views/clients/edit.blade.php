@@ -3,15 +3,20 @@
 @section('title', 'Ubah Klien')
 
 @section('content')
-<div class="max-w-2xl rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-    <form method="POST" action="{{ route('clients.update', $client) }}" class="space-y-4">
-        @csrf
-        @method('PUT')
-        @include('clients._form', ['client' => $client])
-        <div class="flex gap-2 pt-2">
-            <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Simpan</button>
-            <a href="{{ route('clients.show', $client) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Batal</a>
-        </div>
-    </form>
+<x-page-header title="Ubah Klien" :back="route('clients.show', $client)" backLabel="Kembali ke detail" icon="users" />
+
+<div class="max-w-2xl">
+    <x-card>
+        <form method="POST" action="{{ route('clients.update', $client) }}" class="space-y-4">
+            @csrf
+            @method('PUT')
+            @include('clients._form', ['client' => $client])
+
+            <div class="flex gap-2 pt-2">
+                <x-btn type="submit">Simpan</x-btn>
+                <x-btn :href="route('clients.show', $client)" variant="outline">Batal</x-btn>
+            </div>
+        </form>
+    </x-card>
 </div>
 @endsection
