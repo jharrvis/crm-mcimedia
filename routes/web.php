@@ -139,7 +139,7 @@ Route::middleware('auth')->group(function () {
             ->name('domain-providers.auto-renew');
         Route::post('domain-providers/{domain_provider}/import-services', [DomainProviderController::class, 'importServices'])
             ->name('domain-providers.import-services');
-        Route::resource('domain-providers', DomainProviderController::class);
+        Route::resource('domain-providers', DomainProviderController::class)->except('show');
     });
 
     // Manajemen server HestiaCP (F4-12) — sg2, YIARI, PA Salatiga, dll.
@@ -247,9 +247,13 @@ Route::middleware('auth')->group(function () {
         Route::post('reports', [SecurityReportController::class, 'store'])->name('reports.store');
         Route::delete('reports/{report}', [SecurityReportController::class, 'destroy'])->name('reports.destroy');
 
-        Route::resource('incidents', SecurityIncidentController::class);
+        // `incidents/api` harus tetap match: resource dibatasi ID numerik
+        // supaya "api" tidak tertangkap parameter {incident} (LIFO route
+        // resource terdaftar sebelum route api di bawah).
+        Route::resource('incidents', SecurityIncidentController::class)
+            ->where(['incident' => '[0-9]+']);
         Route::get('incidents/api', [SecurityIncidentController::class, 'api'])->name('incidents.api');
-        Route::resource('actions', SecurityActionController::class);
+        Route::resource('actions', SecurityActionController::class)->except('show');
     });
 
     // Tautan laporan keamanan publik per klien (magic link F3-3).
@@ -259,6 +263,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:clients')->name('clients.security-portal.revoke');
 
     // Pengaturan › Pengguna & Role (F4-1).
-    Route::resource('users', UserController::class)->middleware('permission:users');
-    Route::resource('roles', RoleController::class)->middleware('permission:roles');
+    Route::resource('users', UserController::class)->except('show')->middleware('permission:users');
+    Route::resource('roles', RoleController::class)->except('show')->middleware('permission:roles');
 });

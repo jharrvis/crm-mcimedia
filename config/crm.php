@@ -215,7 +215,7 @@ return [
     | WPScan otomatis untuk situs WordPress (t_2e555b0b)
     |--------------------------------------------------------------------------
     |
-    | Command `crm:wpscan` (jadwal harian 05:00, sebelum ingest monitoring lain)
+    | Command `crm:wpscan` (jadwal harian 08:00, setelah hestia:sync 06:30)
     | menemukan akun Hestia aktif yang terpetakan ke klien, mem-probe domainnya
     | untuk memastikan WordPress, lalu menjalankan WPScan CLI dan mencatat
     | temuan sebagai insiden keamanan (source=wpscan, external_id idempoten

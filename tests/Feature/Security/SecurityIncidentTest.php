@@ -150,6 +150,19 @@ class SecurityIncidentTest extends TestCase
         $this->assertDatabaseMissing('security_incidents', ['id' => $incident->id]);
     }
 
+    public function test_show_renders_incident_detail(): void
+    {
+        $this->login();
+        SecurityIncidentFactory::new()->create(['title' => 'Detail insiden uji']);
+
+        $incident = SecurityIncident::query()->sole();
+
+        $response = $this->get(route('security.incidents.show', $incident));
+
+        $response->assertOk();
+        $response->assertSee('Detail insiden uji');
+    }
+
     public function test_api_endpoint_returns_filtered_incidents(): void
     {
         $this->login();

@@ -67,6 +67,9 @@ class WpScanResultParserTest extends TestCase
 
     public function test_severity_mapping(): void
     {
+        // Pola kritis diuji di inti; pola ringan (XSS/CSRF/redirect) diuji di
+        // plugin karena temuan inti sengaja diberi lantai minimal High
+        // (kerentanan core WordPress berdampak pada semua situs klien).
         $result = $this->parser->parse([
             'version' => [
                 'number' => '6.0',
@@ -74,23 +77,34 @@ class WpScanResultParserTest extends TestCase
                     ['title' => 'SQL Injection in core'],
                     ['title' => 'Remote Code Execution flaw'],
                     ['title' => 'Unauthenticated file upload'],
-                    ['title' => 'Reflected XSS'],
-                    ['title' => 'CSRF in admin action'],
-                    ['title' => 'Open redirect on login'],
                     ['title' => 'Some unknown vulnerability'],
+                    ['title' => 'Reflected XSS in core'], // lantai core -> High
+                ],
+            ],
+            'plugins' => [
+                'akismet' => [
+                    'version' => '5.0',
+                    'vulnerabilities' => [
+                        ['title' => 'Reflected XSS'],
+                        ['title' => 'CSRF in admin action'],
+                        ['title' => 'Open redirect on login'],
+                    ],
                 ],
             ],
         ]);
 
-        $severities = array_map(fn ($f) => $f['severity'], $result['findings']);
+        $core = array_map(fn ($f) => $f['severity'], array_slice($result['findings'], 0, 5));
+        $plugins = array_map(fn ($f) => $f['severity'], array_slice($result['findings'], 5));
 
-        $this->assertSame(IncidentSeverity::Critical, $severities[0]); // SQL injection
-        $this->assertSame(IncidentSeverity::Critical, $severities[1]); // RCE
-        $this->assertSame(IncidentSeverity::Critical, $severities[2]); // unauthenticated
-        $this->assertSame(IncidentSeverity::Medium, $severities[3]); // XSS
-        $this->assertSame(IncidentSeverity::Medium, $severities[4]); // CSRF
-        $this->assertSame(IncidentSeverity::Medium, $severities[5]); // redirect
-        $this->assertSame(IncidentSeverity::High, $severities[6]); // fallback
+        $this->assertSame(IncidentSeverity::Critical, $core[0]); // SQL injection
+        $this->assertSame(IncidentSeverity::Critical, $core[1]); // RCE
+        $this->assertSame(IncidentSeverity::Critical, $core[2]); // unauthenticated
+        $this->assertSame(IncidentSeverity::High, $core[3]); // fallback
+        $this->assertSame(IncidentSeverity::High, $core[4]); // XSS di core dinaikkan ke High
+
+        $this->assertSame(IncidentSeverity::Medium, $plugins[0]); // XSS
+        $this->assertSame(IncidentSeverity::Medium, $plugins[1]); // CSRF
+        $this->assertSame(IncidentSeverity::Medium, $plugins[2]); // redirect
     }
 
     public function test_core_vulnerability_is_at_least_high(): void

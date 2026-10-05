@@ -328,6 +328,61 @@ monitoring di server klien.
    buka tautan publik klien — PDF harus bisa diunduh. Uji API dengan
    `curl -H "Authorization: Bearer $SECURITY_API_TOKEN" …/api/security/status`.
 
+## WPScan otomatis situs WordPress (t_2e555b0b)
+
+Command `crm:wpscan` (terjadwal harian **08:00**, `withoutOverlapping`)
+menemukan target dari akun Hestia aktif yang terpetakan ke klien, mem-probe
+apakah domainnya WordPress, lalu menjalankan WPScan CLI dan mencatat setiap
+temuan sebagai insiden keamanan (`source=wpscan`) + notifikasi WhatsApp untuk
+temuan `high`/`critical`.
+
+1. Pasang binary WPScan di server CRM (sekali):
+
+   ```
+   sudo bash scripts/install-wpscan.sh
+   wpscan --version          # harus keluar nomor versi
+   ```
+
+   Skrip mencoba `gem install wpscan` lebih dulu; bila Ruby tidak ada ia
+   memasang `ruby-full` + `build-essential` lewat apt, dan bila gem gagal ia
+   jatuh ke wrapper Docker (`/usr/local/bin/wpscan` → image
+   `wpscanteam/wpscan`). Tanpa binary, setiap target berakhir `status=error`
+   dan pesan errornya menunjuk skrip ini.
+
+2. Isi `.env` server (jangan di-commit token asli):
+
+   ```
+   WPSCAN_BINARY=wpscan
+   WPSCAN_API_TOKEN=<token dari https://wpscan.com/api>
+   WPSCAN_TIMEOUT=300
+   WPSCAN_PROBE_TIMEOUT=10
+   WPSCAN_VERIFY_SSL=true
+   ```
+
+   Token API opsional tetap sangat disarankan — tanpa itu WPScan tidak punya
+   database kerentanan sehingga hanya mendeteksi versi, bukan celah. Ganti
+   `WPSCAN_VERIFY_SSL=false` hanya bila sebagian besar klien memakai
+   sertifikat self-signed (probe deteksi ikut memakai setelan ini).
+
+3. Migrasi & cache:
+
+   ```
+   php8.3 artisan migrate --force     # tabel wp_scan_sites
+   php8.3 artisan config:cache
+   ```
+
+4. Uji manual (aman, read-only — tidak ada enumerasi user/brute force):
+
+   ```
+   php8.3 artisan crm:wpscan
+   ```
+
+   Keluarannya berisi: jumlah target baru, terdeteksi WordPress, bukan
+   WordPress, dipindai, temuan baru, temuan ditutup, error. Baris target
+   otomatis terisi di tabel `wp_scan_sites` (status `pending_detection` →
+   `active`/`non_wordpress`); tidak ada UI untuk tabel ini — status `disabled`
+   dipakai untuk mematikan satu target secara manual lewat SQL.
+
 ## Redeploy (update versi)
 
 1. Lokal: WAJIB `npm run build` tepat sebelum packaging (jangan pakai
@@ -371,8 +426,11 @@ Jadwal harian yang aktif di `bootstrap/app.php`:
 
 | Waktu | Command | Fungsi |
 |-------|---------|--------|
+| 06:30 | `hestia:sync` | Sinkronisasi akun hosting/domain dari HestiaCP (multi-server F4-12) |
+| 07:00 | `crm:disk-quota-alerts` | Alert kuota disk website (t_afef420a, 80% warning → 90% kritis) |
 | 07:00 | `crm:generate-recurring-invoices` | Terbitkan invoice paket recurring (F4-11) per periode yang jatuh tempo |
 | 07:30 | `crm:generate-renewal-invoices` | Draf invoice perpanjangan layanan yang segera berakhir |
+| 08:00 | `crm:wpscan` | WPScan otomatis situs WordPress (t_2e555b0b, `withoutOverlapping`) |
 | 08:00 | `crm:services-expiring` | Daftar layanan jatuh tempo ≤ 30 hari |
 | 08:30 | `crm:send-overdue-reminders` | Pengingat invoice lewat jatuh tempo (H+1/H+7/H+14) |
 

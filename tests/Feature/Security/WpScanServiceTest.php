@@ -125,9 +125,15 @@ class WpScanServiceTest extends TestCase
 
     private function fakeWpscanProcess(): void
     {
-        Process::fake(function ($process, $callback) {
+        Process::fake(function ($process) {
             return Process::result(output: $this->fakeWpscanOutput(), exitCode: 1);
         });
+    }
+
+    /** Jumlah request Http yang benar-benar menuju endpoint Fonnte (probe deteksi tidak dihitung). */
+    private function fonnteRequestCount(): int
+    {
+        return Http::recorded(fn ($request) => str_contains($request->url(), 'api.fonnte.com'))->count();
     }
 
     // ---------- penemuan target ----------
@@ -135,7 +141,7 @@ class WpScanServiceTest extends TestCase
     public function test_mapped_active_account_is_discovered_as_scan_target(): void
     {
         $this->fakeWpDetection();
-        Process::fake();
+        $this->fakeWpscanProcess();
 
         $this->mappedAccount('klienwp.com');
 
@@ -188,7 +194,7 @@ class WpScanServiceTest extends TestCase
     public function test_duplicate_domain_shares_single_site_row(): void
     {
         $this->fakeWpDetection();
-        Process::fake();
+        $this->fakeWpscanProcess();
 
         $this->mappedAccount('sama.com');
         $this->mappedAccount('sama.com');
@@ -240,7 +246,7 @@ class WpScanServiceTest extends TestCase
         $this->artisan('crm:wpscan')->assertExitCode(0);
 
         $site = WpScanSite::query()->sole();
-        $this->assertSame(WpScanSiteStatus::Active, $site->status);
+        $this->assertSame(WpScanSiteStatus::Active, $site->status, 'last_error: '.(string) $site->last_error);
         $this->assertSame('6.4.2', $site->wp_version);
         $this->assertSame(2, $site->last_finding_count);
         $this->assertNotNull($site->last_scan_at);
@@ -287,7 +293,7 @@ class WpScanServiceTest extends TestCase
         $this->assertSame(2, SecurityIncident::open()->count());
 
         // Scan berikutnya: hanya temuan inti yang tersisa (plugin sudah diupdate).
-        Process::fake(function ($process, $callback) {
+        Process::fake(function ($process) {
             return Process::result(output: json_encode([
                 'version' => [
                     'number' => '6.4.3',
@@ -334,7 +340,7 @@ class WpScanServiceTest extends TestCase
     public function test_malformed_json_marks_site_error(): void
     {
         $this->fakeWpDetection();
-        Process::fake(function ($process, $callback) {
+        Process::fake(function ($process) {
             return Process::result(output: 'ini bukan json sama sekali', exitCode: 1);
         });
 
@@ -351,7 +357,7 @@ class WpScanServiceTest extends TestCase
     public function test_error_site_is_retried_on_next_run(): void
     {
         $this->fakeWpDetection();
-        Process::fake(function ($process, $callback) {
+        Process::fake(function ($process) {
             return Process::result(output: 'rusak', exitCode: 1);
         });
 
@@ -381,7 +387,8 @@ class WpScanServiceTest extends TestCase
         $this->artisan('crm:wpscan')->assertExitCode(0);
 
         // 2 temuan, hanya 1 yang critical (SQLi inti) -> 1 WA.
-        Http::assertSentCount(1);
+        // (Request probe deteksi tidak dihitung.)
+        $this->assertSame(1, $this->fonnteRequestCount());
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.fonnte.com/send'
@@ -401,7 +408,8 @@ class WpScanServiceTest extends TestCase
 
         $this->artisan('crm:wpscan')->assertExitCode(0);
 
-        Http::assertNothingSent();
+        // Tidak ada request ke Fonnte (probe deteksi tetap tercatat di Http).
+        $this->assertSame(0, $this->fonnteRequestCount());
         // Insiden tetap dibuat walau WA mati.
         $this->assertSame(2, SecurityIncident::count());
     }

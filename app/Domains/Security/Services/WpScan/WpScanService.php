@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Log;
 /**
  * Orkestrasi WPScan otomatis untuk situs WordPress klien (t_2e555b0b).
  *
- * Alur satu run (dipanggil command `crm:wpscan`, jadwal harian 05:00):
+ * Alur satu run (dipanggil command `crm:wpscan`, jadwal harian 08:00):
  *
  *   1. discoverSites  — akun Hestia aktif & terpetakan (mapping resolved,
  *                       client_id ada, klien aktif) yang domainnya belum ada

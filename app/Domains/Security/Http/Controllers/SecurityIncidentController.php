@@ -41,6 +41,15 @@ class SecurityIncidentController extends Controller
         ]);
     }
 
+    public function show(SecurityIncident $incident): View
+    {
+        $incident->load('client');
+
+        return view('security.incidents.show', [
+            'incident' => $incident,
+        ]);
+    }
+
     public function create(Request $request): View
     {
         return view('security.incidents.create', [
