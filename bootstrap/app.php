@@ -6,6 +6,7 @@ use App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand;
 use App\Domains\Projects\Console\Commands\GenerateAchievementReportsCommand;
 use App\Domains\Security\Console\Commands\WpScanCommand;
+use App\Domains\Security\Console\Commands\FileIntegrityCommand;
 use App\Domains\Hestia\Console\Commands\DiskQuotaAlertsCommand;
 use App\Domains\Hestia\Console\Commands\HestiaSyncCommand;
 use App\Domains\Services\Console\Commands\SendServiceRemindersCommand;
@@ -67,6 +68,7 @@ return Application::configure(basePath: dirname(__DIR__))
         DiskQuotaAlertsCommand::class,
         GenerateAchievementReportsCommand::class,
         WpScanCommand::class,
+        FileIntegrityCommand::class,
     ])
     ->withExceptions(function (Exceptions $exceptions): void {
         //
