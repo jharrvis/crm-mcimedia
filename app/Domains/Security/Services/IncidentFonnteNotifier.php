@@ -2,6 +2,8 @@
 
 namespace App\Domains\Security\Services;
 
+use App\Domains\Hestia\Enums\DiskAlertLevel;
+use App\Domains\Hestia\Models\HestiaAccount;
 use App\Domains\Security\Models\SecurityIncident;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -51,6 +53,34 @@ class IncidentFonnteNotifier
     public function notifyFlapping(SecurityIncident $incident): void
     {
         $this->sendIfEnabled($incident, 'flapping', $this->buildFlappingMessage($incident));
+    }
+
+    /**
+     * Kirim notifikasi WA untuk alert kuota disk (t_afef420a).
+     */
+    public function notifyDiskQuotaAlert(SecurityIncident $incident, HestiaAccount $account, DiskAlertLevel $level): void
+    {
+        $percent = $account->diskUsagePercent() ?? 0;
+        $server = $account->server?->name ?? $account->server?->host ?? 'server tidak diketahui';
+        $emoji = $level === DiskAlertLevel::Critical ? '🔴' : '⚠️';
+        $crmUrl = $this->getIncidentUrl($incident);
+
+        $message = implode("\n", [
+            "{$emoji} *ALERT KUOTA DISK — {$level->label()}*",
+            "",
+            "🌐 Website: {$account->domain}",
+            "🖥️ Server: {$server} (user: {$account->hestia_user})",
+            "📊 Pemakaian: {$account->disk_used} MB / {$account->disk_quota} MB ({$percent}%)",
+            "Ambang: warning ".(int) config('crm.disk_quota.warning_percent', 80)."%, kritis ".(int) config('crm.disk_quota.critical_percent', 90)."%",
+            "",
+            "🔗 Detail di CRM: {$crmUrl}",
+            "",
+            $level === DiskAlertLevel::Critical
+                ? 'Kuota hampir habis — segera bersihkan file atau upgrade paket.'
+                : 'Mohon pantau pemakaian disk agar tidak melewati batas kritis.',
+        ]);
+
+        $this->sendIfEnabled($incident, 'disk_quota_'.$level->value, $message);
     }
 
     /**

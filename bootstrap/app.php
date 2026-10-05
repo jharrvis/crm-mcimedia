@@ -5,6 +5,7 @@ use App\Domains\Invoicing\Console\Commands\GenerateRecurringInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand;
 use App\Domains\Projects\Console\Commands\GenerateAchievementReportsCommand;
+use App\Domains\Hestia\Console\Commands\DiskQuotaAlertsCommand;
 use App\Domains\Hestia\Console\Commands\HestiaSyncCommand;
 use App\Domains\Services\Console\Commands\ServicesExpiringCommand;
 use Illuminate\Console\Scheduling\Schedule;
@@ -41,6 +42,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:send-overdue-reminders')->dailyAt('08:30');
         // Sinkronisasi akun hosting/domain dari HestiaCP (F3-1), setiap hari pukul 06:30.
         $schedule->command('hestia:sync')->dailyAt('06:30');
+        // Alert kuota disk website (t_afef420a): 80% warning, 90% kritis.
+        // Dijalankan setelah hestia:sync supaya angka pemakaian masih segar.
+        $schedule->command('crm:disk-quota-alerts')->dailyAt('07:00');
     })
     ->withCommands([
         EscalateSecurityIncidentsCommand::class,
@@ -49,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
         GenerateRecurringInvoicesCommand::class,
         SendOverdueRemindersCommand::class,
         HestiaSyncCommand::class,
+        DiskQuotaAlertsCommand::class,
         GenerateAchievementReportsCommand::class,
     ])
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -210,4 +210,34 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Alert kuota disk website (t_afef420a)
+    |--------------------------------------------------------------------------
+    |
+    | Command `crm:disk-quota-alerts` (jadwal harian) memeriksa pemakaian disk
+    | setiap akun Hestia terhadap kuotanya (`hestia_accounts.disk_used` /
+    | `disk_quota`, MB) dan membuat insiden keamanan + notifikasi WA saat
+    | ambang terlampaui:
+    |
+    |   - pemakaian >= warning_percent (default 80%)  -> severity medium
+    |   - pemakaian >= critical_percent (default 90%) -> severity high
+    |
+    | Idempotensi: level alert terakhir tersimpan di
+    | `hestia_accounts.disk_alert_level` (none|warning|critical), jadi insiden
+    | & WA hanya dikirim saat level BERUBAH. Akun dengan kuota 0 (tanpa batas
+    | menurut konvensi Hestia) atau kuota null (belum dilaporkan) dilewati.
+    |
+    | default_client_id: akun Hestia yang belum terpetakan ke klien (mapping
+    | belum selesai) tetap dipantau; insidennya dicatat ke klien fallback ini
+    | (konvensi sama dengan SECURITY_UPTIME_DEFAULT_CLIENT_ID). null = akun
+    | tak terpetakan dilewati (tidak ada klien tujuan insiden).
+    |
+    */
+    'disk_quota' => [
+        'warning_percent' => env('CRM_DISK_QUOTA_WARNING_PERCENT', 80),
+        'critical_percent' => env('CRM_DISK_QUOTA_CRITICAL_PERCENT', 90),
+        'default_client_id' => env('CRM_DISK_QUOTA_DEFAULT_CLIENT_ID', null),
+    ],
+
 ];

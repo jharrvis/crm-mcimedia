@@ -3,6 +3,7 @@
 namespace App\Domains\Hestia\Models;
 
 use App\Domains\Clients\Models\Client;
+use App\Domains\Hestia\Enums\DiskAlertLevel;
 use App\Domains\Hestia\Enums\HestiaAccountStatus;
 use App\Domains\Hestia\Enums\HestiaMappingStatus;
 use App\Domains\Services\Models\Service;
@@ -22,6 +23,8 @@ class HestiaAccount extends Model
         'first_seen_at', 'last_seen_at',
         // F4-13: paket/kuota/status hasil pemecahan payload `raw`.
         'disk_used', 'disk_quota', 'suspended', 'user_suspended',
+        // t_afef420a: state mesin alert kuota disk (idempotensi notifikasi).
+        'disk_alert_level', 'disk_alert_at',
     ];
 
     protected function casts(): array
@@ -38,6 +41,8 @@ class HestiaAccount extends Model
             'disk_quota' => 'integer',
             'suspended' => 'boolean',
             'user_suspended' => 'boolean',
+            'disk_alert_level' => DiskAlertLevel::class,
+            'disk_alert_at' => 'datetime',
         ];
     }
 
@@ -185,6 +190,47 @@ class HestiaAccount extends Model
     public function isSuspended(): bool
     {
         return $this->suspended || $this->user_suspended;
+    }
+
+    // ------------------------------------------------------------------
+    // Alert kuota disk (t_afef420a)
+    // ------------------------------------------------------------------
+
+    /**
+     * Level alert saat ini (state tersimpan), default `none`.
+     *
+     * Cast enum membuat kolom ini selalu `DiskAlertLevel`, tetapi baris lama
+     * (pre-migrasi) bisa saja null di memori bila dimuat sebelum migrasi —
+     * fallback ke None supaya alerting tidak menebak level lebih tinggi.
+     */
+    public function alertLevel(): DiskAlertLevel
+    {
+        return $this->disk_alert_level ?? DiskAlertLevel::None;
+    }
+
+    /**
+     * Level alert yang SEHARUSNYA berdasarkan pemakaian vs ambang config.
+     *
+     * Mengembalikan `null` bila persentase tidak bisa dihitung (kuota tanpa
+     * batas/belum dilaporkan, atau `disk_used` belum ada) — artinya akun ini
+     * tidak boleh ikut alerting sama sekali.
+     */
+    public function currentAlertLevel(): ?DiskAlertLevel
+    {
+        $percent = $this->diskUsagePercent();
+
+        if ($percent === null) {
+            return null;
+        }
+
+        $critical = max(1, (int) config('crm.disk_quota.critical_percent', 90));
+        $warning = min($critical, max(1, (int) config('crm.disk_quota.warning_percent', 80)));
+
+        return match (true) {
+            $percent >= $critical => DiskAlertLevel::Critical,
+            $percent >= $warning => DiskAlertLevel::Warning,
+            default => DiskAlertLevel::None,
+        };
     }
 
     /** Label status yang jujur: bedakan "suspend" dari "tidak aktif" biasa. */
