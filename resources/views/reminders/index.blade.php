@@ -20,6 +20,7 @@
                 <th>Berakhir</th>
                 <th>Terlambat</th>
                 <th class="text-right">Harga</th>
+                <th class="text-right">Aksi</th>
             </tr></thead>
             <tbody>
                 @foreach ($overdue as $s)
@@ -30,6 +31,7 @@
                         <td>{{ tgl_id($s->end_date) }}</td>
                         <td class="font-semibold text-red-600">{{ abs($s->daysUntilEnd()) }} hari</td>
                         <td class="text-right">{{ rupiah($s->price) }}</td>
+                        <td class="whitespace-nowrap text-right">@include('reminders._actions', ['s' => $s])</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -53,6 +55,7 @@
                 <th>Berakhir</th>
                 <th>Sisa</th>
                 <th class="text-right">Harga</th>
+                <th class="text-right">Aksi</th>
             </tr></thead>
             <tbody>
                 @foreach ($expiring as $s)
@@ -63,6 +66,7 @@
                         <td>{{ tgl_id($s->end_date) }}</td>
                         <td class="font-semibold text-amber-600">{{ $s->daysUntilEnd() }} hari</td>
                         <td class="text-right">{{ rupiah($s->price) }}</td>
+                        <td class="whitespace-nowrap text-right">@include('reminders._actions', ['s' => $s])</td>
                     </tr>
                 @endforeach
             </tbody>

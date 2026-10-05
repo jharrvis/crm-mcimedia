@@ -111,6 +111,13 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:tasks')->name('tasks.reopen');
 
     Route::get('reminders', ReminderController::class)->middleware('permission:reminders')->name('reminders.index');
+    // Tombol kirim reminder manual per layanan (t_6f78ca1d): WhatsApp & email.
+    // POST → middleware `permission:reminders` menuntut level "manage"
+    // (GET index hanya "view"), sehingga user lihat-saja tetap 403.
+    Route::post('reminders/{service}/send-whatsapp', [ReminderController::class, 'sendWhatsapp'])
+        ->middleware('permission:reminders')->name('reminders.send-whatsapp');
+    Route::post('reminders/{service}/send-email', [ReminderController::class, 'sendEmail'])
+        ->middleware('permission:reminders')->name('reminders.send-email');
     Route::get('reports', ReportController::class)->middleware('permission:reports')->name('reports.index');
     Route::get('activity', [ActivityLogController::class, 'index'])->middleware('permission:activity')->name('activity.index');
 
