@@ -5,93 +5,103 @@
 @section('content')
 @php
     use App\Domains\Invoicing\Enums\InvoiceStatus;
-
-    $statusClasses = [
-        'draft' => 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-        'sent' => 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
-        'paid' => 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200',
-        'overdue' => 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200',
-        'cancelled' => 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200',
-    ];
 @endphp
 
-<div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('invoices.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Buat invoice</a>
-</div>
+<x-page-header title="Invoice" subtitle="Tagihan ke klien MCI Media.">
+    <x-btn :href="route('invoices.create')" icon="plus">Buat invoice</x-btn>
+</x-page-header>
 
-<form method="GET" action="{{ route('invoices.index') }}" class="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
-    <input name="q" value="{{ request('q') }}" placeholder="Cari nomor / klien…" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-    <select name="client_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="">Semua klien</option>
-        @foreach ($clients as $c)
-            <option value="{{ $c->id }}" @selected(request('client_id') == $c->id)>{{ $c->name }}</option>
-        @endforeach
-    </select>
-    <select name="status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="all" @selected(request('status') === 'all')>Semua status</option>
-        @foreach ($statuses as $s)
-            <option value="{{ $s->value }}" @selected(request('status') === $s->value)>{{ $s->label() }}</option>
-        @endforeach
-    </select>
-    <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700">Filter</button>
-</form>
+<x-card>
+    <form method="GET" action="{{ route('invoices.index') }}" class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <input name="q" value="{{ request('q') }}" placeholder="Cari nomor / klien…"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900">
+        <select name="client_id"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <option value="">Semua klien</option>
+            @foreach ($clients as $c)
+                <option value="{{ $c->id }}" @selected(request('client_id') == $c->id)>{{ $c->name }}</option>
+            @endforeach
+        </select>
+        <select name="status"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <option value="all" @selected(request('status') === 'all')>Semua status</option>
+            @foreach ($statuses as $s)
+                <option value="{{ $s->value }}" @selected(request('status') === $s->value)>{{ $s->label() }}</option>
+            @endforeach
+        </select>
+        <x-btn type="submit" variant="dark" icon="search">Filter</x-btn>
+    </form>
 
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">Nomor</th>
-                <th class="px-4 py-3">Klien</th>
-                <th class="px-4 py-3">Terbit</th>
-                <th class="px-4 py-3">Jatuh tempo</th>
-                <th class="px-4 py-3 text-right">Total</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
-            </tr>
-        </thead>
+    <x-table>
+        <thead><tr>
+            <th>Nomor</th>
+            <th>Klien</th>
+            <th>Terbit</th>
+            <th>Jatuh tempo</th>
+            <th class="text-right">Total</th>
+            <th>Status</th>
+            <th class="text-right">Aksi</th>
+        </tr></thead>
         <tbody>
             @forelse ($invoices as $invoice)
                 @php
                     $isOverdue = $invoice->status === InvoiceStatus::Overdue
                         || ($invoice->status === InvoiceStatus::Sent && $invoice->due_date->isBefore(today()));
-                    $rowClass = $isOverdue ? 'bg-red-50 dark:bg-red-950/40' : '';
+                    // Mapping status ke varian badge design system.
+                    $statusVariant = match ($invoice->status->value) {
+                        'paid' => 'success',
+                        'sent' => 'info',
+                        'overdue' => 'danger',
+                        'cancelled' => 'warning',
+                        default => 'slate',
+                    };
                 @endphp
-                <tr class="border-t border-slate-100 dark:border-slate-800 {{ $rowClass }}">
-                    <td class="px-4 py-3">
-                        <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-brand-600 hover:underline">{{ $invoice->number }}</a>
-                        @if ($invoice->title)<p class="text-xs text-slate-500">{{ $invoice->title }}</p>@endif
+                <tr @class(['bg-red-50 dark:bg-red-950/40' => $isOverdue])>
+                    <td>
+                        <a href="{{ route('invoices.show', $invoice) }}" class="font-semibold text-slate-900 hover:text-brand-600 dark:text-white">{{ $invoice->number }}</a>
+                        @if ($invoice->title)<p class="text-xs text-slate-400">{{ $invoice->title }}</p>@endif
                     </td>
-                    <td class="px-4 py-3"><a href="{{ route('clients.show', $invoice->client) }}" class="hover:text-brand-600">{{ $invoice->client?->name ?? '—' }}</a></td>
-                    <td class="px-4 py-3">{{ tgl_id($invoice->issue_date) }}</td>
-                    <td class="px-4 py-3">
+                    <td><a href="{{ route('clients.show', $invoice->client) }}" class="hover:text-brand-600">{{ $invoice->client?->name ?? '—' }}</a></td>
+                    <td>{{ tgl_id($invoice->issue_date) }}</td>
+                    <td>
                         {{ tgl_id($invoice->due_date) }}
                         @if ($isOverdue)
-                            <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-900 dark:text-red-200">lewat</span>
+                            <x-badge variant="danger" :dot="true" class="ml-1">lewat</x-badge>
                         @endif
                     </td>
-                    <td class="px-4 py-3 text-right">{{ rupiah($invoice->total) }}</td>
-                    <td class="px-4 py-3">
-                        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $statusClasses[$invoice->status->value] }}">{{ $invoice->status->label() }}</span>
+                    <td class="text-right tabular-nums">{{ rupiah($invoice->total) }}</td>
+                    <td>
+                        <x-badge :variant="$statusVariant" :dot="true">{{ $invoice->status->label() }}</x-badge>
                     </td>
-                    <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('invoices.show', $invoice) }}" class="text-brand-600 hover:underline">Detail</a>
+                    <td class="whitespace-nowrap text-right">
+                        <a href="{{ route('invoices.show', $invoice) }}" class="text-sm font-semibold text-brand-600 hover:underline">Detail</a>
                         <span class="mx-1 text-slate-300">|</span>
-                        <a href="{{ route('invoices.pdf', $invoice) }}" class="text-brand-600 hover:underline">PDF</a>
+                        <a href="{{ route('invoices.pdf', $invoice) }}" class="text-sm font-semibold text-brand-600 hover:underline">PDF</a>
                         @if ($invoice->status === InvoiceStatus::Draft)
                             <span class="mx-1 text-slate-300">|</span>
                             <form method="POST" action="{{ route('invoices.destroy', $invoice) }}" class="inline" onsubmit="return confirm('Hapus invoice {{ $invoice->number }}? Tindakan ini tidak dapat dibatalkan.')">
                                 @csrf
                                 @method('DELETE')
-                                <button class="text-red-600 hover:underline">Hapus</button>
+                                <button type="submit" class="text-sm font-semibold text-rose-600 hover:underline">Hapus</button>
                             </form>
                         @endif
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada invoice.</td></tr>
+                <tr><td colspan="7">
+                    <x-empty-state title="Belum ada invoice" icon="receipt-text">
+                        Belum ada invoice yang cocok dengan filter.
+                        <x-slot:action>
+                            <x-btn :href="route('invoices.create')" icon="plus">Buat invoice</x-btn>
+                        </x-slot:action>
+                    </x-empty-state>
+                </td></tr>
             @endforelse
         </tbody>
-    </table>
-</div>
-<div class="mt-4">{{ $invoices->links() }}</div>
+    </x-table>
+
+    @if ($invoices->hasPages())
+        <div class="mt-4">{{ $invoices->links() }}</div>
+    @endif
+</x-card>
 @endsection

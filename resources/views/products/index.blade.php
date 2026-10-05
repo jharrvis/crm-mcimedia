@@ -3,77 +3,90 @@
 @section('title', 'Produk')
 
 @section('content')
-<div class="mb-4 flex flex-wrap items-center gap-2">
-    <a href="{{ route('products.create') }}" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Tambah produk</a>
-    <a href="{{ route('product-categories.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Kelola kategori</a>
-</div>
+<x-page-header title="Produk" subtitle="Katalog produk dan layanan yang bisa dimasukkan ke invoice.">
+    <x-btn :href="route('products.create')" icon="plus">Tambah produk</x-btn>
+    <x-btn :href="route('product-categories.index')" variant="outline" icon="tags">Kelola kategori</x-btn>
+</x-page-header>
 
-<form method="GET" action="{{ route('products.index') }}" class="mb-4 grid gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
-    <input name="q" value="{{ request('q') }}" placeholder="Cari nama / SKU / varian…" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-    <select name="status" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="all" @selected($statusFilter === 'all')>Semua status</option>
-        <option value="active" @selected($statusFilter === 'active')>Aktif</option>
-        <option value="inactive" @selected($statusFilter === 'inactive')>Nonaktif</option>
-    </select>
-    <select name="category_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-        <option value="">Semua kategori</option>
-        @foreach ($categories ?? [] as $category)
-            <option value="{{ $category->id }}" @selected((string) ($categoryFilter ?? '') === (string) $category->id)>{{ $category->name }}</option>
-        @endforeach
-        <option value="0" @selected((string) ($categoryFilter ?? '') === '0')>Tanpa kategori</option>
-    </select>
-    <button class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 dark:bg-slate-700">Filter</button>
-</form>
+<x-card>
+    <form method="GET" action="{{ route('products.index') }}" class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <input name="q" value="{{ request('q') }}" placeholder="Cari nama / SKU / varian…"
+               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-brand-400 dark:focus:ring-brand-900">
+        <select name="status"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <option value="all" @selected($statusFilter === 'all')>Semua status</option>
+            <option value="active" @selected($statusFilter === 'active')>Aktif</option>
+            <option value="inactive" @selected($statusFilter === 'inactive')>Nonaktif</option>
+        </select>
+        <select name="category_id"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
+            <option value="">Semua kategori</option>
+            @foreach ($categories ?? [] as $category)
+                <option value="{{ $category->id }}" @selected((string) ($categoryFilter ?? '') === (string) $category->id)>{{ $category->name }}</option>
+            @endforeach
+            <option value="0" @selected((string) ($categoryFilter ?? '') === '0')>Tanpa kategori</option>
+        </select>
+        <x-btn type="submit" variant="dark" icon="search">Filter</x-btn>
+    </form>
 
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-    <table class="w-full text-sm">
-        <thead>
-            <tr class="text-left text-xs uppercase text-slate-500">
-                <th class="px-4 py-3">SKU</th>
-                <th class="px-4 py-3">Nama</th>
-                <th class="px-4 py-3 text-right">Harga</th>
-                <th class="px-4 py-3">Kategori</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
-            </tr>
-        </thead>
+    <x-table>
+        <thead><tr>
+            <th>SKU</th>
+            <th>Nama</th>
+            <th class="text-right">Harga</th>
+            <th>Status</th>
+            <th>Kategori</th>
+            <th class="text-right">Aksi</th>
+        </tr></thead>
         <tbody>
             @forelse ($products as $product)
-                <tr class="border-t border-slate-100 dark:border-slate-800">
-                    <td class="px-4 py-3 font-mono text-xs text-slate-500">{{ $product->sku ?? '—' }}</td>
-                    <td class="px-4 py-3">
-                        <span class="font-medium">{{ $product->name }}</span>
-                        @if ($product->description)<p class="text-xs text-slate-500">{{ $product->description }}</p>@endif
+                <tr>
+                    <td class="font-mono text-xs text-slate-400">{{ $product->sku ?? '—' }}</td>
+                    <td>
+                        <span class="font-semibold">{{ $product->name }}</span>
+                        @if ($product->description)<p class="text-xs text-slate-400">{{ $product->description }}</p>@endif
                     </td>
-                    <td class="px-4 py-3 text-right tabular-nums">{{ rupiah($product->sales_price) }}</td>
-                    <td class="px-4 py-3">
-                        <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $product->is_active ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200' : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' }}">{{ $product->is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                    <td class="text-right tabular-nums">{{ rupiah($product->sales_price) }}</td>
+                    <td>
+                        <x-badge :variant="$product->is_active ? 'success' : 'slate'" :dot="true">
+                            {{ $product->is_active ? 'Aktif' : 'Nonaktif' }}
+                        </x-badge>
                     </td>
-                    <td class="px-4 py-3 text-xs">
-                        @if ($product->category)<span class="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ $product->category->name }}</span>@else<span class="text-slate-400">—</span>@endif
-                        @if ($product->variants->count() > 0)<span class="rounded bg-brand-100 px-1.5 py-0.5 font-medium text-brand-600 dark:bg-brand-900 dark:text-brand-300">{{ $product->variants->count() }} varian</span>@endif
+                    <td>
+                        @if ($product->category)<x-badge variant="slate">{{ $product->category->name }}</x-badge>@else<span class="text-slate-400">—</span>@endif
+                        @if ($product->variants->count() > 0)<x-badge variant="info" class="ml-1">{{ $product->variants->count() }} varian</x-badge>@endif
                     </td>
-                    <td class="px-4 py-3 text-right whitespace-nowrap">
-                        <a href="{{ route('products.edit', $product) }}" class="text-brand-600 hover:underline">Ubah</a>
+                    <td class="whitespace-nowrap text-right">
+                        <a href="{{ route('products.edit', $product) }}" class="text-sm font-semibold text-brand-600 hover:underline">Ubah</a>
                         <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('products.toggle', $product) }}" class="inline">
                             @csrf
                             @method('PATCH')
-                            <button class="text-brand-600 hover:underline">{{ $product->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
+                            <button type="submit" class="text-sm font-semibold text-brand-600 hover:underline">{{ $product->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
                         </form>
                         <span class="mx-1 text-slate-300">|</span>
                         <form method="POST" action="{{ route('products.destroy', $product) }}" class="inline" onsubmit="return confirm('Hapus produk ini? Invoice lama tidak terpengaruh.')">
                             @csrf
                             @method('DELETE')
-                            <button class="text-red-600 hover:underline">Hapus</button>
+                            <button type="submit" class="text-sm font-semibold text-rose-600 hover:underline">Hapus</button>
                         </form>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Belum ada produk.</td></tr>
+                <tr><td colspan="6">
+                    <x-empty-state title="Belum ada produk" icon="package-open">
+                        Tambahkan produk pertama agar mudah dimasukkan ke invoice.
+                        <x-slot:action>
+                            <x-btn :href="route('products.create')" icon="plus">Tambah produk</x-btn>
+                        </x-slot:action>
+                    </x-empty-state>
+                </td></tr>
             @endforelse
         </tbody>
-    </table>
-</div>
-<div class="mt-4">{{ $products->links() }}</div>
+    </x-table>
+
+    @if ($products->hasPages())
+        <div class="mt-4">{{ $products->links() }}</div>
+    @endif
+</x-card>
 @endsection
