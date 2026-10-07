@@ -152,4 +152,32 @@ class PublicInvoiceController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
+
+    /** POST /pay/{token}/pakasir/transaction — buat transaksi Pakasir. */
+    public function pakasirTransaction(string $token, Request $request): \Illuminate\Http\JsonResponse
+    {
+        $invoice = $this->findInvoice($token);
+        if (! $invoice->isCollectible()) {
+            return response()->json(['message' => 'Invoice ini tidak dapat dibayar online.'], 422);
+        }
+        if ($invoice->isTerminal()) {
+            return response()->json(['message' => 'Invoice ini sudah lunas atau dibatalkan.'], 422);
+        }
+        $method = $request->input('method', 'qris');
+        if (! isset(\App\Domains\Invoicing\Services\PakasirService::METHODS[$method])) {
+            return response()->json(['message' => 'Metode pembayaran tidak didukung.'], 422);
+        }
+        try {
+            $data = app(\App\Domains\Invoicing\Services\PakasirService::class)->createTransaction($invoice, $method);
+            return response()->json([
+                'txn_id' => $data['txn_id'] ?? null,
+                'payment_link' => $data['payment_link'] ?? null,
+                'qr_string' => $data['qr_string'] ?? null,
+                'va_number' => $data['va_number'] ?? null,
+                'expired_at' => $data['expired_at'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
 }

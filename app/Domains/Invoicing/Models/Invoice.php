@@ -29,6 +29,7 @@ class Invoice extends Model
         'parent_invoice_id', 'termin_percent',
         'recurring_plan_id', 'recurring_cycle', 'period_start', 'period_end',
         'midtrans_order_id', 'midtrans_snap_token', 'midtrans_transaction_status',
+        'pakasir_txn_id', 'pakasir_status',
     ];
 
     protected function casts(): array

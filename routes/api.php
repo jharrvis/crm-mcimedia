@@ -56,3 +56,8 @@ Route::middleware('security.api')->prefix('security')->name('api.security.')->gr
 Route::post('midtrans/notification', \App\Domains\Invoicing\Http\Controllers\MidtransWebhookController::class)
     ->middleware('throttle:60,1')
     ->name('api.midtrans.notification');
+
+// Pakasir webhook (tanpa CSRF, verifikasi X-Secret)
+Route::post('webhooks/pakasir', \App\Domains\Invoicing\Http\Controllers\PakasirWebhookController::class)
+    ->middleware('throttle:60,1')
+    ->name('api.pakasir.webhook');
