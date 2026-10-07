@@ -68,7 +68,8 @@ class PakasirService
             }
         }
 
-        $orderId = 'INV-'.$invoice->number;
+        // Nomor invoice sudah berprefix INV-, pakai langsung agar tidak dobel
+        $orderId = $invoice->number;
 
         $response = Http::withHeaders($this->headers())
             ->timeout(30)
@@ -132,10 +133,9 @@ class PakasirService
 
         $invoice = Invoice::where('pakasir_txn_id', $txnId)->first();
 
-        // Fallback: cocokkan via order_id = INV-{number}
-        if (! $invoice && str_starts_with($orderId, 'INV-')) {
-            $number = substr($orderId, 4);
-            $invoice = Invoice::where('number', $number)->first();
+        // Fallback: cocokkan order_id langsung ke nomor invoice
+        if (! $invoice && $orderId) {
+            $invoice = Invoice::where('number', $orderId)->first();
         }
 
         if (! $invoice) {
