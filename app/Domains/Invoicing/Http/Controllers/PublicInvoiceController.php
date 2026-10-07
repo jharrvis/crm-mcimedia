@@ -180,4 +180,15 @@ class PublicInvoiceController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
+
+    /** GET /pay/{token}/status — cek status invoice (untuk polling AJAX). */
+    public function pakasirStatus(string $token): \Illuminate\Http\JsonResponse
+    {
+        $invoice = $this->findInvoice($token);
+
+        return response()->json([
+            'status' => $invoice->status->value,
+            'is_paid' => $invoice->status === \App\Domains\Invoicing\Enums\InvoiceStatus::Paid,
+        ]);
+    }
 }

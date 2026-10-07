@@ -46,6 +46,7 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::post('pay/{token}/payments', [PublicInvoiceController::class, 'storePayment'])->name('invoices.public.payments.store');
     Route::post('pay/{token}/midtrans/token', [PublicInvoiceController::class, 'midtransToken'])->name('invoices.public.midtrans.token');
     Route::post('pay/{token}/pakasir/transaction', [PublicInvoiceController::class, 'pakasirTransaction'])->name('invoices.public.pakasir.transaction');
+    Route::get('pay/{token}/status', [PublicInvoiceController::class, 'pakasirStatus'])->name('invoices.public.pakasir.status');
 });
 
 // Halaman laporan keamanan publik (magic link F3-3) — tanpa login, rate-limited.

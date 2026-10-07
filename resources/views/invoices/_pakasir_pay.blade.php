@@ -58,6 +58,19 @@ document.getElementById('btn-pakasir-pay').addEventListener('click', async funct
         box.innerHTML = html || '<p>Transaksi dibuat. Silakan selesaikan pembayaran.</p>';
         box.classList.remove('hidden');
         btn.textContent = 'Menunggu pembayaran...';
+        // Polling status tiap 5 detik — auto update tanpa refresh
+        const pollUrl = '{{ route('invoices.public.pakasir.status', ['token' => $invoice->public_token]) }}';
+        const pollTimer = setInterval(async () => {
+            try {
+                const sres = await fetch(pollUrl, { headers: { 'Accept': 'application/json' } });
+                const sdata = await sres.json();
+                if (sdata.is_paid) {
+                    clearInterval(pollTimer);
+                    box.innerHTML = '<p class="rounded-lg bg-emerald-100 px-4 py-3 font-semibold text-emerald-800">Pembayaran berhasil! Invoice lunas.</p>';
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch (e) { /* abaikan, coba lagi */ }
+        }, 5000);
     } catch (e) {
         alert('Gagal: ' + e.message);
         btn.disabled = false;
