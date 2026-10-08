@@ -124,14 +124,14 @@ class IncidentFonnteNotifier
     private function buildP1Message(SecurityIncident $incident): string
     {
         $domain = $this->extractDomain($incident->title);
-        $downTime = $incident->occurred_at->format('d/m/Y H:i:s');
+        $downTime = $this->wibTime($incident->occurred_at);
         $crmUrl = $this->getIncidentUrl($incident);
 
         return implode("\n", [
             "🚨 *INCIDENT P1 - CRITICAL*",
             "",
             "Website: {$domain}",
-            "Waktu DOWN: {$downTime}",
+            "Waktu {$this->eventLabel($incident)}: {$downTime} WIB",
             "Monitor: {$incident->external_id}",
             "",
             "🔗 Detail di CRM: {$crmUrl}",
@@ -146,7 +146,7 @@ class IncidentFonnteNotifier
     private function buildP2Message(SecurityIncident $incident): string
     {
         $domain = $this->extractDomain($incident->title);
-        $downTime = $incident->occurred_at->format('d/m/Y H:i:s');
+        $downTime = $this->wibTime($incident->occurred_at);
         $duration = $incident->occurred_at->diffForHumans(now(), true);
         $crmUrl = $this->getIncidentUrl($incident);
 
@@ -154,7 +154,7 @@ class IncidentFonnteNotifier
             "⚠️ *INCIDENT ESCALATED TO P2*",
             "",
             "Website: {$domain}",
-            "Waktu DOWN: {$downTime}",
+            "Waktu {$this->eventLabel($incident)}: {$downTime} WIB",
             "Durasi: {$duration} (lebih dari 15 menit)",
             "Severity naik: Critical → High",
             "",
@@ -170,7 +170,7 @@ class IncidentFonnteNotifier
     private function buildMajorMessage(SecurityIncident $incident): string
     {
         $domain = $this->extractDomain($incident->title);
-        $eventTime = $incident->occurred_at->format('d/m/Y H:i:s');
+        $eventTime = $this->wibTime($incident->occurred_at);
         $duration = $incident->occurred_at->diffForHumans(now(), true);
         $crmUrl = $this->getIncidentUrl($incident);
         $isNetdata = str_contains(strtolower($incident->title), 'netdata');
@@ -195,7 +195,7 @@ class IncidentFonnteNotifier
             "🔴 *INCIDENT MAJOR - ESCALATED*",
             "",
             "🌐 Website: {$domain}",
-            "Waktu DOWN: {$eventTime}",
+            "Waktu {$this->eventLabel($incident)}: {$eventTime} WIB",
             "Durasi: {$duration} (lebih dari 30 menit)",
             "Status: IS_MAJOR = true",
             "",
@@ -211,7 +211,7 @@ class IncidentFonnteNotifier
     private function buildRecoveredMessage(SecurityIncident $incident): string
     {
         $domain = $this->extractDomain($incident->title);
-        $downTime = $incident->occurred_at->format('d/m/Y H:i:s');
+        $downTime = $this->wibTime($incident->occurred_at);
         $resolvedTime = $incident->resolved_at?->format('d/m/Y H:i:s') ?? 'now';
         $duration = $incident->occurred_at->diffForHumans($incident->resolved_at ?? now(), true);
         $crmUrl = $this->getIncidentUrl($incident);
@@ -220,7 +220,7 @@ class IncidentFonnteNotifier
             "✅ *INCIDENT RECOVERED*",
             "",
             "Website: {$domain}",
-            "Waktu DOWN: {$downTime}",
+            "Waktu {$this->eventLabel($incident)}: {$downTime} WIB",
             "Waktu UP: {$resolvedTime}",
             "Durasi downtime: {$duration}",
             "",
@@ -263,6 +263,31 @@ class IncidentFonnteNotifier
             return $m[1];
         }
         return 'unknown';
+    }
+
+
+    /**
+     * Format waktu ke WIB untuk tampilan.
+     */
+    private function wibTime($dt): string
+    {
+        return $dt->copy()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s');
+    }
+
+    /**
+     * Label jenis kejadian berdasarkan title insiden.
+     * Hindari klaim "DOWN" untuk insiden non-downtime.
+     */
+    private function eventLabel(SecurityIncident $incident): string
+    {
+        $t = strtolower($incident->title);
+        if (str_contains($t, 'rate limit') || str_contains($t, 'traffic anomaly') || str_contains($t, 'anomaly')) {
+            return 'Terdeteksi';
+        }
+        if (str_contains($t, 'down') || str_contains($t, 'unreachable') || str_contains($t, 'tidak dapat diakses')) {
+            return 'DOWN';
+        }
+        return 'Terdeteksi';
     }
 
     /**

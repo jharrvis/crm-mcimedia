@@ -73,7 +73,7 @@ class SecurityMonitoringIngest
                 MonitoringEvent::create([
                     'client_id' => (int) $data['client_id'],
                     'external_id' => $externalId,
-                    'occurred_at' => Carbon::parse($data['occurred_at']),
+                    'occurred_at' => Carbon::parse($data['occurred_at'], 'Asia/Jakarta')->setTimezone('UTC'),
                     'type' => $data['type'],
                     'ip' => $data['ip'],
                     'target_url' => $data['target_url'],
@@ -291,7 +291,7 @@ class SecurityMonitoringIngest
         SecurityIncident::create([
             'client_id' => (int) $data['client_id'],
             'external_id' => 'auto-' . $this->generateEventExternalId($data),
-            'occurred_at' => Carbon::parse($data['occurred_at']),
+            'occurred_at' => Carbon::parse($data['occurred_at'], 'Asia/Jakarta')->setTimezone('UTC'),
             'severity' => $severity,
             'source' => $source,
             'title' => $typeLabels[$data['type']] . ' dari IP ' . $data['ip'] . ' ke ' . $data['target_url'],
