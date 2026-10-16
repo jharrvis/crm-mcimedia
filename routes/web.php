@@ -225,6 +225,9 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:invoices')->name('quotations.send-whatsapp');
     Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf'])
         ->middleware('permission:invoices')->name('quotations.pdf');
+    // Q-3: konversi penawaran disetujui → invoice draf (sekali seumur hidup).
+    Route::post('quotations/{quotation}/convert', [QuotationController::class, 'convert'])
+        ->middleware('permission:invoices')->name('quotations.convert');
     Route::resource('quotations', QuotationController::class)->middleware('permission:invoices');
 
     // Paket invoice recurring (F4-11): CRUD paket + aksi tagih/aktivasi.

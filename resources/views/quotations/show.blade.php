@@ -41,6 +41,16 @@
             </form>
         @endif
 
+        {{-- Q-3: tombol buat invoice (hanya bila status accepted) --}}
+        @if ($quotation->status === QuotationStatus::Accepted)
+            <form method="POST" action="{{ route('quotations.convert', $quotation) }}" class="inline">
+                @csrf
+                <button class="rounded-lg border border-green-300 px-4 py-2 text-sm font-semibold text-green-600 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950">
+                    Buat Invoice
+                </button>
+            </form>
+        @endif
+
         @unless ($quotation->isTerminal())
             {{-- Kirim ke klien (Q-2, mirror F2-5): antre job email/WhatsApp. --}}
             @if (filled($emailTarget))

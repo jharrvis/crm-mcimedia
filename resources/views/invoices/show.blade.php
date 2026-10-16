@@ -185,6 +185,14 @@
             @if ($invoice->notes)
                 <div class="sm:col-span-2"><dt class="text-slate-500">Catatan</dt><dd class="font-medium whitespace-pre-line">{{ $invoice->notes }}</dd></div>
             @endif
+            @if ($invoice->sourceQuotation)
+                <div class="sm:col-span-2">
+                    <dt class="text-slate-500">Sumber penawaran</dt>
+                    <dd class="font-medium">
+                        <a href="{{ route('quotations.show', $invoice->sourceQuotation) }}" class="text-brand-600 hover:underline">{{ $invoice->sourceQuotation->number }}</a>
+                    </dd>
+                </div>
+            @endif
         </dl>
     </div>
 

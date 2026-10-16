@@ -128,10 +128,20 @@ class Quotation extends Model
         $this->update(['status' => QuotationStatus::Expired]);
     }
 
-    /** -> dijadikan invoice (status final). */
+    /** -> dijadikan invoice (status final). Hanya dari Accepted. */
     public function markConverted(Invoice $invoice): void
     {
-        $this->ensureTransitionAllowed('dijadikan invoice');
+        if ($this->status === QuotationStatus::Converted) {
+            throw new InvalidQuotationTransition(
+                "Penawaran {$this->number} sudah pernah dijadikan invoice."
+            );
+        }
+
+        if ($this->status !== QuotationStatus::Accepted) {
+            throw new InvalidQuotationTransition(
+                "Penawaran {$this->number} berstatus {$this->status->label()} sehingga tidak dapat dijadikan invoice."
+            );
+        }
 
         $this->update([
             'status' => QuotationStatus::Converted,

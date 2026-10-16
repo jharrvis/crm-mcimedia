@@ -122,9 +122,10 @@ class QuotationTest extends TestCase
 
     public function test_mark_converted_links_invoice(): void
     {
-        // Konversi dilakukan dari status sent (accepted sudah terminal).
+        // Q-3: konversi hanya dari status accepted (disetujui klien).
         $quotation = QuotationFactory::new()->create();
         $quotation->markSent();
+        $quotation->markAccepted();
 
         $invoice = InvoiceFactory::new()->create();
 
@@ -167,6 +168,8 @@ class QuotationTest extends TestCase
     public function test_converted_is_terminal(): void
     {
         $quotation = QuotationFactory::new()->create();
+        $quotation->markSent();
+        $quotation->markAccepted();
         $quotation->markConverted(InvoiceFactory::new()->create());
 
         $this->expectException(InvalidQuotationTransition::class);

@@ -11,6 +11,7 @@ use App\Domains\Quotation\Http\Requests\QuotationRequest;
 use App\Domains\Quotation\Jobs\SendQuotationEmailJob;
 use App\Domains\Quotation\Jobs\SendQuotationWhatsappJob;
 use App\Domains\Quotation\Models\Quotation;
+use App\Domains\Quotation\Services\QuotationConverter;
 use App\Domains\Quotation\Services\QuotationDelivery;
 use App\Domains\Quotation\Services\QuotationNumber;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -42,10 +43,27 @@ class QuotationController
             ->paginate(25)
             ->withQueryString();
 
+        // Ringkasan Q-3: jumlah per status + estimasi nilai penawaran aktif.
+        // Dihitung tanpa filter (tabel penuh) supaya angka ringkasan tetap
+        // stabil saat user memfilter daftar.
+        $statusCounts = Quotation::query()
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $counts = [];
+        foreach (QuotationStatus::cases() as $case) {
+            $counts[$case->value] = (int) ($statusCounts[$case->value] ?? 0);
+        }
+
         return view('quotations.index', [
             'quotations' => $quotations,
             'clients' => Client::orderBy('name')->get(['id', 'name']),
             'statuses' => QuotationStatus::cases(),
+            'statusCounts' => $counts,
+            'activeTotal' => (int) Quotation::query()
+                ->where('status', QuotationStatus::Sent)
+                ->sum('total'),
         ]);
     }
 
@@ -176,6 +194,26 @@ class QuotationController
 
         return redirect()->route('quotations.index')
             ->with('success', "Penawaran {$number} dihapus.");
+    }
+
+    /**
+     * Konversi penawaran disetujui → invoice DRAFT (Q-3).
+     *
+     * Hanya status `accepted`; item disalin 1:1 dan diskon dibagi rata
+     * proporsional ke unit_price (sisa pembulatan ke item terakhir) agar
+     * total invoice == total quotation. markConverted() menolak upaya kedua.
+     */
+    public function convert(Quotation $quotation)
+    {
+        try {
+            $invoice = QuotationConverter::convert($quotation);
+        } catch (InvalidQuotationTransition $e) {
+            return redirect()->route('quotations.show', $quotation)
+                ->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('invoices.show', $invoice)
+            ->with('success', "Penawaran {$quotation->number} dikonversi menjadi invoice draf {$invoice->number}.");
     }
 
     /** Draft/sent -> terkirim (tandai terkirim ke klien). */

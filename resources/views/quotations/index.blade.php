@@ -11,6 +11,23 @@
     <x-btn :href="route('quotations.create')" icon="plus">Buat quotation</x-btn>
 </x-page-header>
 
+{{-- Ringkasan Q-3: jumlah per status + nilai penawaran terkirim (estimasi aktif). --}}
+<div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+    @foreach ($statuses as $s)
+        <a href="{{ route('quotations.index', ['status' => $s->value]) }}"
+           @class([
+               'rounded-full border px-3 py-1 text-xs font-semibold',
+               'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300' => request('status') === $s->value,
+               'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300' => request('status') !== $s->value,
+           ])>
+            {{ $s->label() }} <span class="tabular-nums">{{ $statusCounts[$s->value] ?? 0 }}</span>
+        </a>
+    @endforeach
+    <span class="ml-auto text-xs text-slate-500 dark:text-slate-400">
+        Nilai penawaran terkirim: <strong class="tabular-nums text-slate-700 dark:text-slate-200">{{ rupiah($activeTotal) }}</strong>
+    </span>
+</div>
+
 <x-card>
     <form method="GET" action="{{ route('quotations.index') }}" class="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <input name="q" value="{{ request('q') }}" placeholder="Cari nomor / judul / klien…"
