@@ -99,16 +99,16 @@
                 @endphp
                 @if (count($visibleItems) > 0)
                     <div class="mb-1">
-                        <button @click="sidebarCollapsed ? sidebarCollapsed=false : menuOpen.{{ $slug }}=!menuOpen.{{ $slug }}"
+                        <button @click="sidebarCollapsed ? sidebarCollapsed=false : menuOpen['{{ $slug }}']=!menuOpen['{{ $slug }}']"
                                 class="flex w-full items-center rounded-xl px-3 py-2.5 font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800"
                                 :class="sidebarCollapsed ? 'lg:justify-center' : 'gap-3'"
                                 :title="sidebarCollapsed ? '{{ $group['label'] }}' : ''">
                             <i data-lucide="{{ $group['icon'] }}" class="h-5 w-5 shrink-0"></i>
                             <span x-show="!sidebarCollapsed">{{ $group['label'] }}</span>
-                            <i x-show="!sidebarCollapsed" data-lucide="chevron-down" class="ml-auto h-4 w-4 transition-transform" :class="menuOpen.{{ $slug }} && 'rotate-180'"></i>
+                            <i x-show="!sidebarCollapsed" data-lucide="chevron-down" class="ml-auto h-4 w-4 transition-transform" :class="menuOpen['{{ $slug }}'] && 'rotate-180'"></i>
                         </button>
 
-                        <div x-show="menuOpen.{{ $slug }} && !sidebarCollapsed" x-collapse
+                        <div x-show="menuOpen['{{ $slug }}'] && !sidebarCollapsed" x-collapse
                              class="ml-5 mt-1 border-l border-slate-200 pl-4 dark:border-slate-700">
                             @foreach ($visibleItems as $item)
                                 <a href="{{ route($item['route']) }}"
