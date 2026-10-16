@@ -15,6 +15,8 @@ use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
 use App\Domains\Invoicing\Http\Controllers\RecurringPlanController;
 use App\Domains\Projects\Http\Controllers\AchievementReportController;
+use App\Domains\Quotation\Http\Controllers\QuotationController;
+use App\Domains\Quotation\Http\Controllers\PublicQuotationController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
 use App\Domains\Projects\Http\Controllers\ProjectJournalController;
 use App\Domains\Providers\Http\Controllers\DomainProviderController;
@@ -47,6 +49,14 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::post('pay/{token}/midtrans/token', [PublicInvoiceController::class, 'midtransToken'])->name('invoices.public.midtrans.token');
     Route::post('pay/{token}/pakasir/transaction', [PublicInvoiceController::class, 'pakasirTransaction'])->name('invoices.public.pakasir.transaction');
     Route::get('pay/{token}/status', [PublicInvoiceController::class, 'pakasirStatus'])->name('invoices.public.pakasir.status');
+});
+
+// Halaman penawaran publik (magic link Q-2, mirror F2-4) — tanpa login, rate-limited.
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('q/{token}', [PublicQuotationController::class, 'show'])->name('quotations.public.show');
+    Route::get('q/{token}/pdf', [PublicQuotationController::class, 'pdf'])->name('quotations.public.pdf');
+    Route::post('q/{token}/accept', [PublicQuotationController::class, 'accept'])->name('quotations.public.accept');
+    Route::post('q/{token}/reject', [PublicQuotationController::class, 'reject'])->name('quotations.public.reject');
 });
 
 // Halaman laporan keamanan publik (magic link F3-3) — tanpa login, rate-limited.
@@ -202,6 +212,23 @@ Route::middleware('auth')->group(function () {
     Route::patch('invoices/{invoice}/payments/{payment}/reject', [InvoiceController::class, 'rejectPendingPayment'])
         ->middleware('permission:invoices')->name('invoices.payments.reject');
     Route::resource('invoices', InvoiceController::class)->middleware('permission:invoices');
+
+    // Quotation / penawaran harga (Q-1): resource + tandai terkirim + PDF.
+    // Dipetakan ke modul permission `invoices` (grup Keuangan) — penawaran
+    // adalah dokumen pra-invoice; tidak ada modul/role baru di task ini.
+    Route::patch('quotations/{quotation}/send', [QuotationController::class, 'send'])
+        ->middleware('permission:invoices')->name('quotations.send');
+    // Pengiriman penawaran ke klien via email & WhatsApp (Q-2, mirror F2-5).
+    Route::post('quotations/{quotation}/send-email', [QuotationController::class, 'sendEmail'])
+        ->middleware('permission:invoices')->name('quotations.send-email');
+    Route::post('quotations/{quotation}/send-whatsapp', [QuotationController::class, 'sendWhatsapp'])
+        ->middleware('permission:invoices')->name('quotations.send-whatsapp');
+    Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf'])
+        ->middleware('permission:invoices')->name('quotations.pdf');
+    // Q-3: konversi penawaran disetujui → invoice draf (sekali seumur hidup).
+    Route::post('quotations/{quotation}/convert', [QuotationController::class, 'convert'])
+        ->middleware('permission:invoices')->name('quotations.convert');
+    Route::resource('quotations', QuotationController::class)->middleware('permission:invoices');
 
     // Paket invoice recurring (F4-11): CRUD paket + aksi tagih/aktivasi.
     // t_d85674c4: modul `invoices` (pemetaan sidebar "Recurring"); sebelumnya

@@ -45,6 +45,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:generate-recurring-invoices')->dailyAt('07:00');
         // Draf invoice perpanjangan untuk layanan yang segera berakhir, setiap hari pukul 07:30.
         $schedule->command('crm:generate-renewal-invoices')->dailyAt('07:30');
+        // Penawaran terkirim yang lewat valid_until otomatis kedaluwarsa (Q-3a).
+        $schedule->command('crm:quotations-expire')->dailyAt('07:15');
+        // Pengingat penawaran jatuh tempo (H-3), setiap hari pukul 06:30.
+        $schedule->command('crm:quotations-expiring')->dailyAt('06:30');
         // Pengingat invoice jatuh tempo (H+1/H+7/H+14), setiap hari pukul 08:30.
         $schedule->command('crm:send-overdue-reminders')->dailyAt('08:30');
         // Sinkronisasi akun hosting/domain dari HestiaCP (F3-1), setiap hari pukul 06:30.
@@ -63,6 +67,8 @@ return Application::configure(basePath: dirname(__DIR__))
         GenerateRenewalInvoicesCommand::class,
         GenerateRecurringInvoicesCommand::class,
         SendOverdueRemindersCommand::class,
+        \App\Domains\Quotation\Console\Commands\QuotationsExpiringCommand::class,
+        \App\Domains\Quotation\Console\Commands\QuotationsExpireCommand::class,
         SendServiceRemindersCommand::class,
         HestiaSyncCommand::class,
         DiskQuotaAlertsCommand::class,

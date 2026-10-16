@@ -13,6 +13,7 @@
         ]],
         ['label' => 'Keuangan', 'icon' => 'receipt-text', 'items' => [
             ['route' => 'invoices.index', 'match' => 'invoices.*', 'label' => 'Invoice', 'module' => 'invoices', 'icon' => 'receipt-text'],
+            ['route' => 'quotations.index', 'match' => 'quotations.*', 'label' => 'Quotation', 'module' => 'invoices', 'icon' => 'file-text'],
             ['route' => 'recurring-plans.index', 'match' => 'recurring-plans.*', 'label' => 'Recurring', 'module' => 'invoices', 'icon' => 'repeat'],
             ['route' => 'products.index', 'match' => 'products.*', 'label' => 'Produk', 'module' => 'products', 'icon' => 'package-open'],
             ['route' => 'product-categories.index', 'match' => 'product-categories.*', 'label' => 'Kategori Produk', 'module' => 'products', 'icon' => 'tags'],

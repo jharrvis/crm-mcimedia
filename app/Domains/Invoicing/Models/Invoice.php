@@ -7,6 +7,7 @@ use App\Domains\Core\Traits\LogsActivity;
 use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Enums\RecurringCycle;
 use App\Domains\Invoicing\Exceptions\InvalidInvoiceTransition;
+use App\Domains\Quotation\Models\Quotation;
 use App\Domains\Services\Models\Service;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -74,6 +76,12 @@ class Invoice extends Model
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /** Quotation sumber invoice ini (Q-3, NULL bila dibuat manual/termin). */
+    public function sourceQuotation(): HasOne
+    {
+        return $this->hasOne(Quotation::class, 'converted_invoice_id');
     }
 
     public function payments(): HasMany
