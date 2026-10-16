@@ -16,6 +16,10 @@
     ];
     $isExpired = $quotation->status === QuotationStatus::Expired
         || ($quotation->status === QuotationStatus::Sent && $quotation->valid_until->isBefore(today()));
+    // Target pengiriman (Q-2): tombol Kirim Email/WhatsApp hanya aktif bila
+    // klien punya tujuan; kirim ulang dari status terminal diblokir server-side.
+    $emailTarget = $quotation->client?->email;
+    $waTarget = $quotation->client?->whatsapp;
 @endphp
 
 <div class="max-w-4xl space-y-4">
@@ -36,6 +40,28 @@
                 <button class="rounded-lg border border-red-300 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-950">Hapus</button>
             </form>
         @endif
+
+        @unless ($quotation->isTerminal())
+            {{-- Kirim ke klien (Q-2, mirror F2-5): antre job email/WhatsApp. --}}
+            @if (filled($emailTarget))
+                <form method="POST" action="{{ route('quotations.send-email', $quotation) }}" class="inline">
+                    @csrf
+                    <button class="rounded-lg border border-brand-300 px-4 py-2 text-sm text-brand-600 hover:bg-brand-50 dark:border-brand-800 dark:hover:bg-brand-950">Kirim Email</button>
+                </form>
+            @else
+                <button type="button" disabled title="Klien belum punya alamat email"
+                        class="cursor-not-allowed rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-400 dark:border-slate-800">Kirim Email</button>
+            @endif
+            @if (filled($waTarget))
+                <form method="POST" action="{{ route('quotations.send-whatsapp', $quotation) }}" class="inline">
+                    @csrf
+                    <button class="rounded-lg border border-green-300 px-4 py-2 text-sm text-green-600 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950">Kirim WhatsApp</button>
+                </form>
+            @else
+                <button type="button" disabled title="Klien belum punya nomor WhatsApp"
+                        class="cursor-not-allowed rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-400 dark:border-slate-800">Kirim WhatsApp</button>
+            @endif
+        @endunless
 
         <a href="{{ route('quotations.pdf', $quotation) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Unduh PDF</a>
         <a href="{{ route('quotations.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Kembali</a>

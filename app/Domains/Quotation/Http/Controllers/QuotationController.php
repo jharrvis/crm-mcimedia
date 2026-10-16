@@ -8,7 +8,10 @@ use App\Domains\Clients\Models\Client;
 use App\Domains\Quotation\Enums\QuotationStatus;
 use App\Domains\Quotation\Exceptions\InvalidQuotationTransition;
 use App\Domains\Quotation\Http\Requests\QuotationRequest;
+use App\Domains\Quotation\Jobs\SendQuotationEmailJob;
+use App\Domains\Quotation\Jobs\SendQuotationWhatsappJob;
 use App\Domains\Quotation\Models\Quotation;
+use App\Domains\Quotation\Services\QuotationDelivery;
 use App\Domains\Quotation\Services\QuotationNumber;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -185,6 +188,46 @@ class QuotationController
         }
 
         return back()->with('success', "Penawaran {$quotation->number} ditandai terkirim.");
+    }
+
+    /** Antre pengiriman penawaran ke email klien (Q-2, mirror F2-5). */
+    public function sendEmail(Quotation $quotation)
+    {
+        if ($quotation->isTerminal()) {
+            return back()->with('error', "Penawaran {$quotation->number} berstatus {$quotation->status->label()} sehingga tidak dapat dikirim.");
+        }
+
+        $email = $quotation->client?->email;
+
+        if (blank($email)) {
+            return back()->with('error', 'Klien belum punya alamat email sehingga penawaran tidak dapat dikirim via email.');
+        }
+
+        SendQuotationEmailJob::dispatch($quotation);
+
+        return back()->with('success', "Pengiriman email penawaran {$quotation->number} ke {$email} sedang diantre.");
+    }
+
+    /** Antre pengiriman penawaran via WhatsApp Fonnte ke klien (Q-2, mirror F2-5). */
+    public function sendWhatsapp(Quotation $quotation)
+    {
+        if ($quotation->isTerminal()) {
+            return back()->with('error', "Penawaran {$quotation->number} berstatus {$quotation->status->label()} sehingga tidak dapat dikirim.");
+        }
+
+        if (! config('crm.fonnte.enabled') || blank(config('crm.fonnte.token'))) {
+            return back()->with('error', 'Pengiriman WhatsApp belum dikonfigurasi (atur FONNTE_ENABLED dan FONNTE_TOKEN).');
+        }
+
+        $target = QuotationDelivery::normalizeWhatsapp($quotation->client?->whatsapp);
+
+        if (blank($target)) {
+            return back()->with('error', 'Klien belum punya nomor WhatsApp sehingga penawaran tidak dapat dikirim via WhatsApp.');
+        }
+
+        SendQuotationWhatsappJob::dispatch($quotation);
+
+        return back()->with('success', "Pengiriman WhatsApp penawaran {$quotation->number} ke {$target} sedang diantre.");
     }
 
     /** Unduh PDF resmi penawaran. */

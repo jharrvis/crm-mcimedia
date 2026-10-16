@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Quotation extends Model
 {
@@ -35,6 +36,7 @@ class Quotation extends Model
             'total' => 'integer',
             'sent_at' => 'datetime',
             'responded_at' => 'datetime',
+            'expiry_reminder_sent_at' => 'datetime',
             'converted_invoice_id' => 'integer',
         ];
     }
@@ -83,10 +85,17 @@ class Quotation extends Model
     {
         $this->ensureTransitionAllowed('dikirim ulang');
 
-        $this->update([
+        $attributes = [
             'status' => QuotationStatus::Sent,
             'sent_at' => $this->sent_at ?? now(),
-        ]);
+        ];
+
+        // Tautan publik (magic link) dibuat sekali saat penawaran dikirim.
+        if (blank($this->public_token)) {
+            $attributes['public_token'] = Str::random(64);
+        }
+
+        $this->update($attributes);
     }
 
     /** -> disetujui (status final). */
@@ -134,6 +143,18 @@ class Quotation extends Model
     public function scopePending(Builder $query): Builder
     {
         return $query->where('status', QuotationStatus::Sent);
+    }
+
+    /** Masa berlaku habis — perbandingan tanggal saja, tanpa jam. */
+    public function isExpiredByDate(): bool
+    {
+        return $this->valid_until && $this->valid_until->isBefore(today());
+    }
+
+    /** Penawaran masih boleh direspons klien: status sent DAN belum lewat masa berlaku. */
+    public function canBeAnswered(): bool
+    {
+        return $this->status === QuotationStatus::Sent && ! $this->isExpiredByDate();
     }
 
     /** Penawaran yang masih bisa ditindaklanjuti (draf atau terkirim). */
