@@ -8,6 +8,7 @@
         $logoPath = business_logo_path();
     @endphp
     <style>
+        @page { margin: 2cm; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'DejaVu Sans', sans-serif;
