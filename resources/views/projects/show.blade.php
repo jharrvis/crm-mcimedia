@@ -177,10 +177,10 @@
                 <ol class="relative space-y-4 border-l border-slate-200 pl-5 dark:border-slate-700">
                     @foreach ($project->journals as $journal)
                         <li class="relative">
-                            <span class="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full {{ ['progress' => 'bg-green-500', 'note' => 'bg-slate-400', 'blocker' => 'bg-red-500'][$journal->category->value] }}"></span>
+                            <span class="absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full {{ ['progress' => 'bg-green-500', 'note' => 'bg-slate-400', 'blocker' => 'bg-red-500', 'security' => 'bg-amber-500'][$journal->category->value] }}"></span>
                             <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                                 <span class="font-semibold text-slate-700 dark:text-slate-200">{{ tgl_id($journal->occurred_on) }}</span>
-                                <x-badge :variant="['progress' => 'success', 'note' => 'slate', 'blocker' => 'danger'][$journal->category->value]">{{ $journal->category->label() }}</x-badge>
+                                <x-badge :variant="['progress' => 'success', 'note' => 'slate', 'blocker' => 'danger', 'security' => 'warning'][$journal->category->value]">{{ $journal->category->label() }}</x-badge>
                                 <span>{{ $journal->author?->name ?? 'Sistem' }}</span>
                             </div>
                             <p class="mt-1 whitespace-pre-line text-sm">{{ $journal->body }}</p>
