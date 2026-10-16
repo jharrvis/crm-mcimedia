@@ -15,6 +15,7 @@ use App\Domains\Invoicing\Http\Controllers\InvoiceController;
 use App\Domains\Invoicing\Http\Controllers\PublicInvoiceController;
 use App\Domains\Invoicing\Http\Controllers\RecurringPlanController;
 use App\Domains\Projects\Http\Controllers\AchievementReportController;
+use App\Domains\Quotation\Http\Controllers\QuotationController;
 use App\Domains\Projects\Http\Controllers\ProjectController;
 use App\Domains\Projects\Http\Controllers\ProjectJournalController;
 use App\Domains\Providers\Http\Controllers\DomainProviderController;
@@ -202,6 +203,15 @@ Route::middleware('auth')->group(function () {
     Route::patch('invoices/{invoice}/payments/{payment}/reject', [InvoiceController::class, 'rejectPendingPayment'])
         ->middleware('permission:invoices')->name('invoices.payments.reject');
     Route::resource('invoices', InvoiceController::class)->middleware('permission:invoices');
+
+    // Quotation / penawaran harga (Q-1): resource + tandai terkirim + PDF.
+    // Dipetakan ke modul permission `invoices` (grup Keuangan) — penawaran
+    // adalah dokumen pra-invoice; tidak ada modul/role baru di task ini.
+    Route::patch('quotations/{quotation}/send', [QuotationController::class, 'send'])
+        ->middleware('permission:invoices')->name('quotations.send');
+    Route::get('quotations/{quotation}/pdf', [QuotationController::class, 'pdf'])
+        ->middleware('permission:invoices')->name('quotations.pdf');
+    Route::resource('quotations', QuotationController::class)->middleware('permission:invoices');
 
     // Paket invoice recurring (F4-11): CRUD paket + aksi tagih/aktivasi.
     // t_d85674c4: modul `invoices` (pemetaan sidebar "Recurring"); sebelumnya

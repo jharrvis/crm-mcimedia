@@ -60,6 +60,14 @@ return [
         ),
     ],
 
+    'quotation' => [
+        // Catatan default di bagian bawah PDF penawaran (Q-1).
+        'footer_note' => env(
+            'CRM_QUOTATION_FOOTER_NOTE',
+            'Penawaran ini mengikat hingga masa berlaku berakhir. Harga dapat berubah setelah masa berlaku lewat tanpa konfirmasi tertulis.'
+        ),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Pengiriman WhatsApp via Fonnte (F2-5)
