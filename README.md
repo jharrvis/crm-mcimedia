@@ -55,6 +55,19 @@ Ini menjalankan `crm:services-expiring` setiap hari pukul 08:00 —
 daftar layanan yang jatuh tempo ≤ 30 hari untuk admin.
 (Kanal notifikasi WA/email menyusul di fase 2.)
 
+Jadwal lain yang terdaftar di `bootstrap/app.php` (semua waktu mengikuti
+timezone app kecuali disebut eksplisit):
+
+| Command | Jadwal | Fungsi |
+| --- | --- | --- |
+| `providers:sync-domain-expiry` | harian 06:00 WIB (Asia/Jakarta) | Segarkan `end_date` domain dari semua provider aktif — idempotent, tanpa duplikasi (t_f2ae1c62). Domain baru yang belum dipetakan ke klien dilewati; petakan manual lewat UI `/domain-providers`. Kegagalan satu provider dicatat ke log tanpa menghentikan provider lain. |
+| `hestia:sync` | harian 06:30 | Sinkronisasi akun hosting/domain dari HestiaCP |
+| `crm:generate-recurring-invoices` | harian 07:00 | Invoice recurring per siklus |
+| `crm:generate-renewal-invoices` | harian 07:30 | Draf invoice perpanjangan layanan |
+| `crm:services-expiring` | harian 08:00 | Daftar layanan jatuh tempo ≤ 30 hari |
+| `crm:send-service-reminders` | harian 08:15 | Reminder WA/email H-7/H-3/H-1/overdue |
+| `crm:send-overdue-reminders` | harian 08:30 | Pengingat invoice jatuh tempo |
+
 ## Testing
 
 ```bash

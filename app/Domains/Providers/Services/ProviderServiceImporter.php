@@ -24,15 +24,22 @@ use App\Domains\Services\Models\Service;
  *     (konsisten dengan sinkronisasi Hestia F3-1) — data CRM bukan cermin API.
  *   - `price` 0 dan `cycle` tahunan: NameSilo tidak mengembalikan harga pada
  *     operasi baca, jadi admin yang mengisinya manual.
+ *   - Mode sinkronisasi otomatis (`$clientId` null, dipakai command
+ *     `providers:sync-domain-expiry`): domain yang BELUM menjadi layanan
+ *     dilewati (dihitung di `skipped`) karena tidak ada klien tujuan —
+ *     pemetaan klien tetap keputusan admin lewat UI impor (F4-7).
  */
 class ProviderServiceImporter
 {
     /**
      * Impor seluruh domain milik provider ke layanan milik klien.
      *
+     * `$clientId` null = mode sinkronisasi otomatis: hanya menyegarkan
+     * `end_date` layanan yang sudah ada, tidak pernah membuat layanan baru.
+     *
      * @return array{created: int, updated: int, skipped: int}
      */
-    public function import(DomainProvider $provider, int $clientId, ?DomainProviderDriver $driver = null): array
+    public function import(DomainProvider $provider, ?int $clientId = null, ?DomainProviderDriver $driver = null): array
     {
         $driver ??= $provider->driver();
 
@@ -56,6 +63,14 @@ class ProviderServiceImporter
             $endDate = $info->expiresAt?->toDateString();
 
             if ($existing === null) {
+                // Mode auto-sync tanpa klien tujuan: jangan menebak pemilik
+                // domain — lewatkan dan biarkan admin memetakan lewat UI.
+                if ($clientId === null) {
+                    $skipped++;
+
+                    continue;
+                }
+
                 Service::create([
                     'client_id' => $clientId,
                     'type' => ServiceType::Domain,
