@@ -6,6 +6,8 @@ use App\Domains\Invoicing\Enums\InvoiceStatus;
 use App\Domains\Invoicing\Models\Invoice;
 use App\Domains\Invoicing\Models\Payment;
 use Illuminate\Support\Facades\Log;
+use App\Domains\Invoicing\Jobs\InvoicePaidEmailJob;
+use App\Domains\Invoicing\Jobs\InvoicePaidWhatsappJob;
 
 /**
  * QRIS Dinamis dari QRIS statis merchant (GoPay).
@@ -162,6 +164,10 @@ class QrisDynamicService
         \Illuminate\Support\Facades\Cache::put('qris-notify:' . $hash, true, now()->addDays(7));
 
         $invoice->markPaid();
+
+        // Notifikasi lunas: WA + email ke klien (queued)
+        InvoicePaidEmailJob::dispatch($invoice);
+        InvoicePaidWhatsappJob::dispatch($invoice);
 
         Payment::create([
             'invoice_id' => $invoice->id,

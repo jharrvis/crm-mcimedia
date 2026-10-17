@@ -20,6 +20,7 @@
             <div class="text-2xl font-bold text-slate-900 dark:text-white">Rp {{ number_format($qrisAmount, 0, ',', '.') }}</div>
             <div class="text-xs text-slate-500">{{ $invoice->number }}</div>
         </div>
+        <div id="qris-status" class="text-sm text-slate-500">Menunggu pembayaran...</div>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -30,5 +31,22 @@
         height: 256,
         correctLevel: QRCode.CorrectLevel.M,
     });
+
+    // Polling status tiap 5 detik — auto update tanpa refresh (seperti Pakasir)
+    (function () {
+        const pollUrl = '{{ route('invoices.public.qris.status', ['token' => $invoice->public_token]) }}';
+        const statusEl = document.getElementById('qris-status');
+        const timer = setInterval(async () => {
+            try {
+                const res = await fetch(pollUrl, { headers: { 'Accept': 'application/json' } });
+                const data = await res.json();
+                if (data.is_paid) {
+                    clearInterval(timer);
+                    statusEl.innerHTML = '<span class="rounded-lg bg-emerald-100 px-4 py-2 font-semibold text-emerald-800">Pembayaran berhasil! Invoice lunas.</span>';
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch (e) { /* abaikan, coba lagi */ }
+        }, 5000);
+    })();
 </script>
 @endif

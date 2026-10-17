@@ -191,4 +191,15 @@ class PublicInvoiceController extends Controller
             'is_paid' => $invoice->status === \App\Domains\Invoicing\Enums\InvoiceStatus::Paid,
         ]);
     }
+
+    /** GET /pay/{token}/qris/status — polling status untuk QRIS dinamis. */
+    public function qrisStatus(string $token): \Illuminate\Http\JsonResponse
+    {
+        $invoice = $this->findInvoice($token);
+
+        return response()->json([
+            'status' => $invoice->status->value,
+            'is_paid' => $invoice->status === \App\Domains\Invoicing\Enums\InvoiceStatus::Paid,
+        ]);
+    }
 }

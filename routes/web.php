@@ -49,6 +49,7 @@ Route::middleware('throttle:30,1')->group(function () {
     Route::post('pay/{token}/midtrans/token', [PublicInvoiceController::class, 'midtransToken'])->name('invoices.public.midtrans.token');
     Route::post('pay/{token}/pakasir/transaction', [PublicInvoiceController::class, 'pakasirTransaction'])->name('invoices.public.pakasir.transaction');
     Route::get('pay/{token}/status', [PublicInvoiceController::class, 'pakasirStatus'])->name('invoices.public.pakasir.status');
+    Route::get('pay/{token}/qris/status', [PublicInvoiceController::class, 'qrisStatus'])->name('invoices.public.qris.status');
 });
 
 // Halaman penawaran publik (magic link Q-2, mirror F2-4) — tanpa login, rate-limited.
