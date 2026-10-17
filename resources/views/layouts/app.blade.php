@@ -26,8 +26,10 @@
         ['label' => 'Keamanan', 'icon' => 'shield-check', 'items' => [
             ['route' => 'security.index', 'match' => 'security.*', 'label' => 'Keamanan', 'module' => 'security', 'icon' => 'shield-check'],
             ['route' => 'security.monitoring.index', 'match' => 'security.monitoring.*', 'label' => 'Monitoring Server', 'module' => 'security', 'icon' => 'activity'],
-            ['route' => 'hestia.index', 'match' => 'hestia.index', 'label' => 'Sinkron Hestia', 'module' => 'hestia', 'icon' => 'refresh-cw'],
+        ]],
+        ['label' => 'Domain dan Hosting', 'icon' => 'globe', 'items' => [
             ['route' => 'hestia.servers.index', 'match' => 'hestia.servers.*', 'label' => 'Server Hestia', 'module' => 'hestia', 'icon' => 'server'],
+            ['route' => 'hestia.index', 'match' => 'hestia.index', 'label' => 'Sinkron Hestia', 'module' => 'hestia', 'icon' => 'refresh-cw'],
             ['route' => 'domain-providers.index', 'match' => 'domain-providers.*', 'label' => 'Provider Domain', 'module' => 'providers', 'icon' => 'globe'],
         ]],
         ['label' => 'Lainnya', 'icon' => 'layout-grid', 'items' => [
