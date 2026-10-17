@@ -237,7 +237,7 @@
                 <div class="notes-card">
                     <div class="card-title">Catatan</div>
                     <p class="pre-line">{{ $quotation->notes }}</p>
-                    <p class="fine">Penawaran ini mengikat hingga masa berlaku berakhir. Harga dapat berubah setelah masa berlaku lewat tanpa konfirmasi tertulis.</p>
+                    <p class="fine">{{ config('crm.quotation.footer_note') }}</p>
                 </div>
                 @endif
             </td>

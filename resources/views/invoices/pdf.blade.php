@@ -106,7 +106,6 @@
         .bank .bl { color: #94a3b8; font-size: 9px; width: 92px; }
         .bank .bv { font-weight: bold; color: #0f172a; }
         .bank .bv-mono { font-family: 'DejaVu Sans Mono', monospace; font-weight: bold; color: #0f172a; font-size: 12px; }
-        .pay-fine { font-size: 9px; color: #64748b; font-style: italic; border-top: 1px solid #e2e8f0; margin-top: 10px; padding-top: 8px; }
         .totals-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; padding: 14px 16px; }
         .totals-card table { width: 100%; }
         .totals-card td { padding: 4px 0; font-size: 10px; }
@@ -279,7 +278,6 @@
                             </table>
                         </div>
                         @endforeach
-                        <p class="pay-fine">Pembayaran dianggap sah setelah dana masuk ke rekening kami. Mohon sertakan nomor invoice pada berita transfer.</p>
                     @else
                         <p>Detail rekening tujuan belum tersedia — silakan hubungi <strong>{{ $business['email'] }}</strong> untuk informasi pembayaran.</p>
                     @endif
