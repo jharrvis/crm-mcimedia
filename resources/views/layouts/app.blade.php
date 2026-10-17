@@ -4,9 +4,6 @@
     // Blok ini di atas <body> karena atribut x-data body butuh $menuOpenDefault.
     $navReminderCount = $reminderCount();
     $nav = [
-        ['label' => 'Utama', 'icon' => 'layout-dashboard', 'items' => [
-            ['route' => 'dashboard', 'match' => 'dashboard', 'label' => 'Dashboard', 'module' => null, 'icon' => 'layout-dashboard'],
-        ]],
         ['label' => 'Klien dan Layanan', 'icon' => 'users', 'items' => [
             ['route' => 'clients.index', 'match' => 'clients.*', 'label' => 'Klien', 'module' => 'clients', 'icon' => 'building-2'],
             ['route' => 'services.index', 'match' => 'services.*', 'label' => 'Layanan', 'module' => 'services', 'icon' => 'wrench'],
@@ -96,6 +93,19 @@
         <nav class="scrollbar h-[calc(100vh-80px)] overflow-y-auto p-3 text-sm" aria-label="Navigasi utama">
             <p x-show="!sidebarCollapsed" class="px-3 pb-2 pt-2 text-[11px] font-bold uppercase tracking-[.18em] text-slate-400">Menu</p>
 
+            {{-- Dashboard: link mandiri, tidak di dalam grup --}}
+            <div class="mb-1">
+                <a href="{{ route('dashboard') }}" @click="sidebar=false"
+                   @class([
+                       'flex w-full items-center rounded-xl px-3 py-2.5 font-medium transition hover:bg-slate-100 dark:hover:bg-slate-800',
+                       'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' => request()->routeIs('dashboard'),
+                   ])
+                   :class="sidebarCollapsed ? 'lg:justify-center' : 'gap-3'"
+                   :title="sidebarCollapsed ? 'Dashboard' : ''">
+                    <i data-lucide="layout-dashboard" class="h-5 w-5 shrink-0"></i>
+                    <span x-show="!sidebarCollapsed">Dashboard</span>
+                </a>
+            </div>
             @foreach ($nav as $group)
                 @php
                     $slug = $navSlugs[$group['label']];
