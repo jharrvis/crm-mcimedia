@@ -24,6 +24,12 @@ class QuotationDelivery
 
     public const EVENT_REJECTED = 'rejected';
 
+    /** Invoice dibuat otomatis dari quotation yang disetujui klien. */
+    public const EVENT_INVOICE_AUTO_CREATED = 'invoice_auto_created';
+
+    /** Pembuatan invoice otomatis gagal — admin perlu membuat manual. */
+    public const EVENT_AUTO_INVOICE_FAILED = 'auto_invoice_failed';
+
     /** URL halaman penawaran publik (Q-2) atau null bila tautan belum ada. */
     public static function publicUrl(Quotation $quotation): ?string
     {

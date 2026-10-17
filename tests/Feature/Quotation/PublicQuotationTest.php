@@ -3,11 +3,14 @@
 namespace Tests\Feature\Quotation;
 
 use App\Domains\Core\Models\ActivityLog;
+use App\Domains\Invoicing\Jobs\SendInvoiceEmailJob;
+use App\Domains\Invoicing\Jobs\SendInvoiceWhatsappJob;
 use App\Domains\Quotation\Enums\QuotationStatus;
 use App\Domains\Quotation\Models\Quotation;
 use Database\Factories\ClientFactory;
 use Database\Factories\QuotationFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -92,14 +95,21 @@ class PublicQuotationTest extends TestCase
 
     public function test_accept_from_sent_marks_accepted_and_logs_activity(): void
     {
+        // Job auto-invoice di-fake supaya tes publik ini hermetik
+        // (perilaku auto-invoice diuji terpisah di AutoInvoiceOnAcceptTest).
+        Queue::fake([SendInvoiceEmailJob::class, SendInvoiceWhatsappJob::class]);
+
         $quotation = $this->sentQuotation();
 
         $response = $this->post(route('quotations.public.accept', ['token' => $quotation->public_token]));
 
         $response->assertSessionHas('success');
         $quotation->refresh();
-        $this->assertSame(QuotationStatus::Accepted, $quotation->status);
+        // Sejak auto-invoice (t_f983dec9), persetujuan klien langsung
+        // mengonversi penawaran menjadi invoice (status akhir converted).
+        $this->assertSame(QuotationStatus::Converted, $quotation->status);
         $this->assertNotNull($quotation->responded_at);
+        $this->assertNotNull($quotation->converted_invoice_id);
 
         $this->assertDatabaseHas('activity_logs', [
             'subject_type' => $quotation->getMorphClass(),
