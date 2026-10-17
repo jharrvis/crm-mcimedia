@@ -112,4 +112,53 @@ class ClientTest extends TestCase
 
         $this->assertDatabaseHas('client_contacts', ['id' => $contact->id]);
     }
+
+    public function test_client_show_uses_contact_modal_not_create_link(): void
+    {
+        $client = Client::factory()->create();
+
+        $response = $this->get(route('clients.show', $client));
+
+        $response->assertOk();
+        $response->assertDontSee(route('clients.contacts.create', $client), false);
+        $response->assertSee(route('clients.contacts.store', $client), false); // form di dalam modal
+        $response->assertSee('x-data="{ open:', false); // state Alpine modal
+    }
+
+    public function test_failed_contact_validation_reopens_modal_with_errors(): void
+    {
+        $client = Client::factory()->create();
+
+        // Submit dari halaman detail klien (Referer = asal form), seperti klik "Simpan" di modal.
+        $this->from(route('clients.show', $client))
+            ->post(route('clients.contacts.store', $client), ['name' => ''])
+            ->assertRedirect(route('clients.show', $client))
+            ->assertSessionHasErrors('name');
+
+        $this->assertDatabaseCount('client_contacts', 0);
+
+        // Halaman tujuan: modal terbuka otomatis + pesan error terlihat.
+        $this->followingRedirects()
+            ->from(route('clients.show', $client))
+            ->post(route('clients.contacts.store', $client), ['name' => ''])
+            ->assertOk()
+            ->assertSee('x-data="{ open: true }"', false)
+            ->assertSee('The name field is required.', false); // pesan error per field dari x-input
+    }
+
+    public function test_successful_contact_creation_redirects_with_success_message(): void
+    {
+        $client = Client::factory()->create();
+
+        $this->post(route('clients.contacts.store', $client), [
+            'name' => 'Andi',
+            'role' => 'Tech',
+            'email' => 'andi@contoh.id',
+        ])->assertRedirect(route('clients.show', $client))->assertSessionHas('success');
+
+        $this->get(route('clients.show', $client->fresh()))
+            ->assertOk()
+            ->assertSee('Andi')
+            ->assertSee('Kontak berhasil ditambahkan.');
+    }
 }

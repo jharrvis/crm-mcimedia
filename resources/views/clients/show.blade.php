@@ -36,11 +36,13 @@
     </x-card>
 
     <div class="space-y-6 lg:col-span-2">
+        {{-- Pembungkus modal: `open` mulai true bila validasi gagal agar error tidak hilang. --}}
+        <div x-data="{ open: @js($errors->hasAny(['name', 'role', 'email', 'whatsapp'])) }" @keydown.escape.window="open = false">
         <x-card>
             <x-slot:header>
                 <h2 class="font-bold">Kontak ({{ $client->contacts->count() }})</h2>
-                <a href="{{ route('clients.contacts.create', $client) }}"
-                   class="ml-auto text-sm font-semibold text-brand-600 hover:underline">Tambah kontak</a>
+                <button type="button" @click="open = true"
+                        class="ml-auto text-sm font-semibold text-brand-600 hover:underline">Tambah kontak</button>
             </x-slot:header>
 
             <x-table>
@@ -72,6 +74,34 @@
                 </tbody>
             </x-table>
         </x-card>
+
+        {{-- Modal tambah kontak: POST biasa ke clients.contacts.store (pola form halaman lain). --}}
+        <div x-show="open" x-cloak x-transition.opacity.duration.150ms
+             class="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4"
+             @click.self="open = false" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
+            <div x-transition.duration.150ms
+                 class="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                <div class="mb-4 flex items-center gap-3">
+                    <h3 id="contact-modal-title" class="font-bold">Tambah kontak</h3>
+                    <p class="text-sm text-slate-400">Klien: {{ $client->name }}</p>
+                    <button type="button" @click="open = false" aria-label="Tutup"
+                            class="ml-auto grid h-8 w-8 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <i data-lucide="x" class="h-4 w-4"></i>
+                    </button>
+                </div>
+
+                <form method="POST" action="{{ route('clients.contacts.store', $client) }}" class="space-y-1">
+                    @csrf
+                    @include('clients.contacts._form', ['contact' => null])
+
+                    <div class="flex gap-2 pt-2">
+                        <x-btn type="submit">Simpan</x-btn>
+                        <x-btn type="button" @click="open = false" variant="outline">Batal</x-btn>
+                    </div>
+                </form>
+            </div>
+        </div>
+        </div><!-- /x-data modal -->
 
         <x-card>
             <x-slot:header>
