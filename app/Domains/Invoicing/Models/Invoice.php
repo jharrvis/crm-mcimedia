@@ -31,7 +31,7 @@ class Invoice extends Model
         'parent_invoice_id', 'termin_percent',
         'recurring_plan_id', 'recurring_cycle', 'period_start', 'period_end',
         'midtrans_order_id', 'midtrans_snap_token', 'midtrans_transaction_status',
-        'pakasir_txn_id', 'pakasir_status',
+        'pakasir_txn_id', 'pakasir_status', 'qris_unique_code',
     ];
 
     protected function casts(): array
@@ -48,6 +48,7 @@ class Invoice extends Model
             'sent_at' => 'datetime',
             'paid_at' => 'datetime',
             'parent_invoice_id' => 'integer',
+            'qris_unique_code' => 'integer',
             'termin_percent' => 'decimal:2',
         ];
     }

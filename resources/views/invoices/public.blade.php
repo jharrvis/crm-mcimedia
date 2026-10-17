@@ -142,6 +142,7 @@
             @include('invoices._pakasir_pay')
         </div>
         @endif
+        @include('invoices._qris_pay')
         <!-- Form konfirmasi transfer -->
         <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
             <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Konfirmasi transfer</h2>

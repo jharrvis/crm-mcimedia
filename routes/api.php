@@ -61,3 +61,8 @@ Route::post('midtrans/notification', \App\Domains\Invoicing\Http\Controllers\Mid
 Route::post('webhooks/pakasir', \App\Domains\Invoicing\Http\Controllers\PakasirWebhookController::class)
     ->middleware('throttle:60,1')
     ->name('api.pakasir.webhook');
+
+// QRIS dinamis webhook (tanpa CSRF, verifikasi X-Qris-Secret)
+Route::post('webhooks/qris-notify', \App\Domains\Invoicing\Http\Controllers\QrisNotifyController::class)
+    ->middleware('throttle:60,1')
+    ->name('api.qris.webhook');
