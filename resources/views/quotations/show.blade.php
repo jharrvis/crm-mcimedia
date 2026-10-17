@@ -73,6 +73,9 @@
             @endif
         @endunless
 
+        @if ($quotation->public_token)
+            <button type="button" onclick="navigator.clipboard.writeText('{{ route('quotations.public.show', $quotation->public_token) }}').then(() => { const b = this; b.textContent = 'Tersalin!'; setTimeout(() => b.textContent = 'Salin Link Publik', 2000); })" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Salin Link Publik</button>
+        @endif
         <a href="{{ route('quotations.pdf', $quotation) }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Unduh PDF</a>
         <a href="{{ route('quotations.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">Kembali</a>
     </div>
