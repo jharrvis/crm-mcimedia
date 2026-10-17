@@ -75,8 +75,8 @@
                 <tr class="text-left text-xs uppercase text-slate-500">
                     <th class="px-4 py-3">Deskripsi</th>
                     <th class="px-4 py-3 text-center">Qty</th>
-                    <th class="px-4 py-3 text-right">Harga satuan</th>
-                    <th class="px-4 py-3 text-right">Jumlah</th>
+                    <th class="px-4 py-3 text-right whitespace-nowrap">Harga satuan</th>
+                    <th class="px-4 py-3 text-right whitespace-nowrap">Jumlah</th>
                 </tr>
             </thead>
             <tbody>
@@ -84,8 +84,8 @@
                     <tr class="border-t border-slate-100 dark:border-slate-800">
                         <td class="px-4 py-3">{{ $item->description }}</td>
                         <td class="px-4 py-3 text-center">{{ $item->quantity }}</td>
-                        <td class="px-4 py-3 text-right tabular-nums">{{ rupiah($item->unit_price) }}</td>
-                        <td class="px-4 py-3 text-right tabular-nums">{{ rupiah($item->amount) }}</td>
+                        <td class="px-4 py-3 text-right tabular-nums whitespace-nowrap">{{ rupiah($item->unit_price) }}</td>
+                        <td class="px-4 py-3 text-right tabular-nums whitespace-nowrap">{{ rupiah($item->amount) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">Belum ada item.</td></tr>
@@ -95,12 +95,12 @@
                 @if ($quotation->discount > 0)
                     <tr class="border-t border-slate-200 dark:border-slate-700">
                         <td colspan="3" class="px-4 py-3 text-right font-semibold">Diskon</td>
-                        <td class="px-4 py-3 text-right font-semibold tabular-nums text-red-600">-{{ rupiah($quotation->discount) }}</td>
+                        <td class="px-4 py-3 text-right font-semibold tabular-nums whitespace-nowrap text-red-600">-{{ rupiah($quotation->discount) }}</td>
                     </tr>
                 @endif
                 <tr class="border-t border-slate-200 dark:border-slate-700">
                     <td colspan="3" class="px-4 py-3 text-right font-semibold">Total</td>
-                    <td class="px-4 py-3 text-right font-bold tabular-nums">{{ rupiah($quotation->total) }}</td>
+                    <td class="px-4 py-3 text-right font-bold tabular-nums whitespace-nowrap">{{ rupiah($quotation->total) }}</td>
                 </tr>
             </tfoot>
         </table>
