@@ -1,16 +1,21 @@
 <?php
 
 use App\Console\Commands\EscalateSecurityIncidentsCommand;
+use App\Domains\Access\Http\Middleware\EnsureModuleAccess;
+use App\Domains\Hestia\Console\Commands\DiskQuotaAlertsCommand;
+use App\Domains\Hestia\Console\Commands\HestiaSyncCommand;
 use App\Domains\Invoicing\Console\Commands\GenerateRecurringInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\GenerateRenewalInvoicesCommand;
 use App\Domains\Invoicing\Console\Commands\SendOverdueRemindersCommand;
 use App\Domains\Projects\Console\Commands\GenerateAchievementReportsCommand;
-use App\Domains\Security\Console\Commands\WpScanCommand;
+use App\Domains\Providers\Console\Commands\SyncDomainExpiryCommand;
+use App\Domains\Quotation\Console\Commands\QuotationsExpireCommand;
+use App\Domains\Quotation\Console\Commands\QuotationsExpiringCommand;
 use App\Domains\Security\Console\Commands\FileIntegrityCommand;
-use App\Domains\Hestia\Console\Commands\DiskQuotaAlertsCommand;
-use App\Domains\Hestia\Console\Commands\HestiaSyncCommand;
+use App\Domains\Security\Console\Commands\WpScanCommand;
 use App\Domains\Services\Console\Commands\SendServiceRemindersCommand;
 use App\Domains\Services\Console\Commands\ServicesExpiringCommand;
+use App\Http\Middleware\AuthenticateSecurityApi;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -26,9 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Token API monitoring keamanan (F3-3).
         $middleware->alias([
-            'security.api' => \App\Http\Middleware\AuthenticateSecurityApi::class,
+            'security.api' => AuthenticateSecurityApi::class,
             // Hak akses per modul berbasis role (F4-1).
-            'permission' => \App\Domains\Access\Http\Middleware\EnsureModuleAccess::class,
+            'permission' => EnsureModuleAccess::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
@@ -53,6 +58,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('crm:send-overdue-reminders')->dailyAt('08:30');
         // Sinkronisasi akun hosting/domain dari HestiaCP (F3-1), setiap hari pukul 06:30.
         $schedule->command('hestia:sync')->dailyAt('06:30');
+        // Segarkan end_date domain dari provider aktif (t_f2ae1c62), harian
+        // 06:00 WIB (23:00 UTC) — sebelum draf invoice perpanjangan (07:30)
+        // dan pengingat layanan (08:00/08:15) membaca tanggal yang sudah segar.
+        // timezone() eksplisit: jadwal lain mengikuti timezone app (UTC).
+        $schedule->command('providers:sync-domain-expiry')->dailyAt('06:00')->timezone('Asia/Jakarta');
         // Alert kuota disk website (t_afef420a): 80% warning, 90% kritis.
         // Dijalankan setelah hestia:sync supaya angka pemakaian masih segar.
         $schedule->command('crm:disk-quota-alerts')->dailyAt('07:00');
@@ -67,10 +77,11 @@ return Application::configure(basePath: dirname(__DIR__))
         GenerateRenewalInvoicesCommand::class,
         GenerateRecurringInvoicesCommand::class,
         SendOverdueRemindersCommand::class,
-        \App\Domains\Quotation\Console\Commands\QuotationsExpiringCommand::class,
-        \App\Domains\Quotation\Console\Commands\QuotationsExpireCommand::class,
+        QuotationsExpiringCommand::class,
+        QuotationsExpireCommand::class,
         SendServiceRemindersCommand::class,
         HestiaSyncCommand::class,
+        SyncDomainExpiryCommand::class,
         DiskQuotaAlertsCommand::class,
         GenerateAchievementReportsCommand::class,
         WpScanCommand::class,
