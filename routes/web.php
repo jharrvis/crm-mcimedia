@@ -29,6 +29,7 @@ use App\Domains\Security\Http\Controllers\SecurityIncidentController;
 use App\Domains\Security\Http\Controllers\SecurityMonitoringController;
 use App\Domains\Security\Http\Controllers\SecurityPortalController;
 use App\Domains\Security\Http\Controllers\SecurityReportController;
+use App\Domains\Services\Http\Controllers\DomainController;
 use App\Domains\Services\Http\Controllers\ReminderController;
 use App\Domains\Services\Http\Controllers\ServiceController;
 use App\Domains\Tasks\Http\Controllers\TaskController;
@@ -133,6 +134,14 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:reminders')->name('reminders.send-email');
     Route::get('reports', ReportController::class)->middleware('permission:reports')->name('reports.index');
     Route::get('activity', [ActivityLogController::class, 'index'])->middleware('permission:activity')->name('activity.index');
+
+    // Daftar seluruh domain + mapping klien (t_ee922ded). Dipetakan ke modul
+    // `services` karena sumber datanya tabel `services` — tidak ada modul baru.
+    // Didaftarkan SEBELUM `services` di atas? Tidak perlu: pathnya berbeda
+    // (`domains` vs `services/{service}`), jadi tidak ada tabrakan rute.
+    Route::get('domains', [DomainController::class, 'index'])
+        ->middleware('permission:services')
+        ->name('domains.index');
 
     // Sinkronisasi HestiaCP (F3-1): daftar akun, jalankan sync, pemetaan manual.
     // F4-12: `servers` = CRUD server HestiaCP + uji koneksi + sync per server.

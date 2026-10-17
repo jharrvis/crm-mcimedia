@@ -6,6 +6,7 @@ use App\Domains\Catalog\Models\Product;
 use App\Domains\Clients\Models\Client;
 use App\Domains\Core\Traits\LogsActivity;
 use App\Domains\Invoicing\Models\Invoice;
+use App\Domains\Providers\Models\DomainProvider;
 use App\Domains\Services\Enums\ServiceCycle;
 use App\Domains\Services\Enums\ServiceStatus;
 use App\Domains\Services\Enums\ServiceType;
@@ -23,14 +24,15 @@ class Service extends Model
     use LogsActivity;
 
     protected $fillable = [
-        'client_id', 'parent_id', 'product_id', 'type', 'name', 'reference', 'start_date', 'end_date',
-        'price', 'cycle', 'status', 'reminder_enabled', 'notes',
+        'client_id', 'parent_id', 'product_id', 'domain_provider_id', 'type', 'name', 'reference',
+        'start_date', 'end_date', 'price', 'cycle', 'status', 'reminder_enabled', 'notes',
     ];
 
     protected function casts(): array
     {
         return [
             'product_id' => 'integer',
+            'domain_provider_id' => 'integer',
             'type' => ServiceType::class,
             'cycle' => ServiceCycle::class,
             'status' => ServiceStatus::class,
@@ -56,6 +58,11 @@ class Service extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function domainProvider(): BelongsTo
+    {
+        return $this->belongsTo(DomainProvider::class);
     }
 
     /** Subdomain/layanan anak yang dikelompokkan di bawah layanan ini (F4-9). */

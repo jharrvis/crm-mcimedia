@@ -5,9 +5,11 @@ namespace App\Domains\Providers\Models;
 use App\Domains\Core\Traits\LogsActivity;
 use App\Domains\Providers\Contracts\DomainProviderDriver;
 use App\Domains\Providers\DomainProviderRegistry;
+use App\Domains\Services\Models\Service;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Penyedia (provider) domain/hosting terdaftar di CRM (F4-5).
@@ -43,6 +45,12 @@ class DomainProvider extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /** Layanan (domain) yang tercatat berasal dari provider ini (t_ee922ded). */
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class, 'domain_provider_id');
     }
 
     /** Driver terkait provider ini (dibangun dari registry). */

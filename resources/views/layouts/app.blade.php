@@ -27,6 +27,7 @@
             ['route' => 'security.monitoring.index', 'match' => 'security.monitoring.*', 'label' => 'Monitoring Server', 'module' => 'security', 'icon' => 'activity'],
         ]],
         ['label' => 'Domain dan Hosting', 'icon' => 'globe', 'items' => [
+            ['route' => 'domains.index', 'match' => 'domains.*', 'label' => 'Domain', 'module' => 'services', 'icon' => 'globe'],
             ['route' => 'hestia.servers.index', 'match' => 'hestia.servers.*', 'label' => 'Server Hestia', 'module' => 'hestia', 'icon' => 'server'],
             ['route' => 'hestia.index', 'match' => 'hestia.index', 'label' => 'Sinkron Hestia', 'module' => 'hestia', 'icon' => 'refresh-cw'],
             ['route' => 'domain-providers.index', 'match' => 'domain-providers.*', 'label' => 'Provider Domain', 'module' => 'providers', 'icon' => 'globe'],

@@ -73,6 +73,7 @@ class ProviderServiceImporter
 
                 Service::create([
                     'client_id' => $clientId,
+                    'domain_provider_id' => $provider->id,
                     'type' => ServiceType::Domain,
                     'name' => $domain,
                     'reference' => $domain,
@@ -91,8 +92,20 @@ class ProviderServiceImporter
 
             // Sudah menjadi layanan (input manual atau impor sebelumnya): segarkan
             // hanya tanggal kedaluwarsa, sisanya tetap seperti admin terakhir.
+            // Pemetaan provider hanya diisi bila masih kosong — domain yang
+            // dipindah ke registrar lain oleh admin tidak ditimpa balik.
+            $fill = [];
+
             if ($endDate !== null) {
-                $existing->forceFill(['end_date' => $endDate])->save();
+                $fill['end_date'] = $endDate;
+            }
+
+            if ($existing->domain_provider_id === null) {
+                $fill['domain_provider_id'] = $provider->id;
+            }
+
+            if ($fill !== []) {
+                $existing->forceFill($fill)->save();
             }
 
             $updated++;
