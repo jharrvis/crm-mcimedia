@@ -155,12 +155,8 @@
                     <strong>{{ $business['email'] }}</strong> untuk informasi pembayaran.
                 </p>
             @endif
-        </div>
 
             <hr class="my-4 border-slate-200 dark:border-slate-700">
-
-            <p class="mb-4 text-sm text-slate-500">
-            </p>
 
             @if ($errors->any())
                 <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -199,5 +195,4 @@
             </form>
         </div>
     @endunless
-        </div>
 @endsection
