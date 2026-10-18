@@ -1,9 +1,20 @@
-{{-- Form bayar online via Pakasir — hanya tampil jika Pakasir dikonfigurasi --}}
+{{-- Form bayar online via Pakasir + QRIS Dinamis GoPay (backup) --}}
+@php
+    use App\Domains\Invoicing\Services\QrisDynamicService;
+
+    $qrisSvc = app(QrisDynamicService::class);
+    $qrisGopayEnabled = $qrisSvc->isEnabled() && ! $isPaid;
+    $qrisGopayPayload = $qrisGopayEnabled ? $qrisSvc->payloadFor($invoice) : null;
+    $qrisGopayAmount = $qrisGopayPayload ? $qrisSvc->payableAmount($invoice) : null;
+@endphp
 @if (config('pakasir.slug') && config('pakasir.api_key'))
     <div class="flex flex-wrap items-center gap-3">
         <select id="pakasir-method"
             class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
             <option value="qris">QRIS</option>
+            @if ($qrisGopayEnabled)
+                <option value="qris_gopay">QRIS GoPay</option>
+            @endif
             <option value="bri_va">BRI Virtual Account</option>
             <option value="bni_va">BNI Virtual Account</option>
             <option value="cimb_niaga_va">CIMB Niaga VA</option>
@@ -18,14 +29,53 @@
     </div>
     <div id="pakasir-result" class="mt-3 hidden text-sm"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
+const qrisGopayPayload = @json($qrisGopayPayload);
+const qrisGopayAmount = @json($qrisGopayAmount);
+
+// Polling status generik — dipakai Pakasir & QRIS GoPay
+function startPaidPolling(pollUrl, box, btn, originalBtnText) {
+    const timer = setInterval(async () => {
+        try {
+            const sres = await fetch(pollUrl, { headers: { 'Accept': 'application/json' } });
+            const sdata = await sres.json();
+            if (sdata.is_paid) {
+                clearInterval(timer);
+                box.innerHTML = '<p class="rounded-lg bg-emerald-100 px-4 py-3 font-semibold text-emerald-800">Pembayaran berhasil! Invoice lunas.</p>';
+                setTimeout(() => location.reload(), 1500);
+            }
+        } catch (e) { /* abaikan, coba lagi */ }
+    }, 5000);
+}
+
 document.getElementById('btn-pakasir-pay').addEventListener('click', async function () {
     const btn = this;
     const method = document.getElementById('pakasir-method').value;
     const box = document.getElementById('pakasir-result');
+    const originalBtnText = 'Bayar Rp {{ number_format($invoice->total, 0, ',', '.') }}';
     btn.disabled = true;
     btn.textContent = 'Memproses...';
     box.classList.add('hidden');
+
+    // QRIS GoPay dinamis — render langsung, tanpa API call
+    if (method === 'qris_gopay' && qrisGopayPayload) {
+        const amountStr = Number(qrisGopayAmount).toLocaleString('id-ID');
+        box.innerHTML = '<p class="mb-2 font-medium">Scan QRIS berikut dengan aplikasi apa saja (GoPay, DANA, OVO, m-banking):</p>'
+            + '<div id="qris-gopay-code" class="rounded border bg-white p-2 inline-block"></div>'
+            + '<p class="mt-2 font-semibold">Bayar tepat Rp ' + amountStr + ' (termasuk kode unik)</p>';
+        box.classList.remove('hidden');
+        new QRCode(document.getElementById('qris-gopay-code'), {
+            text: qrisGopayPayload,
+            width: 220,
+            height: 220,
+            correctLevel: QRCode.CorrectLevel.M,
+        });
+        btn.textContent = 'Menunggu pembayaran...';
+        startPaidPolling('{{ route('invoices.public.qris.status', ['token' => $invoice->public_token]) }}', box, btn, originalBtnText);
+        return;
+    }
+
     try {
         const res = await fetch('{{ route('invoices.public.pakasir.transaction', ['token' => $invoice->public_token]) }}', {
             method: 'POST',
@@ -58,23 +108,11 @@ document.getElementById('btn-pakasir-pay').addEventListener('click', async funct
         box.innerHTML = html || '<p>Transaksi dibuat. Silakan selesaikan pembayaran.</p>';
         box.classList.remove('hidden');
         btn.textContent = 'Menunggu pembayaran...';
-        // Polling status tiap 5 detik — auto update tanpa refresh
-        const pollUrl = '{{ route('invoices.public.pakasir.status', ['token' => $invoice->public_token]) }}';
-        const pollTimer = setInterval(async () => {
-            try {
-                const sres = await fetch(pollUrl, { headers: { 'Accept': 'application/json' } });
-                const sdata = await sres.json();
-                if (sdata.is_paid) {
-                    clearInterval(pollTimer);
-                    box.innerHTML = '<p class="rounded-lg bg-emerald-100 px-4 py-3 font-semibold text-emerald-800">Pembayaran berhasil! Invoice lunas.</p>';
-                    setTimeout(() => location.reload(), 1500);
-                }
-            } catch (e) { /* abaikan, coba lagi */ }
-        }, 5000);
+        startPaidPolling('{{ route('invoices.public.pakasir.status', ['token' => $invoice->public_token]) }}', box, btn, originalBtnText);
     } catch (e) {
         alert('Gagal: ' + e.message);
         btn.disabled = false;
-        btn.textContent = 'Bayar Rp {{ number_format($invoice->total, 0, ',', '.') }}';
+        btn.textContent = originalBtnText;
     }
 });
 </script>
