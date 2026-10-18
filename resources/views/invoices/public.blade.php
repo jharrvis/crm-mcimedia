@@ -115,9 +115,23 @@
                 <div class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                     @foreach ($bankAccounts as $account)
                         <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800">
-                            <p class="font-semibold text-slate-700 dark:text-slate-200">{{ $account['name'] }}</p>
-                            <p class="mt-1 font-mono text-base font-semibold tracking-wide">{{ $account['account_number'] }}</p>
-                            <p class="mt-1 text-xs text-slate-500">a.n. {{ $account['account_holder'] }}</p>
+                            @php
+                                $bankLogo = match (strtolower($account['name'])) {
+                                    'bca' => 'bca.png',
+                                    'bank jateng' => 'bankjateng.png',
+                                    default => null,
+                                };
+                            @endphp
+                            <div class="flex items-center gap-3">
+                                @if ($bankLogo)
+                                    <img src="{{ asset('images/pay/' . $bankLogo) }}" alt="{{ $account['name'] }}" class="h-12 w-12 object-contain">
+                                @endif
+                                <div>
+                                    <p class="font-semibold text-slate-700 dark:text-slate-200">{{ $account['name'] }}</p>
+                                    <p class="mt-1 font-mono text-base font-semibold tracking-wide">{{ $account['account_number'] }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">a.n. {{ $account['account_holder'] }}</p>
+                                </div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
