@@ -132,19 +132,14 @@
             @endif
         </div>
 
-        <!-- Bayar online via Pakasir -->
-        @if (config('pakasir.slug') && config('pakasir.api_key'))
+        <!-- Bayar online: modal gaya Midtrans -->
         <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
             <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Bayar online</h2>
             <p class="mb-4 text-sm text-slate-500">
                 Bayar langsung via QRIS atau Virtual Account. Status invoice otomatis terupdate setelah pembayaran berhasil.
             </p>
-            @include('invoices._pakasir_pay')
+            @include('invoices._pay_modal')
         </div>
-        @endif
-        @if (!(config('pakasir.slug') && config('pakasir.api_key')))
-            @include('invoices._qris_pay')
-        @endif
         <!-- Form konfirmasi transfer -->
         <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
             <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Konfirmasi transfer</h2>
