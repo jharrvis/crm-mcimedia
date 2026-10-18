@@ -13,11 +13,13 @@
             <div class="flex items-center gap-3">
                 @if (business_logo_url())
                     <img src="{{ business_logo_url() }}" alt="{{ config('crm.business.name') }}"
-                         class="h-9 w-auto max-w-[180px] object-contain">
+                         class="h-10 w-auto max-w-[200px] object-contain">
                 @else
-                    <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">M</div>
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">M</div>
+                        <p class="text-lg font-bold">{{ config('crm.business.name') }}</p>
+                    </div>
                 @endif
-                <p class="text-lg font-bold">{{ config('crm.business.name') }}</p>
             </div>
             <div class="flex items-center gap-2">
                 @yield('navbar_action')
