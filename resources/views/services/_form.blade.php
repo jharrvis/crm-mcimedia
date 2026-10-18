@@ -30,14 +30,14 @@
 
 <div class="grid gap-4 sm:grid-cols-2">
     <x-input name="client_id" label="Klien" type="select" :required="true" :options="$clientOptions" :value="old('client_id', $service?->client_id)" placeholder="" />
-    <x-input name="type" label="Jenis" type="select" :required="true" :options="$typeOptions" :value="$typeValue" />
+    <x-input name="type" label="Jenis" type="select" :required="true" :options="$typeOptions" :value="$typeValue" hint="Pilih jenis utama. Detail isi bundle (domain apa + hosting yang mana) tulis di Nama layanan dan Catatan." />
     <div class="sm:col-span-2">
-        <x-input name="name" label="Nama layanan" :required="true" :value="$service?->name" placeholder="mis. Hosting Bisnis" />
+        <x-input name="name" label="Nama layanan" :required="true" :value="$service?->name" placeholder="mis. Paket Hosting Bisnis + Domain — Qirana" hint="Nama paket/bundle sesuai kesepakatan dengan klien. Bisa berupa: domain + hosting, hosting saja, atau beberapa domain + hosting." />
     </div>
     <div class="sm:col-span-2" data-parent-field>
         <x-input name="parent_id" label="Domain induk (subdomain)" type="select" :options="$parentOptions" :value="(string) $parentValue" inputId="service-parent" hint="Pilih domain induk bila layanan ini subdomain, agar tampil terkelompok di bawah domain induknya. Hanya untuk jenis Domain dan harus milik klien yang sama." />
     </div>
-    <x-input name="reference" label="Domain / server terkait" :value="$service?->reference" placeholder="mis. contoh.com" />
+    <x-input name="reference" label="Domain terkait" :value="$service?->reference" placeholder="mis. contoh.com, contoh.net" hint="Pisahkan dengan koma bila bundle mencakup beberapa domain." />
     <div class="sm:col-span-2">
         <x-input name="product_id" label="Produk katalog" type="select" :options="$productRows" :value="(string) old('product_id', $service?->product_id ?? '')" inputId="service-product" placeholder="— Tanpa produk (pakai harga manual) —" hint="Bila dipilih, invoice perpanjangan otomatis memakai harga terbaru dari katalog produk ini. Harga manual tetap bisa disesuaikan." />
     </div>
