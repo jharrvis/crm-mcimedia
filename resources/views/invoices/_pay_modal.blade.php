@@ -10,11 +10,15 @@
 @endphp
 @if ($pakasirEnabled || $qrisGopayEnabled)
 <div class="mt-4">
-    <button id="btn-open-pay-modal"
-        class="w-full rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700">
-        Bayar Rp {{ number_format($invoice->total, 0, ',', '.') }}
-    </button>
-    <p class="mt-2 text-center text-xs text-slate-500">Status invoice otomatis terupdate setelah pembayaran berhasil.</p>
+    {{-- Spacer agar konten tidak tertutup tombol sticky di mobile --}}
+    <div class="h-16 sm:hidden"></div>
+    <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/95 sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none dark:sm:bg-transparent">
+        <button id="btn-open-pay-modal"
+            class="w-full rounded-lg bg-emerald-600 px-5 py-3.5 text-base font-semibold text-white shadow-lg hover:bg-emerald-700 sm:py-3 sm:text-sm sm:shadow-none">
+            Bayar Rp {{ number_format($invoice->total, 0, ',', '.') }}
+        </button>
+        <p class="mt-1.5 text-center text-xs text-slate-500">Status invoice otomatis terupdate setelah pembayaran berhasil.</p>
+    </div>
 </div>
 
 {{-- Modal --}}

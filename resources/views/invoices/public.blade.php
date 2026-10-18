@@ -2,6 +2,14 @@
 
 @section('title', 'Invoice '.$invoice->number)
 
+@section('navbar_action')
+    <a href="{{ route('invoices.public.pdf', ['token' => $invoice->public_token]) }}"
+       class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-red-700">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
+        Unduh PDF
+    </a>
+@endsection
+
 @section('content')
 @php
     use App\Domains\Invoicing\Enums\InvoiceStatus;
@@ -35,13 +43,6 @@
                 <span class="mt-1 inline-block rounded-full px-3 py-1 text-sm font-semibold {{ $statusClasses[$invoice->status->value] ?? 'bg-slate-200 text-slate-600' }}">
                     {{ $invoice->status->label() }}
                 </span>
-                <div class="mt-2">
-                    <a href="{{ route('invoices.public.pdf', ['token' => $invoice->public_token]) }}"
-                       class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
-                        Unduh PDF
-                    </a>
-                </div>
             </div>
         </div>
 
