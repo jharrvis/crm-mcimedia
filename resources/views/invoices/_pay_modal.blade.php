@@ -40,7 +40,7 @@
             <button data-method="qris_gopay"
                 class="pay-method-btn flex w-full items-center justify-between rounded-lg px-3 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800">
                 <span class="flex items-center gap-3">
-                    <img src="{{ asset('images/pay/qris.png') }}" alt="QRIS" class="h-8 w-auto">
+                    <img src="{{ asset('images/pay/qris.png') }}" alt="QRIS" class="h-12 w-12 object-contain">
                     <span>
                         <span class="block text-sm font-semibold text-slate-900 dark:text-white">QRIS <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">REKOMENDASI</span></span>
                         <span class="block text-xs text-slate-500">GoPay, DANA, OVO, m-banking — Rp {{ number_format($qrisGopayAmount, 0, ',', '.') }}</span>
@@ -53,7 +53,7 @@
             <button data-method="qris"
                 class="pay-method-btn flex w-full items-center justify-between rounded-lg px-3 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800">
                 <span class="flex items-center gap-3">
-                    <img src="{{ asset('images/pay/qris.png') }}" alt="QRIS" class="h-8 w-auto">
+                    <img src="{{ asset('images/pay/qris.png') }}" alt="QRIS" class="h-12 w-12 object-contain">
                     <span>
                         <span class="block text-sm font-semibold text-slate-900 dark:text-white">QRIS</span>
                         <span class="block text-xs text-slate-500">Via Pakasir</span>
@@ -62,11 +62,11 @@
                 <span class="text-slate-400">&rsaquo;</span>
             </button>
             <div class="px-3 py-2 text-xs font-semibold uppercase text-slate-400">Virtual Account</div>
-            @foreach (['bri_va' => ['BRI', 'bri.png'], 'bni_va' => ['BNI', 'bni.png'], 'cimb_niaga_va' => ['CIMB Niaga', 'cimb.svg'], 'maybank_va' => ['Maybank', 'maybank.png'], 'permata_va' => ['Permata', 'permata.png']] as $code => [$bank, $logo])
+            @foreach (['bri_va' => ['BRI', 'bri.png'], 'bni_va' => ['BNI', 'bni.png'], 'cimb_niaga_va' => ['CIMB Niaga', 'cimb.png'], 'maybank_va' => ['Maybank', 'maybank.png'], 'permata_va' => ['Permata', 'permata.webp']] as $code => [$bank, $logo])
             <button data-method="{{ $code }}"
                 class="pay-method-btn flex w-full items-center justify-between rounded-lg px-3 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800">
                 <span class="flex items-center gap-3">
-                    <img src="{{ asset('images/pay/' . $logo) }}" alt="{{ $bank }}" class="h-7 w-auto max-w-[80px] object-contain">
+                    <img src="{{ asset('images/pay/' . $logo) }}" alt="{{ $bank }}" class="h-12 w-12 object-contain">
                     <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ $bank }} Virtual Account</span>
                 </span>
                 <span class="text-slate-400">&rsaquo;</span>
@@ -162,7 +162,7 @@
                 const amountStr = Number(qrisGopayAmount).toLocaleString('id-ID');
                 showDetail(
                     '<div class="mb-3 flex items-center justify-center gap-3">'
-                    + '<img src=\'{{ asset('images/pay/qris.png') }}\' alt="QRIS" class="h-10 w-auto">'
+                    + '<img src=\'{{ asset('images/pay/qris.png') }}\' alt="QRIS" class="h-12 w-12 object-contain">'
                     + '<span class="rounded-lg bg-[#00AED6] px-3 py-1.5 text-sm font-bold text-white">GoPay</span>'
                     + '</div>'
                     + '<p class="mb-2 text-center font-medium">Scan QRIS berikut:</p>'
