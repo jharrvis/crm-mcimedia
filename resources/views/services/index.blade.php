@@ -89,7 +89,7 @@
                             <x-badge variant="warning" :dot="true" class="ml-1">{{ $days }} hari</x-badge>
                         @endif
                     </td>
-                    <td class="text-right">{{ rupiah($service->price) }}</td>
+                    <td class="text-right">{{ rupiah($service->renewalUnitPrice()) }}</td>
                     <td>
                         <x-badge :variant="$service->status->value === 'active' ? 'success' : 'slate'" :dot="true">
                             {{ $service->status->label() }}

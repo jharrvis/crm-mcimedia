@@ -93,7 +93,7 @@
                             </td>
                             <td>{{ $service->type->label() }}</td>
                             <td>{{ tgl_id($service->end_date) }}</td>
-                            <td class="text-right">{{ rupiah($service->price) }}</td>
+                            <td class="text-right">{{ rupiah($service->renewalUnitPrice()) }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="4">
