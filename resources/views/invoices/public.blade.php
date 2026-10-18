@@ -104,9 +104,20 @@
     </div>
 
     @unless ($isPaid)
-        <!-- Instruksi transfer -->
+        <!-- Bayar online: modal gaya Midtrans -->
         <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-            <h2 class="mb-3 text-sm font-semibold uppercase text-slate-500">Instruksi transfer</h2>
+            <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Bayar online <span class="normal-case text-emerald-600">(Dikonfirmasi otomatis)</span></h2>
+            <p class="mb-4 text-sm text-slate-500">
+                Bayar langsung via QRIS atau Virtual Account. Status invoice otomatis terupdate setelah pembayaran berhasil.
+            </p>
+            @include('invoices._pay_modal')
+        </div>
+        <!-- Transfer manual: instruksi + konfirmasi digabung -->
+        <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+            <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Transfer manual</h2>
+            <p class="mb-4 text-sm text-slate-500">
+                Transfer ke rekening kami, lalu isi form konfirmasi di bawah. Admin akan memverifikasi dan menandai invoice lunas.
+            </p>
             @if ($bankAccounts !== [])
                 <p class="text-sm text-slate-600 dark:text-slate-300">
                     Mohon transfer ke <strong>salah satu</strong> rekening berikut dan sertakan nomor invoice
@@ -146,19 +157,9 @@
             @endif
         </div>
 
-        <!-- Bayar online: modal gaya Midtrans -->
-        <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-            <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Bayar online</h2>
+            <hr class="my-4 border-slate-200 dark:border-slate-700">
+
             <p class="mb-4 text-sm text-slate-500">
-                Bayar langsung via QRIS atau Virtual Account. Status invoice otomatis terupdate setelah pembayaran berhasil.
-            </p>
-            @include('invoices._pay_modal')
-        </div>
-        <!-- Form konfirmasi transfer -->
-        <div class="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-            <h2 class="mb-1 text-sm font-semibold uppercase text-slate-500">Konfirmasi transfer</h2>
-            <p class="mb-4 text-sm text-slate-500">
-                Sudah transfer manual ke rekening kami? Isi form berikut. Admin akan memverifikasi dan menandai invoice lunas.
             </p>
 
             @if ($errors->any())
@@ -198,5 +199,5 @@
             </form>
         </div>
     @endunless
-</div>
+        </div>
 @endsection
