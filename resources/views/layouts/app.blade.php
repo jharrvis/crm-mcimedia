@@ -30,6 +30,7 @@
             ['route' => 'hestia.servers.index', 'match' => 'hestia.servers.*', 'label' => 'Server Hestia', 'module' => 'hestia', 'icon' => 'server'],
             ['route' => 'hestia.index', 'match' => 'hestia.index', 'label' => 'Sinkron Hestia', 'module' => 'hestia', 'icon' => 'refresh-cw'],
             ['route' => 'domain-providers.index', 'match' => 'domain-providers.*', 'label' => 'Provider Domain', 'module' => 'providers', 'icon' => 'globe'],
+            ['route' => 'domains.index', 'match' => 'domains.*', 'label' => 'Daftar Domain', 'module' => 'services', 'icon' => 'globe'],
         ]],
         ['label' => 'Lainnya', 'icon' => 'layout-grid', 'items' => [
             ['route' => 'reminders.index', 'match' => 'reminders.*', 'label' => 'Pengingat', 'module' => 'reminders', 'icon' => 'bell', 'badge' => true],

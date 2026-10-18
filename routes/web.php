@@ -95,6 +95,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:clients');
 
     Route::resource('services', ServiceController::class)->middleware('permission:services');
+    Route::get('domains', [\App\Domains\Services\Http\Controllers\DomainController::class, 'index'])
+        ->name('domains.index')->middleware('permission:services');
     Route::resource('projects', ProjectController::class)->middleware('permission:projects');
 
     // Jurnal progress project (F3-4).
