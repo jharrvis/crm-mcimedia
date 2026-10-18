@@ -37,7 +37,7 @@
                 </span>
                 <div class="mt-2">
                     <a href="{{ route('invoices.public.pdf', ['token' => $invoice->public_token]) }}"
-                       class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+                       class="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
                         Unduh PDF
                     </a>
@@ -145,7 +145,7 @@
                         </div>
                     @endforeach
                 </div>
-                <dl class="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                <dl class="mb-2 mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                     <div><dt class="text-slate-500">Jumlah</dt><dd class="font-semibold">{{ rupiah($invoice->total) }}</dd></div>
                 </dl>
             @else
@@ -155,7 +155,7 @@
                 </p>
             @endif
 
-            <hr class="my-4 border-slate-200 dark:border-slate-700">
+            <hr class="mb-6 mt-4 border-slate-200 dark:border-slate-700">
 
             @if ($errors->any())
                 <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
