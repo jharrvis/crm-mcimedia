@@ -39,9 +39,12 @@
             @if ($qrisGopayEnabled)
             <button data-method="qris_gopay"
                 class="pay-method-btn flex w-full items-center justify-between rounded-lg px-3 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800">
-                <span>
-                    <span class="block text-sm font-semibold text-slate-900 dark:text-white">QRIS <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">REKOMENDASI</span></span>
-                    <span class="block text-xs text-slate-500">GoPay, DANA, OVO, m-banking — Rp {{ number_format($qrisGopayAmount, 0, ',', '.') }}</span>
+                <span class="flex items-center gap-3">
+                    <img src="{{ asset('images/pay/qris.png') }}" alt="QRIS" class="h-8 w-auto">
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-900 dark:text-white">QRIS <span class="ml-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">REKOMENDASI</span></span>
+                        <span class="block text-xs text-slate-500">GoPay, DANA, OVO, m-banking — Rp {{ number_format($qrisGopayAmount, 0, ',', '.') }}</span>
+                    </span>
                 </span>
                 <span class="text-slate-400">&rsaquo;</span>
             </button>
@@ -49,17 +52,23 @@
             @if ($pakasirEnabled)
             <button data-method="qris"
                 class="pay-method-btn flex w-full items-center justify-between rounded-lg px-3 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800">
-                <span>
-                    <span class="block text-sm font-semibold text-slate-900 dark:text-white">QRIS</span>
-                    <span class="block text-xs text-slate-500">Via Pakasir</span>
+                <span class="flex items-center gap-3">
+                    <img src="{{ asset('images/pay/qris.png') }}" alt="QRIS" class="h-8 w-auto">
+                    <span>
+                        <span class="block text-sm font-semibold text-slate-900 dark:text-white">QRIS</span>
+                        <span class="block text-xs text-slate-500">Via Pakasir</span>
+                    </span>
                 </span>
                 <span class="text-slate-400">&rsaquo;</span>
             </button>
             <div class="px-3 py-2 text-xs font-semibold uppercase text-slate-400">Virtual Account</div>
-            @foreach (['bri_va' => 'BRI', 'bni_va' => 'BNI', 'cimb_niaga_va' => 'CIMB Niaga', 'maybank_va' => 'Maybank', 'permata_va' => 'Permata'] as $code => $bank)
+            @foreach (['bri_va' => ['BRI', 'bri.png'], 'bni_va' => ['BNI', 'bni.png'], 'cimb_niaga_va' => ['CIMB Niaga', 'cimb.svg'], 'maybank_va' => ['Maybank', 'maybank.png'], 'permata_va' => ['Permata', 'permata.png']] as $code => [$bank, $logo])
             <button data-method="{{ $code }}"
                 class="pay-method-btn flex w-full items-center justify-between rounded-lg px-3 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-800">
-                <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ $bank }} Virtual Account</span>
+                <span class="flex items-center gap-3">
+                    <img src="{{ asset('images/pay/' . $logo) }}" alt="{{ $bank }}" class="h-7 w-auto max-w-[80px] object-contain">
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ $bank }} Virtual Account</span>
+                </span>
                 <span class="text-slate-400">&rsaquo;</span>
             </button>
             @endforeach
@@ -152,7 +161,11 @@
             if (method === 'qris_gopay' && qrisGopayPayload) {
                 const amountStr = Number(qrisGopayAmount).toLocaleString('id-ID');
                 showDetail(
-                    '<p class="mb-2 font-medium">Scan QRIS berikut:</p>'
+                    '<div class="mb-3 flex items-center justify-center gap-3">'
+                    + '<img src=\'{{ asset('images/pay/qris.png') }}\' alt="QRIS" class="h-10 w-auto">'
+                    + '<span class="rounded-lg bg-[#00AED6] px-3 py-1.5 text-sm font-bold text-white">GoPay</span>'
+                    + '</div>'
+                    + '<p class="mb-2 text-center font-medium">Scan QRIS berikut:</p>'
                     + '<div class="flex justify-center"><div id="qris-gopay-code" class="rounded border bg-white p-3 inline-block"></div></div>'
                     + '<p class="mt-3 text-center font-semibold">Bayar tepat Rp ' + amountStr + '</p>'
                     + '<p class="mt-1 text-center text-xs text-slate-500">GoPay, DANA, OVO, m-banking — nominal sudah termasuk kode unik</p>'
