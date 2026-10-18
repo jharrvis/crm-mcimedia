@@ -18,7 +18,7 @@
 </div>
 
 {{-- Modal --}}
-<div id="pay-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+<div id="pay-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
     <div class="max-h-[90vh] w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-slate-900">
         {{-- Header --}}
         <div class="flex items-center justify-between bg-slate-800 px-5 py-4 text-white">
@@ -109,6 +109,21 @@
         detailContent.innerHTML = html;
         detailView.classList.remove('hidden');
     }
+    // Ubah error mentah (berisi JSON) jadi pesan yang enak dibaca user
+    function friendlyError(raw) {
+        let msg = String(raw || '');
+        // Cari JSON {"message":"..."} yang tertanam di dalam string
+        const m = msg.match(/\{"message"\s*:\s*"([^"]+)"/);
+        if (m) msg = m[1];
+        // Buang sisa JSON mentah bila masih ada
+        msg = msg.replace(/\{.*\}\s*$/, '').trim();
+        if (!msg) msg = 'Terjadi kesalahan. Silakan coba lagi.';
+        return '<div class="rounded-lg bg-red-50 px-4 py-4 text-center dark:bg-red-900/20">'
+            + '<p class="font-semibold text-red-700 dark:text-red-300">Pembayaran gagal dibuat</p>'
+            + '<p class="mt-1 text-sm text-red-600 dark:text-red-400">' + msg.replace(/</g, '&lt;') + '</p>'
+            + '<p class="mt-2 text-xs text-slate-500">Silakan pilih metode lain atau coba lagi.</p>'
+            + '</div>';
+    }
     function startPolling(url) {
         if (pollTimer) clearInterval(pollTimer);
         pollTimer = setInterval(async () => {
@@ -182,7 +197,7 @@
                 showDetail(html || '<p>Transaksi dibuat. Silakan selesaikan pembayaran.</p>');
                 startPolling('{{ route('invoices.public.pakasir.status', ['token' => $invoice->public_token]) }}');
             } catch (e) {
-                showDetail('<p class="text-red-600">Gagal: ' + e.message + '</p>');
+                showDetail(friendlyError(e.message));
             }
         });
     });
