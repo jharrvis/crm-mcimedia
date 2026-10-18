@@ -163,7 +163,7 @@
                 showDetail(
                     '<div class="mb-3 flex items-center justify-center gap-3">'
                     + '<img src=\'{{ asset('images/pay/qris.png') }}\' alt="QRIS" class="h-12 w-12 object-contain">'
-                    + '<img src=\'{{ asset(\'images/pay/gopay.png\') }}\' alt="GoPay" class="h-12 w-12 object-contain">'
+                    + '<img src=\'{{ asset('images/pay/gopay.png') }}\' alt="GoPay" class="h-12 w-12 object-contain">'
                     + '</div>'
                     + '<p class="mb-2 text-center font-medium">Scan QRIS berikut:</p>'
                     + '<div class="flex justify-center"><div id="qris-gopay-code" class="rounded border bg-white p-3 inline-block"></div></div>'
